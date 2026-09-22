@@ -3,7 +3,7 @@
 ## Problem
 
 - We can't see which MLB games are live today, or their scores.
-- We have no queryable 2026 season dataset (games, plate appearances, pitches) for analytics.
+- We have no queryable 2026 season dataset (games, plays, pitches) for analytics.
 - The only source is MLB's unofficial Stats API, so we must fetch politely and avoid re-fetching data we already have.
 
 ## Solution
@@ -58,12 +58,12 @@ Rollback: the derived tables can be dropped and rebuilt from `raw_game_feeds`.
 TypeScript writes two tables. SQL derives the rest. Every table has `season`. DDL lives in ordered files under `sql/`.
 
 - **`raw_game_feeds`** (TS): `game_pk` PK, `season`, `feed_ts`, `fetched_at`, `json JSON`. Holds the latest feed per game, replaced when `feed_ts` changes.
-- **`games`** (TS): `game_pk` PK, `season`, `official_date`, `game_type`, `game_number`, `abstract_state`, `coded_state`, `detailed_state`, `home_team_id`, `away_team_id`, `home_score`, `away_score`, `inning`, `inning_half`, `start_utc`, `updated_at`.
-- **`plate_appearances`** (SQL): keyed by `(game_pk, at_bat_index)`.
+- **`games`** (TS): `game_pk` PK, `season`, `official_date`, `game_type`, `game_number`, `abstract_state`, `coded_state`, `detailed_state`, `home_team_id`, `away_team_id`, `home_score`, `away_score`, `inning`, `inning_half`, `start_utc`, `venue_name`, `home_record`, `away_record`, `updated_at`.
+- **`plays`** (SQL): one row per completed play, keyed by `(game_pk, at_bat_index)`.
 - **`pitches`** (SQL): keyed by `(game_pk, at_bat_index, pitch_index)`, because `playId` can be null.
 - **`players`, `teams`** (SQL): the latest row per id, taken from `gameData`.
 
-Derived tables are real tables, not views, because a view would re-parse the JSON on every query. `sql/derive.sql` deletes and re-inserts one game's rows. Run without the game filter, the same SQL rebuilds everything.
+Derived tables are real tables, not views, because a view would re-parse the JSON on every query. `sql/derive.sql` parses each feed once with `json_transform` into a temp table, then deletes and re-inserts one game's rows. Run without the game filter, the same SQL rebuilds everything. Players and teams come only from played games.
 
 ### Events
 
@@ -78,7 +78,7 @@ Events carry ids only. Feeds exceed the free tier's 256 KB event limit.
 
 - **`scoreboard`**
   - Cron, every minute, limited to baseball months and hours: `TZ=UTC * 15-23,0-7 * 2-11 *` (February–November, about 11am–4am ET).
-  - One schedule call for yesterday and today, which catches late-running and resumed games. Do we need a future fetch, too?
+  - One schedule call for yesterday and today (US Eastern), which catches late-running and resumed games. No future fetch: tomorrow's games appear once the date rolls over.
   - Upsert `games`, and publish to Inngest Realtime only for rows that changed.
   - Emit `mlb/game.final` when `coded_state` becomes `F` or `O`.
 - **`backfill-season`**
@@ -86,7 +86,7 @@ Events carry ids only. Feeds exceed the free tier's 256 KB event limit.
   - Upsert `games`, then one `step.sendEvent` of `mlb/game.final` for every completed game (under the 5,000-per-send limit).
 - **`ingest-game`**
   - Triggered by `mlb/game.final`, with concurrency 2 (1 offline).
-  - One step: fetch the feed, skip if `feed_ts` is unchanged, upsert raw, run `derive.sql`.
+  - One step: fetch the feed, then in one transaction upsert raw (skipped if `feed_ts` is unchanged) and run `derive.sql`, so a failed derive is retried.
   - Returns only a summary, which keeps the 670 KB feed out of Inngest state.
   - Inngest retries handle MLB errors.
 
@@ -94,8 +94,9 @@ Events carry ids only. Feeds exceed the free tier's 256 KB event limit.
 
 - `DUCKDB_URL`: `md:bullpen_dev`, `md:bullpen` or a local file path.
 - `MOTHERDUCK_TOKEN`
+- `INNGEST_DEV=1` locally; `INNGEST_SIGNING_KEY` and `INNGEST_EVENT_KEY` in prod.
 
-Both live in `.env.local`, which is gitignored.
+All live in `.env.local`, which is gitignored.
 
 ## Testing
 
