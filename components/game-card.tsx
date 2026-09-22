@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatGameTime } from "@/lib/format";
-import type { Game, GameSide } from "@/lib/games";
+import type { Game, GameSide } from "@/lib/scoreboard";
 import { cn } from "@/lib/utils";
 
 function StatusBadge({ game }: { game: Game }) {
@@ -11,18 +11,22 @@ function StatusBadge({ game }: { game: Game }) {
     return (
       <Badge className="bg-main text-main-foreground">
         <span className="size-2 animate-pulse rounded-full bg-main-foreground" />
-        Live · {status.inning}
+        {[status.note ?? "Live", status.inning].filter(Boolean).join(" · ")}
       </Badge>
     );
   }
 
   if (status.state === "final") {
-    return (
-      <Badge>{status.innings === 9 ? "Final" : `Final/${status.innings}`}</Badge>
-    );
+    const final = status.innings === 9 ? "Final" : `Final/${status.innings}`;
+    return <Badge>{status.note ? `${final} · ${status.note}` : final}</Badge>;
   }
 
-  return <Badge variant="neutral">{formatGameTime(game.startTime)}</Badge>;
+  if (status.state === "postponed") return <Badge variant="neutral">Postponed</Badge>;
+  if (status.state === "suspended") return <Badge variant="neutral">Suspended</Badge>;
+  if (status.state === "cancelled") return <Badge variant="neutral">Cancelled</Badge>;
+
+  const time = formatGameTime(game.startTime);
+  return <Badge variant="neutral">{status.note ? `${status.note} · ${time}` : time}</Badge>;
 }
 
 function TeamRow({ side, dimmed }: { side: GameSide; dimmed: boolean }) {
@@ -33,7 +37,9 @@ function TeamRow({ side, dimmed }: { side: GameSide; dimmed: boolean }) {
       </span>
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="truncate font-heading">{side.team.name}</span>
-        <span className="text-xs opacity-70">{side.team.record}</span>
+        {side.team.record && (
+          <span className="text-xs opacity-70">{side.team.record}</span>
+        )}
       </div>
       {side.score !== undefined && (
         <span className="text-2xl font-heading tabular-nums">{side.score}</span>
@@ -52,7 +58,10 @@ export function GameCard({ game }: { game: Game }) {
     <Card size="sm">
       <CardContent className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-2">
-          <StatusBadge game={game} />
+          <div className="flex items-center gap-2">
+            <StatusBadge game={game} />
+            {game.postseason && <Badge variant="neutral">{game.postseason}</Badge>}
+          </div>
           <span className="truncate text-xs opacity-70">{game.venue}</span>
         </div>
         <div className="flex flex-col gap-3">
