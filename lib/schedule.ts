@@ -2,11 +2,10 @@ import type { DuckDBConnection, DuckDBValue } from "@duckdb/node-api";
 import { scoreUpdate } from "@/lib/inngest/realtime";
 import type { ScheduleGame, ScheduleResponse } from "@/lib/mlb";
 
-// One row of the `games` table. `updated_at` is set on write.
 export type GameRow = {
   gamePk: number;
   season: number;
-  officialDate: string; // YYYY-MM-DD
+  officialDate: string;
   gameType: string;
   gameNumber: number;
   abstractState: string;
@@ -18,13 +17,12 @@ export type GameRow = {
   awayScore: number | null;
   inning: number | null;
   inningHalf: string | null;
-  startUtc: string; // ISO 8601, UTC
+  startUtc: string;
   venueName: string | null;
-  homeRecord: string | null; // "W-L"
+  homeRecord: string | null;
   awayRecord: string | null;
 };
 
-// Column order shared by the read and the write. [row key, column, SQL type].
 const COLUMNS = [
   ["gamePk", "game_pk", "INTEGER"],
   ["season", "season", "INTEGER"],
@@ -50,7 +48,6 @@ const SCOREBOARD_FIELDS = scoreUpdate.keyof().options satisfies readonly (keyof 
 
 const INSERT_CHUNK = 500;
 
-// Final (F) or completed early (O). Postponed games are abstract "Final" with coded D.
 export function wasPlayed(codedState: string): boolean {
   return codedState === "F" || codedState === "O";
 }
@@ -85,13 +82,6 @@ function toRow(g: ScheduleGame): GameRow {
   };
 }
 
-// Flattens the schedule to one row per gamePk.
-//
-// A game can appear under two schedule dates. A postponed game keeps a coded-D
-// entry on its original date and gets a second entry on its makeup date; a
-// suspended game has an entry on the day it started and the day it resumed. In
-// both cases the entry under the later schedule date reflects what actually
-// happened, so it wins. Ties (not seen in practice) go to the more advanced state.
 export function parseSchedule(json: ScheduleResponse): GameRow[] {
   const best = new Map<number, { date: string; row: GameRow }>();
   for (const { date, games } of json.dates ?? []) {
@@ -104,7 +94,6 @@ export function parseSchedule(json: ScheduleResponse): GameRow[] {
   return [...best.values()].map((v) => v.row);
 }
 
-// Pure: compares fetched rows against what the table holds.
 export function diffGames(prev: Map<number, GameRow>, next: GameRow[]) {
   const scoreChanges: GameRow[] = [];
   const newlyFinal: GameRow[] = [];
@@ -155,7 +144,6 @@ async function writeGames(conn: DuckDBConnection, rows: GameRow[]) {
   }
 }
 
-// Reads existing rows once, then writes only rows that differ.
 export async function upsertGames(
   conn: DuckDBConnection,
   rows: GameRow[],
