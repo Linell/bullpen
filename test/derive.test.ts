@@ -103,10 +103,20 @@ describe("derive.sql", () => {
     expect(Number(bad.n)).toBe(0);
   });
 
+  it("takes teams and players only from games that were played", async () => {
+    const [fromPostponed] = await rows(
+      conn,
+      `SELECT (SELECT count(*) FROM teams WHERE source_game_pk = $gamePk)
+            + (SELECT count(*) FROM players WHERE source_game_pk = $gamePk) AS n`,
+      { gamePk: POSTPONED },
+    );
+    expect(Number(fromPostponed.n)).toBe(0);
+  });
+
   it("keeps the newest row per team and player", async () => {
     const teams = await rows(conn, "SELECT * FROM teams ORDER BY team_id");
     const newest = new Map<number, string>();
-    for (const f of feeds) {
+    for (const f of played) {
       for (const t of [f.gameData.teams.home, f.gameData.teams.away]) {
         const date = f.gameData.datetime.officialDate;
         if ((newest.get(t.id) ?? "") < date) newest.set(t.id, date);

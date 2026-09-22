@@ -61,7 +61,8 @@ SELECT
   coalesce(g.gameData.game.gameNumber, 1) AS game_number,
   map_values(g.gameData.teams) AS home_and_away,
   map_values(g.gameData.players) AS roster,
-  g.liveData.plays.allPlays AS all_plays
+  g.liveData.plays.allPlays AS all_plays,
+  len(g.liveData.plays.allPlays) > 0 AS was_played
 FROM parsed;
 
 CREATE OR REPLACE TEMP TABLE completed_plays AS
@@ -249,7 +250,7 @@ WITH newest_team_rows AS (
     official_date AS source_date,
     game_number AS source_game_number
   FROM feed, unnest(home_and_away) AS unnested(team)
-  WHERE team.id IS NOT NULL
+  WHERE was_played AND team.id IS NOT NULL
   QUALIFY row_number() OVER (
     PARTITION BY team_id ORDER BY source_date DESC, source_game_number DESC, source_game_pk DESC
   ) = 1
@@ -284,7 +285,7 @@ WITH newest_player_rows AS (
     official_date AS source_date,
     game_number AS source_game_number
   FROM feed, unnest(roster) AS unnested(player)
-  WHERE player.id IS NOT NULL
+  WHERE was_played AND player.id IS NOT NULL
   QUALIFY row_number() OVER (
     PARTITION BY player_id ORDER BY source_date DESC, source_game_number DESC, source_game_pk DESC
   ) = 1
