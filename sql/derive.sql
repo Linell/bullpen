@@ -1,5 +1,73 @@
--- Rebuilds derived rows from raw_game_feeds for one game ($game_pk), or for every game
--- when $game_pk is NULL. Idempotent. lib/feeds.ts runs the statements one at a time.
+CREATE OR REPLACE TEMP TABLE feed AS
+WITH parsed AS (
+  SELECT game_pk, season, json_transform(json, '{
+    "gameData": {
+      "datetime": {"officialDate": "DATE"},
+      "game": {"gameNumber": "INTEGER"},
+      "teams": "MAP(VARCHAR, STRUCT(id INTEGER, name VARCHAR, teamName VARCHAR, abbreviation VARCHAR, locationName VARCHAR, shortName VARCHAR, teamCode VARCHAR, league STRUCT(id INTEGER, name VARCHAR), division STRUCT(id INTEGER, name VARCHAR), venue STRUCT(id INTEGER, name VARCHAR)))",
+      "players": "MAP(VARCHAR, STRUCT(id INTEGER, fullName VARCHAR, firstName VARCHAR, lastName VARCHAR, boxscoreName VARCHAR, primaryNumber VARCHAR, primaryPosition STRUCT(abbreviation VARCHAR), batSide STRUCT(code VARCHAR), pitchHand STRUCT(code VARCHAR), birthDate DATE, height VARCHAR, weight INTEGER, mlbDebutDate DATE, active BOOLEAN, strikeZoneTop DOUBLE, strikeZoneBottom DOUBLE))"
+    },
+    "liveData": {"plays": {"allPlays": [{
+      "about": {
+        "atBatIndex": "INTEGER", "inning": "INTEGER", "halfInning": "VARCHAR", "isComplete": "BOOLEAN",
+        "isScoringPlay": "BOOLEAN", "hasReview": "BOOLEAN", "startTime": "TIMESTAMPTZ", "endTime": "TIMESTAMPTZ"
+      },
+      "matchup": {
+        "batter": {"id": "INTEGER"}, "pitcher": {"id": "INTEGER"},
+        "batSide": {"code": "VARCHAR"}, "pitchHand": {"code": "VARCHAR"}, "splits": {"menOnBase": "VARCHAR"}
+      },
+      "result": {
+        "event": "VARCHAR", "eventType": "VARCHAR", "description": "VARCHAR", "rbi": "INTEGER",
+        "isOut": "BOOLEAN", "homeScore": "INTEGER", "awayScore": "INTEGER"
+      },
+      "count": {"balls": "INTEGER", "strikes": "INTEGER", "outs": "INTEGER"},
+      "reviewDetails": {"reviewType": "VARCHAR", "isOverturned": "BOOLEAN", "challengeTeamId": "INTEGER", "player": {"id": "INTEGER"}},
+      "playEvents": [{
+        "index": "INTEGER", "isPitch": "BOOLEAN", "playId": "VARCHAR", "pitchNumber": "INTEGER",
+        "startTime": "TIMESTAMPTZ", "endTime": "TIMESTAMPTZ",
+        "count": {"balls": "INTEGER", "strikes": "INTEGER", "outs": "INTEGER"},
+        "details": {
+          "call": {"code": "VARCHAR", "description": "VARCHAR"}, "type": {"code": "VARCHAR", "description": "VARCHAR"},
+          "description": "VARCHAR", "isInPlay": "BOOLEAN", "isStrike": "BOOLEAN", "isBall": "BOOLEAN", "isOut": "BOOLEAN"
+        },
+        "pitchData": {
+          "startSpeed": "DOUBLE", "endSpeed": "DOUBLE", "extension": "DOUBLE", "plateTime": "DOUBLE",
+          "typeConfidence": "DOUBLE", "zone": "INTEGER", "strikeZoneTop": "DOUBLE", "strikeZoneBottom": "DOUBLE",
+          "coordinates": {
+            "pX": "DOUBLE", "pZ": "DOUBLE", "pfxX": "DOUBLE", "pfxZ": "DOUBLE",
+            "x0": "DOUBLE", "y0": "DOUBLE", "z0": "DOUBLE", "vX0": "DOUBLE", "vY0": "DOUBLE", "vZ0": "DOUBLE",
+            "aX": "DOUBLE", "aY": "DOUBLE", "aZ": "DOUBLE"
+          },
+          "breaks": {
+            "breakAngle": "DOUBLE", "breakLength": "DOUBLE", "breakY": "DOUBLE", "breakVertical": "DOUBLE",
+            "breakVerticalInduced": "DOUBLE", "breakHorizontal": "DOUBLE", "spinRate": "DOUBLE", "spinDirection": "DOUBLE"
+          }
+        },
+        "hitData": {
+          "launchSpeed": "DOUBLE", "launchAngle": "DOUBLE", "totalDistance": "DOUBLE", "trajectory": "VARCHAR",
+          "hardness": "VARCHAR", "location": "VARCHAR", "coordinates": {"coordX": "DOUBLE", "coordY": "DOUBLE"}
+        },
+        "reviewDetails": {"reviewType": "VARCHAR", "isOverturned": "BOOLEAN", "challengeTeamId": "INTEGER", "player": {"id": "INTEGER"}}
+      }]
+    }]}}
+  }') AS g
+  FROM raw_game_feeds
+  WHERE $game_pk::INTEGER IS NULL OR game_pk = $game_pk::INTEGER
+)
+SELECT
+  game_pk,
+  season,
+  g.gameData.datetime.officialDate AS official_date,
+  coalesce(g.gameData.game.gameNumber, 1) AS game_number,
+  map_values(g.gameData.teams) AS home_and_away,
+  map_values(g.gameData.players) AS roster,
+  g.liveData.plays.allPlays AS all_plays
+FROM parsed;
+
+CREATE OR REPLACE TEMP TABLE completed_plays AS
+SELECT game_pk, season, play.about.atBatIndex AS at_bat_index, unnest(play)
+FROM feed, unnest(all_plays) AS unnested(play)
+WHERE play.about.isComplete;
 
 DELETE FROM pitches
 WHERE $game_pk::INTEGER IS NULL OR game_pk = $game_pk::INTEGER;
@@ -8,269 +76,221 @@ DELETE FROM plays
 WHERE $game_pk::INTEGER IS NULL OR game_pk = $game_pk::INTEGER;
 
 INSERT INTO plays BY NAME
-WITH plays AS (
-  SELECT game_pk, season, play, (play ->> '$.about.atBatIndex')::INTEGER AS at_bat_index
-  FROM (
-    SELECT f.game_pk, f.season, unnest(json_extract(f.json, '$.liveData.plays.allPlays[*]')) AS play
-    FROM raw_game_feeds f
-    WHERE $game_pk::INTEGER IS NULL OR f.game_pk = $game_pk::INTEGER
-  )
-  WHERE (play ->> '$.about.isComplete')::BOOLEAN
-),
-events AS (
-  SELECT game_pk, at_bat_index, ev,
-    (ev ->> '$.index')::INTEGER AS idx,
-    coalesce((ev ->> '$.isPitch')::BOOLEAN, false) AS is_pitch
-  FROM (SELECT game_pk, at_bat_index, unnest(json_extract(play, '$.playEvents[*]')) AS ev FROM plays)
-),
-agg AS (
-  SELECT game_pk, at_bat_index,
-    count(*) FILTER (WHERE is_pitch) AS pitch_count,
-    arg_max(json_extract(ev, '$.hitData'), idx) FILTER (WHERE is_pitch AND json_extract(ev, '$.hitData') IS NOT NULL) AS hit
-  FROM events
-  GROUP BY ALL
-)
-SELECT
-  p.game_pk,
-  p.season,
-  p.at_bat_index,
-  (play ->> '$.about.inning')::INTEGER AS inning,
-  play ->> '$.about.halfInning' AS half,
-  (play ->> '$.matchup.batter.id')::INTEGER AS batter_id,
-  (play ->> '$.matchup.pitcher.id')::INTEGER AS pitcher_id,
-  play ->> '$.matchup.batSide.code' AS bat_side,
-  play ->> '$.matchup.pitchHand.code' AS pitch_hand,
-  play ->> '$.matchup.splits.menOnBase' AS men_on_base,
-  play ->> '$.result.event' AS event,
-  play ->> '$.result.eventType' AS event_type,
-  play ->> '$.result.description' AS description,
-  (play ->> '$.result.rbi')::INTEGER AS rbi,
-  (play ->> '$.result.isOut')::BOOLEAN AS is_out,
-  (play ->> '$.about.isScoringPlay')::BOOLEAN AS is_scoring_play,
-  (play ->> '$.count.balls')::INTEGER AS final_balls,
-  (play ->> '$.count.strikes')::INTEGER AS final_strikes,
-  (play ->> '$.count.outs')::INTEGER AS outs_after,
-  (play ->> '$.result.homeScore')::INTEGER AS home_score_after,
-  (play ->> '$.result.awayScore')::INTEGER AS away_score_after,
-  coalesce(a.pitch_count, 0) AS pitch_count,
-  (hit ->> '$.launchSpeed')::DOUBLE AS launch_speed,
-  (hit ->> '$.launchAngle')::DOUBLE AS launch_angle,
-  (hit ->> '$.totalDistance')::DOUBLE AS total_distance,
-  hit ->> '$.trajectory' AS trajectory,
-  hit ->> '$.hardness' AS hardness,
-  hit ->> '$.location' AS hit_location,
-  (hit ->> '$.coordinates.coordX')::DOUBLE AS hit_coord_x,
-  (hit ->> '$.coordinates.coordY')::DOUBLE AS hit_coord_y,
-  coalesce((play ->> '$.about.hasReview')::BOOLEAN, false) AS has_review,
-  play ->> '$.reviewDetails.reviewType' AS review_type,
-  (play ->> '$.reviewDetails.isOverturned')::BOOLEAN AS review_overturned,
-  (play ->> '$.reviewDetails.challengeTeamId')::INTEGER AS review_challenge_team_id,
-  (play ->> '$.reviewDetails.player.id')::INTEGER AS review_player_id,
-  (play ->> '$.about.startTime')::TIMESTAMPTZ AS start_time,
-  (play ->> '$.about.endTime')::TIMESTAMPTZ AS end_time
-FROM plays p
-LEFT JOIN agg a USING (game_pk, at_bat_index);
-
-INSERT INTO pitches BY NAME
-WITH plays AS (
-  SELECT game_pk, season, play, (play ->> '$.about.atBatIndex')::INTEGER AS at_bat_index
-  FROM (
-    SELECT f.game_pk, f.season, unnest(json_extract(f.json, '$.liveData.plays.allPlays[*]')) AS play
-    FROM raw_game_feeds f
-    WHERE $game_pk::INTEGER IS NULL OR f.game_pk = $game_pk::INTEGER
-  )
-  WHERE (play ->> '$.about.isComplete')::BOOLEAN
-),
-plays_ctx AS (
-  -- Outs when the play started: the previous play's outs in the same half-inning.
+WITH plays_with_ball_in_play AS (
   SELECT *,
-    coalesce(lag((play ->> '$.count.outs')::INTEGER) OVER (
-      PARTITION BY game_pk, play ->> '$.about.inning', play ->> '$.about.halfInning'
-      ORDER BY at_bat_index
-    ), 0) AS outs_start
-  FROM plays
-),
-events AS (
-  SELECT *,
-    (ev ->> '$.index')::INTEGER AS idx,
-    coalesce((ev ->> '$.isPitch')::BOOLEAN, false) AS is_pitch
-  FROM (SELECT *, unnest(json_extract(play, '$.playEvents[*]')) AS ev FROM plays_ctx)
-),
-counted AS (
-  -- Each event's count is after the event, so the count before is the previous event's.
-  -- Lagging over every event, not just pitches, catches pitch clock violations and pickoffs.
-  SELECT *,
-    coalesce(lag((ev ->> '$.count.balls')::INTEGER) OVER w, 0) AS balls_before,
-    coalesce(lag((ev ->> '$.count.strikes')::INTEGER) OVER w, 0) AS strikes_before,
-    coalesce(lag((ev ->> '$.count.outs')::INTEGER) OVER w, outs_start) AS outs_before,
-    idx = max(idx) FILTER (WHERE is_pitch) OVER (PARTITION BY game_pk, at_bat_index) AS is_last_pitch
-  FROM events
-  WINDOW w AS (PARTITION BY game_pk, at_bat_index ORDER BY idx)
-),
-pitch_rows AS (
-  SELECT *,
-    -- ABS challenges sit on the pitch, except a challenge of the play's final pitch,
-    -- which the feed records on the play instead.
-    CASE
-      WHEN (ev ->> '$.reviewDetails.reviewType') = 'MJ' THEN json_extract(ev, '$.reviewDetails')
-      WHEN is_last_pitch AND (play ->> '$.reviewDetails.reviewType') = 'MJ' THEN json_extract(play, '$.reviewDetails')
-    END AS abs_review
-  FROM counted
-  WHERE is_pitch
+    len(list_filter(playEvents, lambda event: event.isPitch)) AS pitch_count,
+    list_last(list_filter(playEvents, lambda event: event.isPitch AND event.hitData IS NOT NULL)).hitData AS ball_in_play
+  FROM completed_plays
 )
 SELECT
   game_pk,
   season,
   at_bat_index,
-  idx AS pitch_index,
-  ev ->> '$.playId' AS play_id,
-  (ev ->> '$.pitchNumber')::INTEGER AS pitch_number,
-  (play ->> '$.about.inning')::INTEGER AS inning,
-  play ->> '$.about.halfInning' AS half,
-  (play ->> '$.matchup.batter.id')::INTEGER AS batter_id,
-  (play ->> '$.matchup.pitcher.id')::INTEGER AS pitcher_id,
-  play ->> '$.matchup.batSide.code' AS bat_side,
-  play ->> '$.matchup.pitchHand.code' AS pitch_hand,
+  about.inning AS inning,
+  about.halfInning AS half,
+  matchup.batter.id AS batter_id,
+  matchup.pitcher.id AS pitcher_id,
+  matchup.batSide.code AS bat_side,
+  matchup.pitchHand.code AS pitch_hand,
+  matchup.splits.menOnBase AS men_on_base,
+  result.event AS event,
+  result.eventType AS event_type,
+  result.description AS description,
+  result.rbi AS rbi,
+  result.isOut AS is_out,
+  about.isScoringPlay AS is_scoring_play,
+  count.balls AS final_balls,
+  count.strikes AS final_strikes,
+  count.outs AS outs_after,
+  result.homeScore AS home_score_after,
+  result.awayScore AS away_score_after,
+  pitch_count,
+  ball_in_play.launchSpeed AS launch_speed,
+  ball_in_play.launchAngle AS launch_angle,
+  ball_in_play.totalDistance AS total_distance,
+  ball_in_play.trajectory AS trajectory,
+  ball_in_play.hardness AS hardness,
+  ball_in_play.location AS hit_location,
+  ball_in_play.coordinates.coordX AS hit_coord_x,
+  ball_in_play.coordinates.coordY AS hit_coord_y,
+  coalesce(about.hasReview, false) AS has_review,
+  reviewDetails.reviewType AS review_type,
+  reviewDetails.isOverturned AS review_overturned,
+  reviewDetails.challengeTeamId AS review_challenge_team_id,
+  reviewDetails.player.id AS review_player_id,
+  about.startTime AS start_time,
+  about.endTime AS end_time
+FROM plays_with_ball_in_play;
+
+INSERT INTO pitches BY NAME
+WITH outs_at_play_start AS (
+  SELECT
+    game_pk,
+    at_bat_index,
+    coalesce(lag(count.outs) OVER half_inning_in_order, 0) AS outs_before_play
+  FROM completed_plays
+  WINDOW half_inning_in_order AS (PARTITION BY game_pk, about.inning, about.halfInning ORDER BY at_bat_index)
+),
+events_with_count_before AS (
+  SELECT
+    game_pk,
+    season,
+    at_bat_index,
+    about,
+    matchup,
+    reviewDetails AS play_review,
+    event,
+    event.index = max(event.index) FILTER (WHERE event.isPitch) OVER play_events AS is_last_pitch,
+    coalesce(lag(event.count.balls) OVER play_events_in_order, 0) AS balls_before,
+    coalesce(lag(event.count.strikes) OVER play_events_in_order, 0) AS strikes_before,
+    coalesce(lag(event.count.outs) OVER play_events_in_order, outs_before_play) AS outs_before
+  FROM completed_plays
+  JOIN outs_at_play_start USING (game_pk, at_bat_index),
+  unnest(playEvents) AS unnested(event)
+  WINDOW
+    play_events AS (PARTITION BY game_pk, at_bat_index),
+    play_events_in_order AS (play_events ORDER BY event.index)
+),
+pitches_with_abs_challenge AS (
+  SELECT *,
+    CASE
+      WHEN event.reviewDetails.reviewType = 'MJ' THEN event.reviewDetails
+      WHEN is_last_pitch AND play_review.reviewType = 'MJ' THEN play_review
+    END AS abs_challenge
+  FROM events_with_count_before
+  WHERE event.isPitch
+)
+SELECT
+  game_pk,
+  season,
+  at_bat_index,
+  event.index AS pitch_index,
+  event.playId AS play_id,
+  event.pitchNumber AS pitch_number,
+  about.inning AS inning,
+  about.halfInning AS half,
+  matchup.batter.id AS batter_id,
+  matchup.pitcher.id AS pitcher_id,
+  matchup.batSide.code AS bat_side,
+  matchup.pitchHand.code AS pitch_hand,
   balls_before,
   strikes_before,
   outs_before,
-  ev ->> '$.details.type.code' AS pitch_type,
-  ev ->> '$.details.type.description' AS pitch_type_desc,
-  (ev ->> '$.pitchData.typeConfidence')::DOUBLE AS type_confidence,
-  ev ->> '$.details.call.code' AS call_code,
-  ev ->> '$.details.call.description' AS call_desc,
-  ev ->> '$.details.description' AS description,
-  (ev ->> '$.details.isInPlay')::BOOLEAN AS is_in_play,
-  (ev ->> '$.details.isStrike')::BOOLEAN AS is_strike,
-  (ev ->> '$.details.isBall')::BOOLEAN AS is_ball,
-  (ev ->> '$.details.isOut')::BOOLEAN AS is_out,
-  (ev ->> '$.pitchData.startSpeed')::DOUBLE AS start_speed,
-  (ev ->> '$.pitchData.endSpeed')::DOUBLE AS end_speed,
-  (ev ->> '$.pitchData.breaks.spinRate')::DOUBLE AS spin_rate,
-  (ev ->> '$.pitchData.breaks.spinDirection')::DOUBLE AS spin_direction,
-  (ev ->> '$.pitchData.extension')::DOUBLE AS extension,
-  (ev ->> '$.pitchData.plateTime')::DOUBLE AS plate_time,
-  (ev ->> '$.pitchData.coordinates.pX')::DOUBLE AS plate_x,
-  (ev ->> '$.pitchData.coordinates.pZ')::DOUBLE AS plate_z,
-  (ev ->> '$.pitchData.coordinates.pfxX')::DOUBLE AS pfx_x,
-  (ev ->> '$.pitchData.coordinates.pfxZ')::DOUBLE AS pfx_z,
-  (ev ->> '$.pitchData.coordinates.x0')::DOUBLE AS x0,
-  (ev ->> '$.pitchData.coordinates.y0')::DOUBLE AS y0,
-  (ev ->> '$.pitchData.coordinates.z0')::DOUBLE AS z0,
-  (ev ->> '$.pitchData.coordinates.vX0')::DOUBLE AS vx0,
-  (ev ->> '$.pitchData.coordinates.vY0')::DOUBLE AS vy0,
-  (ev ->> '$.pitchData.coordinates.vZ0')::DOUBLE AS vz0,
-  (ev ->> '$.pitchData.coordinates.aX')::DOUBLE AS ax,
-  (ev ->> '$.pitchData.coordinates.aY')::DOUBLE AS ay,
-  (ev ->> '$.pitchData.coordinates.aZ')::DOUBLE AS az,
-  (ev ->> '$.pitchData.breaks.breakAngle')::DOUBLE AS break_angle,
-  (ev ->> '$.pitchData.breaks.breakLength')::DOUBLE AS break_length,
-  (ev ->> '$.pitchData.breaks.breakY')::DOUBLE AS break_y,
-  (ev ->> '$.pitchData.breaks.breakVertical')::DOUBLE AS break_vertical,
-  (ev ->> '$.pitchData.breaks.breakVerticalInduced')::DOUBLE AS induced_vertical_break,
-  (ev ->> '$.pitchData.breaks.breakHorizontal')::DOUBLE AS horizontal_break,
-  (ev ->> '$.pitchData.zone')::INTEGER AS zone,
-  (ev ->> '$.pitchData.strikeZoneTop')::DOUBLE AS sz_top,
-  (ev ->> '$.pitchData.strikeZoneBottom')::DOUBLE AS sz_bottom,
-  (ev ->> '$.hitData.launchSpeed')::DOUBLE AS launch_speed,
-  (ev ->> '$.hitData.launchAngle')::DOUBLE AS launch_angle,
-  (ev ->> '$.hitData.totalDistance')::DOUBLE AS total_distance,
-  ev ->> '$.hitData.trajectory' AS trajectory,
-  ev ->> '$.hitData.hardness' AS hardness,
-  ev ->> '$.hitData.location' AS hit_location,
-  abs_review IS NOT NULL AS abs_challenged,
-  (abs_review ->> '$.isOverturned')::BOOLEAN AS abs_overturned,
-  (abs_review ->> '$.challengeTeamId')::INTEGER AS abs_challenge_team_id,
-  (abs_review ->> '$.player.id')::INTEGER AS abs_challenger_id,
-  (ev ->> '$.startTime')::TIMESTAMPTZ AS start_time,
-  (ev ->> '$.endTime')::TIMESTAMPTZ AS end_time
-FROM pitch_rows;
+  event.details.type.code AS pitch_type,
+  event.details.type.description AS pitch_type_desc,
+  event.pitchData.typeConfidence AS type_confidence,
+  event.details.call.code AS call_code,
+  event.details.call.description AS call_desc,
+  event.details.description AS description,
+  event.details.isInPlay AS is_in_play,
+  event.details.isStrike AS is_strike,
+  event.details.isBall AS is_ball,
+  event.details.isOut AS is_out,
+  event.pitchData.startSpeed AS start_speed,
+  event.pitchData.endSpeed AS end_speed,
+  event.pitchData.breaks.spinRate AS spin_rate,
+  event.pitchData.breaks.spinDirection AS spin_direction,
+  event.pitchData.extension AS extension,
+  event.pitchData.plateTime AS plate_time,
+  event.pitchData.coordinates.pX AS plate_x,
+  event.pitchData.coordinates.pZ AS plate_z,
+  event.pitchData.coordinates.pfxX AS pfx_x,
+  event.pitchData.coordinates.pfxZ AS pfx_z,
+  event.pitchData.coordinates.x0 AS x0,
+  event.pitchData.coordinates.y0 AS y0,
+  event.pitchData.coordinates.z0 AS z0,
+  event.pitchData.coordinates.vX0 AS vx0,
+  event.pitchData.coordinates.vY0 AS vy0,
+  event.pitchData.coordinates.vZ0 AS vz0,
+  event.pitchData.coordinates.aX AS ax,
+  event.pitchData.coordinates.aY AS ay,
+  event.pitchData.coordinates.aZ AS az,
+  event.pitchData.breaks.breakAngle AS break_angle,
+  event.pitchData.breaks.breakLength AS break_length,
+  event.pitchData.breaks.breakY AS break_y,
+  event.pitchData.breaks.breakVertical AS break_vertical,
+  event.pitchData.breaks.breakVerticalInduced AS induced_vertical_break,
+  event.pitchData.breaks.breakHorizontal AS horizontal_break,
+  event.pitchData.zone AS zone,
+  event.pitchData.strikeZoneTop AS sz_top,
+  event.pitchData.strikeZoneBottom AS sz_bottom,
+  event.hitData.launchSpeed AS launch_speed,
+  event.hitData.launchAngle AS launch_angle,
+  event.hitData.totalDistance AS total_distance,
+  event.hitData.trajectory AS trajectory,
+  event.hitData.hardness AS hardness,
+  event.hitData.location AS hit_location,
+  abs_challenge IS NOT NULL AS abs_challenged,
+  abs_challenge.isOverturned AS abs_overturned,
+  abs_challenge.challengeTeamId AS abs_challenge_team_id,
+  abs_challenge.player.id AS abs_challenger_id,
+  event.startTime AS start_time,
+  event.endTime AS end_time
+FROM pitches_with_abs_challenge;
 
--- Players and teams keep the row from the most recent game: newest official date, then
--- the later game of a doubleheader. Older games never overwrite newer ones.
 INSERT OR REPLACE INTO teams BY NAME
-WITH src AS (
+WITH newest_team_rows AS (
   SELECT
-    f.season,
-    f.game_pk AS source_game_pk,
-    (f.json ->> '$.gameData.datetime.officialDate')::DATE AS source_date,
-    coalesce((f.json ->> '$.gameData.game.gameNumber')::INTEGER, 1) AS source_game_number,
-    unnest([json_extract(f.json, '$.gameData.teams.home'), json_extract(f.json, '$.gameData.teams.away')]) AS t
-  FROM raw_game_feeds f
-  WHERE $game_pk::INTEGER IS NULL OR f.game_pk = $game_pk::INTEGER
-),
-latest AS (
-  SELECT
-    (t ->> '$.id')::INTEGER AS team_id,
+    team.id AS team_id,
     season,
-    t ->> '$.name' AS name,
-    t ->> '$.teamName' AS team_name,
-    t ->> '$.abbreviation' AS abbreviation,
-    t ->> '$.locationName' AS location_name,
-    t ->> '$.shortName' AS short_name,
-    t ->> '$.teamCode' AS team_code,
-    (t ->> '$.league.id')::INTEGER AS league_id,
-    t ->> '$.league.name' AS league_name,
-    (t ->> '$.division.id')::INTEGER AS division_id,
-    t ->> '$.division.name' AS division_name,
-    (t ->> '$.venue.id')::INTEGER AS venue_id,
-    t ->> '$.venue.name' AS venue_name,
-    source_game_pk,
-    source_date,
-    source_game_number
-  FROM src
-  WHERE (t ->> '$.id') IS NOT NULL
+    team.name AS name,
+    team.teamName AS team_name,
+    team.abbreviation AS abbreviation,
+    team.locationName AS location_name,
+    team.shortName AS short_name,
+    team.teamCode AS team_code,
+    team.league.id AS league_id,
+    team.league.name AS league_name,
+    team.division.id AS division_id,
+    team.division.name AS division_name,
+    team.venue.id AS venue_id,
+    team.venue.name AS venue_name,
+    game_pk AS source_game_pk,
+    official_date AS source_date,
+    game_number AS source_game_number
+  FROM feed, unnest(home_and_away) AS unnested(team)
+  WHERE team.id IS NOT NULL
   QUALIFY row_number() OVER (
     PARTITION BY team_id ORDER BY source_date DESC, source_game_number DESC, source_game_pk DESC
   ) = 1
 )
-SELECT l.* FROM latest l
-LEFT JOIN teams cur USING (team_id)
-WHERE cur.team_id IS NULL
-  OR (l.source_date, l.source_game_number, l.source_game_pk)
-     >= (cur.source_date, cur.source_game_number, cur.source_game_pk);
+SELECT newest.* FROM newest_team_rows newest
+LEFT JOIN teams stored USING (team_id)
+WHERE stored.team_id IS NULL
+  OR (newest.source_date, newest.source_game_number, newest.source_game_pk)
+     >= (stored.source_date, stored.source_game_number, stored.source_game_pk);
 
 INSERT OR REPLACE INTO players BY NAME
-WITH src AS (
+WITH newest_player_rows AS (
   SELECT
-    f.season,
-    f.game_pk AS source_game_pk,
-    (f.json ->> '$.gameData.datetime.officialDate')::DATE AS source_date,
-    coalesce((f.json ->> '$.gameData.game.gameNumber')::INTEGER, 1) AS source_game_number,
-    unnest(json_extract(f.json, '$.gameData.players.*')) AS p
-  FROM raw_game_feeds f
-  WHERE $game_pk::INTEGER IS NULL OR f.game_pk = $game_pk::INTEGER
-),
-latest AS (
-  SELECT
-    (p ->> '$.id')::INTEGER AS player_id,
+    player.id AS player_id,
     season,
-    p ->> '$.fullName' AS full_name,
-    p ->> '$.firstName' AS first_name,
-    p ->> '$.lastName' AS last_name,
-    p ->> '$.boxscoreName' AS boxscore_name,
-    p ->> '$.primaryNumber' AS primary_number,
-    p ->> '$.primaryPosition.abbreviation' AS primary_position,
-    p ->> '$.batSide.code' AS bat_side,
-    p ->> '$.pitchHand.code' AS pitch_hand,
-    try_cast(p ->> '$.birthDate' AS DATE) AS birth_date,
-    p ->> '$.height' AS height,
-    (p ->> '$.weight')::INTEGER AS weight,
-    try_cast(p ->> '$.mlbDebutDate' AS DATE) AS mlb_debut_date,
-    (p ->> '$.active')::BOOLEAN AS active,
-    (p ->> '$.strikeZoneTop')::DOUBLE AS sz_top,
-    (p ->> '$.strikeZoneBottom')::DOUBLE AS sz_bottom,
-    source_game_pk,
-    source_date,
-    source_game_number
-  FROM src
-  WHERE (p ->> '$.id') IS NOT NULL
+    player.fullName AS full_name,
+    player.firstName AS first_name,
+    player.lastName AS last_name,
+    player.boxscoreName AS boxscore_name,
+    player.primaryNumber AS primary_number,
+    player.primaryPosition.abbreviation AS primary_position,
+    player.batSide.code AS bat_side,
+    player.pitchHand.code AS pitch_hand,
+    player.birthDate AS birth_date,
+    player.height AS height,
+    player.weight AS weight,
+    player.mlbDebutDate AS mlb_debut_date,
+    player.active AS active,
+    player.strikeZoneTop AS sz_top,
+    player.strikeZoneBottom AS sz_bottom,
+    game_pk AS source_game_pk,
+    official_date AS source_date,
+    game_number AS source_game_number
+  FROM feed, unnest(roster) AS unnested(player)
+  WHERE player.id IS NOT NULL
   QUALIFY row_number() OVER (
     PARTITION BY player_id ORDER BY source_date DESC, source_game_number DESC, source_game_pk DESC
   ) = 1
 )
-SELECT l.* FROM latest l
-LEFT JOIN players cur USING (player_id)
-WHERE cur.player_id IS NULL
-  OR (l.source_date, l.source_game_number, l.source_game_pk)
-     >= (cur.source_date, cur.source_game_number, cur.source_game_pk);
+SELECT newest.* FROM newest_player_rows newest
+LEFT JOIN players stored USING (player_id)
+WHERE stored.player_id IS NULL
+  OR (newest.source_date, newest.source_game_number, newest.source_game_pk)
+     >= (stored.source_date, stored.source_game_number, stored.source_game_pk);
