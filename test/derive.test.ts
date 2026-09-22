@@ -4,7 +4,7 @@ import { gunzipSync } from "node:zlib";
 import type { DuckDBConnection } from "@duckdb/node-api";
 import { beforeAll, describe, expect, it } from "vitest";
 import { openDb } from "@/lib/db";
-import { deriveGame, upsertRawFeed } from "@/lib/feeds";
+import { ingestFeed, rebuildDerived } from "@/lib/feeds";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Feed = any;
@@ -14,7 +14,6 @@ const feeds: Feed[] = readdirSync(DIR)
   .filter((f) => f.endsWith(".json.gz"))
   .map((f) => JSON.parse(gunzipSync(readFileSync(path.join(DIR, f))).toString("utf8")));
 
-// 824785 was postponed; its feed now describes the rescheduled, unplayed game.
 const POSTPONED = 824785;
 const played = feeds.filter((f) => f.gamePk !== POSTPONED);
 
@@ -25,9 +24,13 @@ function completePlays(feed: Feed): Feed[] {
 function expected(feed: Feed) {
   const plays = completePlays(feed);
   return {
-    plateAppearances: plays.length,
+    plays: plays.length,
     pitches: plays.flatMap((p: Feed) => p.playEvents).filter((e: Feed) => e.isPitch).length,
   };
+}
+
+function withTimeStamp(feed: Feed, timeStamp: string): Feed {
+  return { ...feed, metaData: { ...feed.metaData, timeStamp } };
 }
 
 async function rows(conn: DuckDBConnection, sql: string, values: Record<string, number> = {}) {
@@ -36,14 +39,14 @@ async function rows(conn: DuckDBConnection, sql: string, values: Record<string, 
 
 describe("derive.sql", () => {
   let conn: DuckDBConnection;
-  const firstRun = new Map<number, { plateAppearances: number; pitches: number }>();
+  const firstRun = new Map<number, { plays: number; pitches: number }>();
 
   beforeAll(async () => {
     conn = await openDb(":memory:");
     for (const feed of feeds) {
-      const stored = await upsertRawFeed(conn, feed);
-      expect(stored.status).toBe("stored");
-      firstRun.set(feed.gamePk, await deriveGame(conn, feed.gamePk));
+      const stored = await ingestFeed(conn, feed);
+      if (stored.status !== "stored") throw new Error(`${feed.gamePk} was not stored`);
+      firstRun.set(feed.gamePk, { plays: stored.plays, pitches: stored.pitches });
     }
   });
 
@@ -90,7 +93,7 @@ describe("derive.sql", () => {
   });
 
   it("derives no rows for a postponed game", () => {
-    expect(firstRun.get(POSTPONED)).toEqual({ plateAppearances: 0, pitches: 0 });
+    expect(firstRun.get(POSTPONED)).toEqual({ plays: 0, pitches: 0 });
   });
 
   it("keeps pitch counts before each pitch", async () => {
@@ -144,12 +147,31 @@ describe("derive.sql", () => {
 
   it("is idempotent", async () => {
     for (const feed of feeds) {
-      expect((await upsertRawFeed(conn, feed)).status).toBe("unchanged");
-      expect(await deriveGame(conn, feed.gamePk)).toEqual(firstRun.get(feed.gamePk));
+      expect((await ingestFeed(conn, feed)).status).toBe("unchanged");
+      expect(await rebuildDerived(conn, feed.gamePk)).toEqual(firstRun.get(feed.gamePk));
     }
-    const changed = { ...feeds[0], metaData: { ...feeds[0].metaData, timeStamp: "99999999_000000" } };
-    expect((await upsertRawFeed(conn, changed)).status).toBe("stored");
-    expect(await deriveGame(conn, changed.gamePk)).toEqual(firstRun.get(changed.gamePk));
+    const changed = withTimeStamp(feeds[0], "99999999_000000");
+    expect(await ingestFeed(conn, changed)).toMatchObject({
+      status: "stored",
+      ...firstRun.get(changed.gamePk),
+    });
+  });
+
+  it("keeps the old raw feed when deriving fails, so a retry derives the new one", async () => {
+    const [feed] = played;
+    const retry = withTimeStamp(feed, "99999999_000001");
+    const underivable = structuredClone(retry);
+    underivable.liveData.plays.allPlays[0].about.halfInning = "sideways";
+
+    await expect(ingestFeed(conn, underivable)).rejects.toThrow(/sideways/);
+    const [raw] = await rows(conn, "SELECT feed_ts FROM raw_game_feeds WHERE game_pk = $gamePk", {
+      gamePk: feed.gamePk,
+    });
+    expect(raw.feed_ts).not.toBe("99999999_000001");
+    expect(await ingestFeed(conn, retry)).toMatchObject({
+      status: "stored",
+      ...firstRun.get(feed.gamePk),
+    });
   });
 
   it("rebuilds everything when gamePk is null", async () => {
@@ -159,12 +181,12 @@ describe("derive.sql", () => {
     );
     const total = [...firstRun.values()].reduce(
       (sum, c) => ({
-        plateAppearances: sum.plateAppearances + c.plateAppearances,
+        plays: sum.plays + c.plays,
         pitches: sum.pitches + c.pitches,
       }),
-      { plateAppearances: 0, pitches: 0 },
+      { plays: 0, pitches: 0 },
     );
-    expect(await deriveGame(conn, null)).toEqual(total);
+    expect(await rebuildDerived(conn, null)).toEqual(total);
     expect(
       await rows(conn, "SELECT game_pk, count(*) AS n FROM pitches GROUP BY ALL ORDER BY game_pk"),
     ).toEqual(before);
