@@ -14,6 +14,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
 
   const nav = (target: string, label: string) => (
     <Link
+      key={label}
       href={target === today ? "/" : `/?date=${target}`}
       className={buttonVariants({ variant: "neutral", size: "xs" })}
     >
@@ -29,25 +30,22 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         </span>
         <ThemeToggle />
       </header>
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-6 pt-6 pb-24">
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 pt-6 pb-24">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-4xl">{isToday ? "Today’s games" : "Games"}</h1>
+          <nav className="flex gap-2">
+            {nav(shiftDate(date, -1), "← Prev")}
+            {!isToday && nav(today, "Today")}
+            {nav(shiftDate(date, 1), "Next →")}
+          </nav>
+        </div>
         <Scoreboard
           key={date}
           date={date}
           games={games}
-          // Yesterday's late games can still be running or resume.
           live={date === today || date === shiftDate(today, -1)}
           dateLabel={formatOfficialDate(date)}
           emptyLabel={isToday ? "No games today." : "No games on this date."}
-          heading={
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h1 className="text-4xl">{isToday ? "Today’s games" : "Games"}</h1>
-              <nav className="flex gap-2">
-                {nav(shiftDate(date, -1), "← Prev")}
-                {!isToday && nav(today, "Today")}
-                {nav(shiftDate(date, 1), "Next →")}
-              </nav>
-            </div>
-          }
         />
       </main>
     </div>
