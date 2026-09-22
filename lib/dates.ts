@@ -1,5 +1,5 @@
-// MLB's officialDate follows US Eastern time.
 export function easternDate(offsetDays = 0, now = new Date()): string {
-  const d = new Date(now.getTime() + offsetDays * 86_400_000);
-  return d.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+  const today = now.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+  const [year, month, day] = today.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day + offsetDays)).toISOString().slice(0, 10);
 }
