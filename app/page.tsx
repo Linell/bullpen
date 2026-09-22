@@ -1,12 +1,25 @@
-import { GameCard } from "@/components/game-card";
+import Link from "next/link";
+import { Scoreboard } from "@/components/scoreboard";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Card, CardContent } from "@/components/ui/card";
-import { formatToday } from "@/lib/format";
-import { getTodaysGames } from "@/lib/games";
+import { buttonVariants } from "@/components/ui/button";
+import { formatOfficialDate, isOfficialDate, shiftDate, todayOfficialDate } from "@/lib/format";
+import { getGames } from "@/lib/games";
 
-export default async function Home() {
-  const games = await getTodaysGames();
-  const liveCount = games.filter((g) => g.status.state === "live").length;
+export default async function Home({ searchParams }: PageProps<"/">) {
+  const { date: param } = await searchParams;
+  const today = todayOfficialDate();
+  const date = isOfficialDate(param) ? param : today;
+  const isToday = date === today;
+  const games = await getGames(date);
+
+  const nav = (target: string, label: string) => (
+    <Link
+      href={target === today ? "/" : `/?date=${target}`}
+      className={buttonVariants({ variant: "neutral", size: "xs" })}
+    >
+      {label}
+    </Link>
+  );
 
   return (
     <div className="flex flex-1 flex-col">
@@ -17,24 +30,25 @@ export default async function Home() {
         <ThemeToggle />
       </header>
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-6 pt-6 pb-24">
-        <section className="flex flex-col gap-1">
-          <h1 className="text-4xl">Today&apos;s games</h1>
-          <p className="opacity-70">
-            {formatToday()} · {games.length} games
-            {liveCount > 0 && ` · ${liveCount} live`}
-          </p>
-        </section>
-        {games.length > 0 ? (
-          <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {games.map((game) => (
-              <GameCard key={game.id} game={game} />
-            ))}
-          </section>
-        ) : (
-          <Card>
-            <CardContent>No games on the schedule today.</CardContent>
-          </Card>
-        )}
+        <Scoreboard
+          key={date}
+          date={date}
+          games={games}
+          // Yesterday's late games can still be running or resume.
+          live={date === today || date === shiftDate(today, -1)}
+          dateLabel={formatOfficialDate(date)}
+          emptyLabel={isToday ? "No games today." : "No games on this date."}
+          heading={
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h1 className="text-4xl">{isToday ? "Today’s games" : "Games"}</h1>
+              <nav className="flex gap-2">
+                {nav(shiftDate(date, -1), "← Prev")}
+                {!isToday && nav(today, "Today")}
+                {nav(shiftDate(date, 1), "Next →")}
+              </nav>
+            </div>
+          }
+        />
       </main>
     </div>
   );
