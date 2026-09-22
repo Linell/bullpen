@@ -35,14 +35,22 @@ export async function upsertRawFeed(conn: DuckDBConnection, feed: unknown) {
 }
 
 // Rebuilds one game's derived rows (or every game's when gamePk is null) and returns the
-// resulting counts. Named parameters can't be bound to a multi-statement string, so each
-// statement of derive.sql is prepared and run in turn.
+// resulting counts, in one transaction so readers never see a half-rebuilt game. Named
+// parameters can't be bound to a multi-statement string, so each statement of derive.sql is
+// prepared and run in turn. Give it a connection no one else is using.
 export async function deriveGame(conn: DuckDBConnection, gamePk: number | null) {
   const statements = await conn.extractStatements(await readSql("derive.sql"));
-  for (let i = 0; i < statements.count; i++) {
-    const stmt = await statements.prepare(i);
-    if (stmt.parameterCount > 0) stmt.bind({ game_pk: gamePk }, { game_pk: INTEGER });
-    await stmt.run();
+  await conn.run("BEGIN TRANSACTION");
+  try {
+    for (let i = 0; i < statements.count; i++) {
+      const stmt = await statements.prepare(i);
+      if (stmt.parameterCount > 0) stmt.bind({ game_pk: gamePk }, { game_pk: INTEGER });
+      await stmt.run();
+    }
+    await conn.run("COMMIT");
+  } catch (err) {
+    await conn.run("ROLLBACK");
+    throw err;
   }
 
   const counts = await conn.runAndReadAll(

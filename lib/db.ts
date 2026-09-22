@@ -8,29 +8,44 @@ const SQL_DIR = path.join(process.cwd(), "sql");
 // Files under sql/ that are not migrations.
 const NON_MIGRATIONS = new Set(["derive.sql"]);
 
-let ready: Promise<DuckDBConnection> | undefined;
+let ready: Promise<DuckDBInstance> | undefined;
+let shared: Promise<DuckDBConnection> | undefined;
 
-// One shared connection per process. MotherDuck reads MOTHERDUCK_TOKEN from the environment.
-export function db(): Promise<DuckDBConnection> {
-  ready ??= open().catch((err) => {
+// The process-wide, migrated instance. MotherDuck reads MOTHERDUCK_TOKEN from the environment.
+function instance(): Promise<DuckDBInstance> {
+  ready ??= (async () => {
+    const url = process.env.DUCKDB_URL;
+    if (!url) throw new Error("DUCKDB_URL is not set");
+    return openInstance(url);
+  })().catch((err) => {
     ready = undefined;
     throw err;
   });
   return ready;
 }
 
-function open() {
-  const url = process.env.DUCKDB_URL;
-  if (!url) throw new Error("DUCKDB_URL is not set");
-  return openDb(url);
+// A shared connection for reads and single-statement writes.
+export function db(): Promise<DuckDBConnection> {
+  shared ??= instance().then((i) => i.connect());
+  return shared;
+}
+
+// A dedicated connection, for work that needs its own transaction. Close it when done.
+export async function connect(): Promise<DuckDBConnection> {
+  return (await instance()).connect();
 }
 
 // Opens and migrates a database. Tests pass ":memory:".
 export async function openDb(url: string) {
+  return (await openInstance(url)).connect();
+}
+
+async function openInstance(url: string) {
   const instance = await DuckDBInstance.fromCache(url);
   const conn = await instance.connect();
   await migrate(conn);
-  return conn;
+  conn.closeSync();
+  return instance;
 }
 
 // Runs every numbered sql/*.sql file in order. Each must be idempotent.
