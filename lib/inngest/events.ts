@@ -1,10 +1,6 @@
 import { eventType } from "inngest";
 import { z } from "zod";
 
-// Regular season plus every postseason round.
-export const DEFAULT_GAME_TYPES = ["R", "F", "D", "L", "W"];
-
-// Sent by a person, so validate it.
 export const seasonBackfillRequested = eventType("mlb/season.backfill.requested", {
   schema: z.object({
     season: z.number().int().min(1876),
@@ -12,7 +8,6 @@ export const seasonBackfillRequested = eventType("mlb/season.backfill.requested"
   }),
 });
 
-// Ids only: game feeds exceed the event size limit.
 export const gameFinal = eventType("mlb/game.final", {
   schema: z.object({
     gamePk: z.number().int().positive(),
