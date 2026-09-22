@@ -1,5 +1,5 @@
 import type { DuckDBConnection, DuckDBValue } from "@duckdb/node-api";
-import type { ScoreUpdate } from "@/lib/inngest/realtime";
+import { scoreUpdate } from "@/lib/inngest/realtime";
 import type { ScheduleGame, ScheduleResponse } from "@/lib/mlb";
 
 // One row of the `games` table. `updated_at` is set on write.
@@ -46,26 +46,14 @@ const COLUMNS = [
   ["awayRecord", "away_record", "VARCHAR"],
 ] as const satisfies readonly (readonly [keyof GameRow, string, string])[];
 
-// Fields the scoreboard shows. A difference here means a realtime update.
-const LIVE_FIELDS = [
-  "abstractState",
-  "codedState",
-  "detailedState",
-  "homeScore",
-  "awayScore",
-  "inning",
-  "inningHalf",
-] as const satisfies readonly (keyof GameRow)[];
+const SCOREBOARD_FIELDS = scoreUpdate.keyof().options satisfies readonly (keyof GameRow)[];
 
 const INSERT_CHUNK = 500;
 
 // Final (F) or completed early (O). Postponed games are abstract "Final" with coded D.
-export function isPlayed(codedState: string): boolean {
+export function wasPlayed(codedState: string): boolean {
   return codedState === "F" || codedState === "O";
 }
-
-// Later is more advanced. Unknown states (e.g. suspended, cancelled) rank lowest.
-const STATE_RANK: Record<string, number> = { S: 1, P: 2, I: 3, M: 3, N: 3, O: 4, F: 4 };
 
 function record(side: ScheduleGame["teams"]["home"]): string | null {
   const r = side.leagueRecord;
@@ -110,35 +98,24 @@ export function parseSchedule(json: ScheduleResponse): GameRow[] {
     for (const game of games) {
       const row = toRow(game);
       const prev = best.get(row.gamePk);
-      if (
-        !prev ||
-        date > prev.date ||
-        (date === prev.date &&
-          (STATE_RANK[row.codedState] ?? 0) > (STATE_RANK[prev.row.codedState] ?? 0))
-      ) {
-        best.set(row.gamePk, { date, row });
-      }
+      if (!prev || date > prev.date) best.set(row.gamePk, { date, row });
     }
   }
   return [...best.values()].map((v) => v.row);
 }
 
-export type GameDiff = {
-  changed: GameRow[]; // new, or a status/score/inning field differs
-  newlyFinal: GameRow[]; // played now, and previously missing or not played
-  dirty: GameRow[]; // any column differs; superset of changed
-};
-
 // Pure: compares fetched rows against what the table holds.
-export function diffGames(prev: Map<number, GameRow>, next: GameRow[]): GameDiff {
-  const out: GameDiff = { changed: [], newlyFinal: [], dirty: [] };
+export function diffGames(prev: Map<number, GameRow>, next: GameRow[]) {
+  const scoreChanges: GameRow[] = [];
+  const newlyFinal: GameRow[] = [];
+  const dirty: GameRow[] = [];
   for (const row of next) {
     const old = prev.get(row.gamePk);
-    if (!old || LIVE_FIELDS.some((k) => old[k] !== row[k])) out.changed.push(row);
-    if (!old || COLUMNS.some(([k]) => old[k] !== row[k])) out.dirty.push(row);
-    if (isPlayed(row.codedState) && !(old && isPlayed(old.codedState))) out.newlyFinal.push(row);
+    if (!old || SCOREBOARD_FIELDS.some((k) => old[k] !== row[k])) scoreChanges.push(row);
+    if (!old || COLUMNS.some(([k]) => old[k] !== row[k])) dirty.push(row);
+    if (wasPlayed(row.codedState) && !(old && wasPlayed(old.codedState))) newlyFinal.push(row);
   }
-  return out;
+  return { scoreChanges, newlyFinal, dirty };
 }
 
 async function readGames(conn: DuckDBConnection, pks: number[]): Promise<Map<number, GameRow>> {
@@ -182,27 +159,13 @@ async function writeGames(conn: DuckDBConnection, rows: GameRow[]) {
 export async function upsertGames(
   conn: DuckDBConnection,
   rows: GameRow[],
-): Promise<{ changed: GameRow[]; newlyFinal: GameRow[] }> {
-  if (rows.length === 0) return { changed: [], newlyFinal: [] };
+): Promise<{ scoreChanges: GameRow[]; newlyFinal: GameRow[] }> {
+  if (rows.length === 0) return { scoreChanges: [], newlyFinal: [] };
   const prev = await readGames(
     conn,
     rows.map((r) => r.gamePk),
   );
-  const { changed, newlyFinal, dirty } = diffGames(prev, rows);
+  const { scoreChanges, newlyFinal, dirty } = diffGames(prev, rows);
   if (dirty.length > 0) await writeGames(conn, dirty);
-  return { changed, newlyFinal };
-}
-
-export function toScoreUpdate(row: GameRow): ScoreUpdate {
-  return {
-    gamePk: row.gamePk,
-    officialDate: row.officialDate,
-    abstractState: row.abstractState,
-    codedState: row.codedState,
-    detailedState: row.detailedState,
-    homeScore: row.homeScore,
-    awayScore: row.awayScore,
-    inning: row.inning,
-    inningHalf: row.inningHalf,
-  };
+  return { scoreChanges, newlyFinal };
 }

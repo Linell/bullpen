@@ -4,7 +4,7 @@ import type { DuckDBConnection } from "@duckdb/node-api";
 import { beforeEach, describe, expect, it } from "vitest";
 import { openDb } from "@/lib/db";
 import type { ScheduleResponse } from "@/lib/mlb";
-import { diffGames, isPlayed, parseSchedule, toScoreUpdate, upsertGames } from "@/lib/schedule";
+import { diffGames, parseSchedule, upsertGames, wasPlayed } from "@/lib/schedule";
 
 function fixture(name: string): ScheduleResponse {
   const file = path.join(import.meta.dirname, "fixtures/schedule", `${name}.json`);
@@ -78,9 +78,9 @@ describe("parseSchedule", () => {
   });
 });
 
-describe("isPlayed", () => {
+describe("wasPlayed", () => {
   it("is true only for F and O", () => {
-    expect(["F", "O", "D", "S", "I", "P"].map(isPlayed)).toEqual([
+    expect(["F", "O", "D", "S", "I", "P"].map(wasPlayed)).toEqual([
       true,
       true,
       false,
@@ -92,19 +92,26 @@ describe("isPlayed", () => {
 });
 
 describe("diffGames", () => {
-  it("flags a score change as changed but not newly final", () => {
+  it("flags a score change but not newly final", () => {
     const [row] = parseSchedule(fixture("2026-09-21"));
     const live = { ...row, codedState: "I", abstractState: "Live", detailedState: "In Progress" };
     const prev = new Map([[row.gamePk, live]]);
     const scored = { ...live, homeScore: (live.homeScore ?? 0) + 1 };
-    expect(diffGames(prev, [scored])).toMatchObject({ changed: [scored], newlyFinal: [] });
+    expect(diffGames(prev, [scored])).toMatchObject({ scoreChanges: [scored], newlyFinal: [] });
+  });
+
+  it("publishes a postponed game moving to its makeup date", () => {
+    const [row] = parseSchedule(fixture("2026-09-21"));
+    const moved = { ...row, officialDate: "2026-09-22" };
+    const diff = diffGames(new Map([[row.gamePk, row]]), [moved]);
+    expect(diff.scoreChanges).toEqual([moved]);
   });
 
   it("writes but does not publish a record-only change", () => {
     const [row] = parseSchedule(fixture("2026-09-21"));
     const next = { ...row, homeRecord: "1-0" };
     const diff = diffGames(new Map([[row.gamePk, row]]), [next]);
-    expect(diff).toEqual({ changed: [], newlyFinal: [], dirty: [next] });
+    expect(diff).toEqual({ scoreChanges: [], newlyFinal: [], dirty: [next] });
   });
 });
 
@@ -119,8 +126,8 @@ describe("upsertGames", () => {
     const rows = parseSchedule(fixture("2026-09-22"));
     const postponed = rows.find((r) => r.gamePk === 824785)!;
     expect(postponed).toMatchObject({ abstractState: "Final", codedState: "D" });
-    const { changed, newlyFinal } = await upsertGames(conn, rows);
-    expect(changed).toHaveLength(rows.length);
+    const { scoreChanges, newlyFinal } = await upsertGames(conn, rows);
+    expect(scoreChanges).toHaveLength(rows.length);
     expect(byPk(newlyFinal)).toEqual([823543]);
   });
 
@@ -129,7 +136,7 @@ describe("upsertGames", () => {
     const first = await upsertGames(conn, rows);
     expect(byPk(first.newlyFinal)).toEqual(byPk(rows));
     const second = await upsertGames(conn, rows);
-    expect(second).toEqual({ changed: [], newlyFinal: [] });
+    expect(second).toEqual({ scoreChanges: [], newlyFinal: [] });
   });
 
   it("round-trips every column", async () => {
@@ -137,7 +144,7 @@ describe("upsertGames", () => {
     await upsertGames(conn, rows);
     const reader = await conn.runAndReadAll("SELECT count(*)::INTEGER AS n FROM games");
     expect(reader.getRowObjectsJS()[0].n).toBe(rows.length);
-    expect(await upsertGames(conn, rows)).toEqual({ changed: [], newlyFinal: [] });
+    expect(await upsertGames(conn, rows)).toEqual({ scoreChanges: [], newlyFinal: [] });
   });
 
   it("publishes a score change without re-finalizing", async () => {
@@ -146,12 +153,12 @@ describe("upsertGames", () => {
     const target = rows.find((r) => r.codedState === "P")!;
     const live = { ...target, codedState: "I", abstractState: "Live", detailedState: "In Progress" };
     const r1 = await upsertGames(conn, [live]);
-    expect(r1).toEqual({ changed: [live], newlyFinal: [] });
+    expect(r1).toEqual({ scoreChanges: [live], newlyFinal: [] });
     const scored = { ...live, homeScore: 1 };
-    expect(await upsertGames(conn, [scored])).toEqual({ changed: [scored], newlyFinal: [] });
+    expect(await upsertGames(conn, [scored])).toEqual({ scoreChanges: [scored], newlyFinal: [] });
     const final = { ...scored, codedState: "F", abstractState: "Final", detailedState: "Final" };
-    expect(await upsertGames(conn, [final])).toEqual({ changed: [final], newlyFinal: [final] });
-    expect(await upsertGames(conn, [final])).toEqual({ changed: [], newlyFinal: [] });
+    expect(await upsertGames(conn, [final])).toEqual({ scoreChanges: [final], newlyFinal: [final] });
+    expect(await upsertGames(conn, [final])).toEqual({ scoreChanges: [], newlyFinal: [] });
   });
 
   it("writes rows that differ outside the live fields", async () => {
@@ -162,22 +169,5 @@ describe("upsertGames", () => {
       `SELECT home_record FROM games WHERE game_pk = ${row.gamePk}`,
     );
     expect(reader.getRowObjectsJS()[0].home_record).toBe("1-0");
-  });
-});
-
-describe("toScoreUpdate", () => {
-  it("picks the scoreboard fields", () => {
-    const [row] = parseSchedule(fixture("2026-09-21"));
-    expect(toScoreUpdate(row)).toEqual({
-      gamePk: row.gamePk,
-      officialDate: row.officialDate,
-      abstractState: row.abstractState,
-      codedState: row.codedState,
-      detailedState: row.detailedState,
-      homeScore: row.homeScore,
-      awayScore: row.awayScore,
-      inning: row.inning,
-      inningHalf: row.inningHalf,
-    });
   });
 });

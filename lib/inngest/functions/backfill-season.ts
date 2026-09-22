@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { fetchSchedule, fetchSeasonDates } from "@/lib/mlb";
-import { isPlayed, parseSchedule, upsertGames } from "@/lib/schedule";
+import { wasPlayed, parseSchedule, upsertGames } from "@/lib/schedule";
 import { inngest } from "../client";
 import { DEFAULT_GAME_TYPES, gameFinal, seasonBackfillRequested } from "../events";
 
@@ -13,7 +13,7 @@ export const backfillSeason = inngest.createFunction(
       const { startDate, endDate } = await fetchSeasonDates(season);
       const rows = parseSchedule(await fetchSchedule({ startDate, endDate, gameTypes }));
       await upsertGames(await db(), rows);
-      return rows.filter((r) => isPlayed(r.codedState)).map((r) => r.gamePk);
+      return rows.filter((r) => wasPlayed(r.codedState)).map((r) => r.gamePk);
     });
 
     // No event ids: re-running a backfill must re-ingest (unchanged feeds are skipped).
