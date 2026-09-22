@@ -5,7 +5,7 @@ import { fetchSchedule } from "@/lib/mlb";
 import { parseSchedule, upsertGames } from "@/lib/schedule";
 import { inngest } from "../client";
 import { gameFinal } from "../events";
-import { scoreboard as channel, scoreUpdate } from "../realtime";
+import { scoreboardChannel, scoreUpdate } from "../realtime";
 
 // Every minute, February–November, about 11am–4am ET.
 export const scoreboard = inngest.createFunction(
@@ -19,7 +19,7 @@ export const scoreboard = inngest.createFunction(
 
     if (scoreChanges.length > 0) {
       const updates = scoreChanges.map((row) => scoreUpdate.parse(row));
-      await step.realtime.publish("publish", channel.games, updates);
+      await step.realtime.publish("publish", scoreboardChannel.games, updates);
     }
 
     if (newlyFinal.length > 0) {

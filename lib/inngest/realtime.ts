@@ -1,7 +1,6 @@
 import { channel } from "inngest/realtime";
 import { z } from "zod";
 
-// One row of the scoreboard, published whenever a game's status or score changes.
 export const scoreUpdate = z.object({
   gamePk: z.number(),
   officialDate: z.string(),
@@ -16,7 +15,7 @@ export const scoreUpdate = z.object({
 
 export type ScoreUpdate = z.infer<typeof scoreUpdate>;
 
-export const scoreboard = channel({
+export const scoreboardChannel = channel({
   name: "scoreboard",
   topics: { games: { schema: z.array(scoreUpdate) } },
 });

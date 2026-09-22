@@ -6,7 +6,7 @@ import { useRealtime } from "inngest/react";
 import { getScoreboardToken } from "@/app/actions";
 import { GameCard } from "@/components/game-card";
 import { Card, CardContent } from "@/components/ui/card";
-import { scoreboard } from "@/lib/inngest/realtime";
+import { scoreboardChannel } from "@/lib/inngest/realtime";
 import { mergeUpdates, type Game } from "@/lib/scoreboard";
 
 const TOPICS = ["games"] as const;
@@ -36,7 +36,7 @@ export function Scoreboard({
 }) {
   const router = useRouter();
   const { messages, connectionStatus } = useRealtime({
-    channel: scoreboard,
+    channel: scoreboardChannel,
     topics: TOPICS,
     token,
     enabled: live,
