@@ -51,8 +51,6 @@ function TeamRow({ side, dimmed }: { side: GameSide; dimmed: boolean }) {
 export function GameCard({ game }: { game: Game }) {
   const { away, home, status } = game;
   const isFinal = status.state === "final";
-  const awayScore = away.score ?? 0;
-  const homeScore = home.score ?? 0;
 
   return (
     <Card size="sm">
@@ -65,8 +63,8 @@ export function GameCard({ game }: { game: Game }) {
           <span className="truncate text-xs opacity-70">{game.venue}</span>
         </div>
         <div className="flex flex-col gap-3">
-          <TeamRow side={away} dimmed={isFinal && awayScore < homeScore} />
-          <TeamRow side={home} dimmed={isFinal && homeScore < awayScore} />
+          <TeamRow side={away} dimmed={isFinal && (away.score ?? 0) < (home.score ?? 0)} />
+          <TeamRow side={home} dimmed={isFinal && (home.score ?? 0) < (away.score ?? 0)} />
         </div>
       </CardContent>
     </Card>

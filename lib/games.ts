@@ -4,8 +4,6 @@ import { db } from "@/lib/db";
 import { todayOfficialDate } from "@/lib/format";
 import { postseasonLabel, score, toStatus, type Game, type Team } from "@/lib/scoreboard";
 
-export type { Game, GameSide, GameStatus, Team } from "@/lib/scoreboard";
-
 type Row = {
   game_pk: number;
   official_date: string;
@@ -37,8 +35,7 @@ const GAME_COLUMNS = `
   g.home_score, g.away_score, g.inning, g.inning_half, g.venue_name, g.home_record, g.away_record,
   epoch_ms(g.start_utc)::DOUBLE AS start_ms, epoch_ms(g.updated_at)::DOUBLE AS updated_ms`;
 
-// Latest row per team, if the derived teams table exists yet.
-const WITH_TEAMS = `
+const GAMES_QUERY = `
   WITH t AS (
     SELECT team_id, team_name, abbreviation FROM teams
     QUALIFY row_number() OVER (PARTITION BY team_id ORDER BY season DESC) = 1
@@ -49,13 +46,6 @@ const WITH_TEAMS = `
   FROM games g
   LEFT JOIN t h ON h.team_id = g.home_team_id
   LEFT JOIN t a ON a.team_id = g.away_team_id
-  WHERE g.official_date = $date::DATE
-  ORDER BY g.start_utc, g.game_number, g.game_pk`;
-
-const WITHOUT_TEAMS = `
-  SELECT ${GAME_COLUMNS},
-    NULL AS home_name, NULL AS home_abbr, NULL AS away_name, NULL AS away_abbr
-  FROM games g
   WHERE g.official_date = $date::DATE
   ORDER BY g.start_utc, g.game_number, g.game_pk`;
 
@@ -96,14 +86,9 @@ function toGame(r: Row): Game {
   };
 }
 
-// Games for an MLB official date (YYYY-MM-DD), defaulting to today in Eastern time.
 export async function getGames(date?: string): Promise<Game[]> {
   await connection();
   const conn = await db();
-  const hasTeams = await conn.runAndReadAll(
-    "SELECT 1 FROM duckdb_tables() WHERE table_name = 'teams' AND schema_name = current_schema()",
-  );
-  const sql = hasTeams.currentRowCount > 0 ? WITH_TEAMS : WITHOUT_TEAMS;
-  const reader = await conn.runAndReadAll(sql, { date: date ?? todayOfficialDate() });
+  const reader = await conn.runAndReadAll(GAMES_QUERY, { date: date ?? todayOfficialDate() });
   return (reader.getRowObjectsJS() as unknown as Row[]).map(toGame);
 }
