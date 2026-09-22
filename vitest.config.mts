@@ -1,5 +1,5 @@
 import path from "node:path";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
   resolve: {
@@ -8,5 +8,9 @@ export default defineConfig({
       "server-only": path.resolve(import.meta.dirname, "test/server-only.ts"),
     },
   },
-  test: { environment: "node", passWithNoTests: true },
+  test: {
+    environment: "node",
+    passWithNoTests: true,
+    exclude: [...configDefaults.exclude, ".claude/**"],
+  },
 });
