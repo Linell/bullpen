@@ -1,31 +1,29 @@
--- Tables derived from raw_game_feeds by sql/derive.sql. Never written by TypeScript.
+CREATE TYPE IF NOT EXISTS inning_half AS ENUM ('top', 'bottom');
+CREATE TYPE IF NOT EXISTS handedness AS ENUM ('L', 'R', 'S');
 
--- One row per completed play in liveData.plays.allPlays. Most are plate appearances, but a
--- play can also end an inning without one (e.g. caught stealing for the third out).
-CREATE TABLE IF NOT EXISTS plate_appearances (
+CREATE TABLE IF NOT EXISTS plays (
   game_pk                  INTEGER NOT NULL,
   season                   INTEGER NOT NULL,
   at_bat_index             INTEGER NOT NULL,
   inning                   INTEGER NOT NULL,
-  half                     VARCHAR NOT NULL,   -- top | bottom
+  half                     inning_half NOT NULL,
   batter_id                INTEGER NOT NULL,
   pitcher_id               INTEGER NOT NULL,
-  bat_side                 VARCHAR,            -- L | R
-  pitch_hand               VARCHAR,            -- L | R
-  men_on_base              VARCHAR,            -- Empty | Men_On | RISP | Loaded
-  event                    VARCHAR,            -- "Strikeout"
-  event_type               VARCHAR,            -- "strikeout"
+  bat_side                 handedness,
+  pitch_hand               handedness,
+  men_on_base              VARCHAR,
+  event                    VARCHAR,
+  event_type               VARCHAR,
   description              VARCHAR,
   rbi                      INTEGER,
   is_out                   BOOLEAN,
   is_scoring_play          BOOLEAN,
-  balls                    INTEGER,            -- final count
-  strikes                  INTEGER,
+  final_balls              INTEGER,
+  final_strikes            INTEGER,
   outs_after               INTEGER,
-  home_score               INTEGER,            -- score after the play
-  away_score               INTEGER,
+  home_score_after         INTEGER,
+  away_score_after         INTEGER,
   pitch_count              INTEGER NOT NULL,
-  -- Final ball in play, if any.
   launch_speed             DOUBLE,
   launch_angle             DOUBLE,
   total_distance           DOUBLE,
@@ -34,7 +32,6 @@ CREATE TABLE IF NOT EXISTS plate_appearances (
   hit_location             VARCHAR,
   hit_coord_x              DOUBLE,
   hit_coord_y              DOUBLE,
-  -- Play-level review. reviewType MJ is an ABS challenge, others are replay reviews.
   has_review               BOOLEAN,
   review_type              VARCHAR,
   review_overturned        BOOLEAN,
@@ -45,7 +42,6 @@ CREATE TABLE IF NOT EXISTS plate_appearances (
   PRIMARY KEY (game_pk, at_bat_index)
 );
 
--- One row per playEvents[] entry with isPitch. pitch_index is playEvents[].index.
 CREATE TABLE IF NOT EXISTS pitches (
   game_pk                INTEGER NOT NULL,
   season                 INTEGER NOT NULL,
@@ -54,19 +50,19 @@ CREATE TABLE IF NOT EXISTS pitches (
   play_id                VARCHAR,
   pitch_number           INTEGER,
   inning                 INTEGER NOT NULL,
-  half                   VARCHAR NOT NULL,
+  half                   inning_half NOT NULL,
   batter_id              INTEGER NOT NULL,
   pitcher_id             INTEGER NOT NULL,
-  bat_side               VARCHAR,
-  pitch_hand             VARCHAR,
+  bat_side               handedness,
+  pitch_hand             handedness,
   balls_before           INTEGER NOT NULL,
   strikes_before         INTEGER NOT NULL,
   outs_before            INTEGER NOT NULL,
-  pitch_type             VARCHAR,            -- FF
-  pitch_type_desc        VARCHAR,            -- Four-Seam Fastball
+  pitch_type             VARCHAR,
+  pitch_type_desc        VARCHAR,
   type_confidence        DOUBLE,
-  call_code              VARCHAR,            -- C
-  call_desc              VARCHAR,            -- Called Strike
+  call_code              VARCHAR,
+  call_desc              VARCHAR,
   description            VARCHAR,
   is_in_play             BOOLEAN,
   is_strike              BOOLEAN,
@@ -78,9 +74,9 @@ CREATE TABLE IF NOT EXISTS pitches (
   spin_direction         DOUBLE,
   extension              DOUBLE,
   plate_time             DOUBLE,
-  px                     DOUBLE,             -- feet from the plate's center, catcher's view
-  pz                     DOUBLE,             -- feet above the ground
-  pfx_x                  DOUBLE,             -- inches
+  plate_x                DOUBLE,
+  plate_z                DOUBLE,
+  pfx_x                  DOUBLE,
   pfx_z                  DOUBLE,
   x0                     DOUBLE,
   y0                     DOUBLE,
@@ -95,7 +91,7 @@ CREATE TABLE IF NOT EXISTS pitches (
   break_length           DOUBLE,
   break_y                DOUBLE,
   break_vertical         DOUBLE,
-  induced_vertical_break DOUBLE,             -- inches
+  induced_vertical_break DOUBLE,
   horizontal_break       DOUBLE,
   zone                   INTEGER,
   sz_top                 DOUBLE,
@@ -106,7 +102,6 @@ CREATE TABLE IF NOT EXISTS pitches (
   trajectory             VARCHAR,
   hardness               VARCHAR,
   hit_location           VARCHAR,
-  -- ABS challenge of this pitch's ball/strike call. The call above is the final one.
   abs_challenged         BOOLEAN NOT NULL,
   abs_overturned         BOOLEAN,
   abs_challenge_team_id  INTEGER,
@@ -116,7 +111,6 @@ CREATE TABLE IF NOT EXISTS pitches (
   PRIMARY KEY (game_pk, at_bat_index, pitch_index)
 );
 
--- Latest row per player from gameData.players. source_* identify the game it came from.
 CREATE TABLE IF NOT EXISTS players (
   player_id          INTEGER PRIMARY KEY,
   season             INTEGER NOT NULL,
@@ -125,9 +119,9 @@ CREATE TABLE IF NOT EXISTS players (
   last_name          VARCHAR,
   boxscore_name      VARCHAR,
   primary_number     VARCHAR,
-  primary_position   VARCHAR,            -- abbreviation: P, C, 1B, ...
-  bat_side           VARCHAR,
-  pitch_hand         VARCHAR,
+  primary_position   VARCHAR,
+  bat_side           handedness,
+  pitch_hand         handedness,
   birth_date         DATE,
   height             VARCHAR,
   weight             INTEGER,
@@ -140,14 +134,13 @@ CREATE TABLE IF NOT EXISTS players (
   source_game_number INTEGER NOT NULL
 );
 
--- Latest row per team from gameData.teams.
 CREATE TABLE IF NOT EXISTS teams (
   team_id            INTEGER PRIMARY KEY,
   season             INTEGER NOT NULL,
-  name               VARCHAR NOT NULL,   -- Baltimore Orioles
-  team_name          VARCHAR,            -- Orioles
-  abbreviation       VARCHAR,            -- BAL
-  location_name      VARCHAR,            -- Baltimore
+  name               VARCHAR NOT NULL,
+  team_name          VARCHAR,
+  abbreviation       VARCHAR,
+  location_name      VARCHAR,
   short_name         VARCHAR,
   team_code          VARCHAR,
   league_id          INTEGER,

@@ -60,7 +60,7 @@ describe("derive.sql", () => {
 
     const [last] = await rows(
       conn,
-      `SELECT home_score, away_score FROM plate_appearances
+      `SELECT home_score_after AS home_score, away_score_after AS away_score FROM plays
        WHERE game_pk = $gamePk ORDER BY at_bat_index DESC LIMIT 1`,
       { gamePk },
     );

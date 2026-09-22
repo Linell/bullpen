@@ -55,7 +55,7 @@ export async function deriveGame(conn: DuckDBConnection, gamePk: number | null) 
 
   const counts = await conn.runAndReadAll(
     `SELECT
-       (SELECT count(*) FROM plate_appearances WHERE $game_pk IS NULL OR game_pk = $game_pk) AS pa,
+       (SELECT count(*) FROM plays WHERE $game_pk IS NULL OR game_pk = $game_pk) AS pa,
        (SELECT count(*) FROM pitches WHERE $game_pk IS NULL OR game_pk = $game_pk) AS pitches`,
     { game_pk: gamePk },
     { game_pk: INTEGER },

@@ -1,9 +1,7 @@
--- Tables written by TypeScript. Derived tables live in later files.
-
 CREATE TABLE IF NOT EXISTS raw_game_feeds (
   game_pk    INTEGER PRIMARY KEY,
   season     INTEGER NOT NULL,
-  feed_ts    VARCHAR NOT NULL,  -- metaData.timeStamp, e.g. 20260922_015215
+  feed_ts    VARCHAR NOT NULL,
   fetched_at TIMESTAMPTZ NOT NULL,
   json       JSON NOT NULL
 );
@@ -25,7 +23,7 @@ CREATE TABLE IF NOT EXISTS games (
   inning_half    VARCHAR,
   start_utc      TIMESTAMPTZ NOT NULL,
   venue_name     VARCHAR,
-  home_record    VARCHAR,           -- "88-66", from the schedule's leagueRecord
+  home_record    VARCHAR,
   away_record    VARCHAR,
   updated_at     TIMESTAMPTZ NOT NULL
 );

@@ -4,10 +4,10 @@
 DELETE FROM pitches
 WHERE $game_pk::INTEGER IS NULL OR game_pk = $game_pk::INTEGER;
 
-DELETE FROM plate_appearances
+DELETE FROM plays
 WHERE $game_pk::INTEGER IS NULL OR game_pk = $game_pk::INTEGER;
 
-INSERT INTO plate_appearances BY NAME
+INSERT INTO plays BY NAME
 WITH plays AS (
   SELECT game_pk, season, play, (play ->> '$.about.atBatIndex')::INTEGER AS at_bat_index
   FROM (
@@ -47,11 +47,11 @@ SELECT
   (play ->> '$.result.rbi')::INTEGER AS rbi,
   (play ->> '$.result.isOut')::BOOLEAN AS is_out,
   (play ->> '$.about.isScoringPlay')::BOOLEAN AS is_scoring_play,
-  (play ->> '$.count.balls')::INTEGER AS balls,
-  (play ->> '$.count.strikes')::INTEGER AS strikes,
+  (play ->> '$.count.balls')::INTEGER AS final_balls,
+  (play ->> '$.count.strikes')::INTEGER AS final_strikes,
   (play ->> '$.count.outs')::INTEGER AS outs_after,
-  (play ->> '$.result.homeScore')::INTEGER AS home_score,
-  (play ->> '$.result.awayScore')::INTEGER AS away_score,
+  (play ->> '$.result.homeScore')::INTEGER AS home_score_after,
+  (play ->> '$.result.awayScore')::INTEGER AS away_score_after,
   coalesce(a.pitch_count, 0) AS pitch_count,
   (hit ->> '$.launchSpeed')::DOUBLE AS launch_speed,
   (hit ->> '$.launchAngle')::DOUBLE AS launch_angle,
@@ -150,8 +150,8 @@ SELECT
   (ev ->> '$.pitchData.breaks.spinDirection')::DOUBLE AS spin_direction,
   (ev ->> '$.pitchData.extension')::DOUBLE AS extension,
   (ev ->> '$.pitchData.plateTime')::DOUBLE AS plate_time,
-  (ev ->> '$.pitchData.coordinates.pX')::DOUBLE AS px,
-  (ev ->> '$.pitchData.coordinates.pZ')::DOUBLE AS pz,
+  (ev ->> '$.pitchData.coordinates.pX')::DOUBLE AS plate_x,
+  (ev ->> '$.pitchData.coordinates.pZ')::DOUBLE AS plate_z,
   (ev ->> '$.pitchData.coordinates.pfxX')::DOUBLE AS pfx_x,
   (ev ->> '$.pitchData.coordinates.pfxZ')::DOUBLE AS pfx_z,
   (ev ->> '$.pitchData.coordinates.x0')::DOUBLE AS x0,
