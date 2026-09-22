@@ -4,7 +4,6 @@ import { getSubscriptionToken } from "inngest/realtime";
 import { inngest } from "@/lib/inngest/client";
 import { scoreboardChannel } from "@/lib/inngest/realtime";
 
-// A read-only token for the public scoreboard topic. Returns null when realtime is unavailable.
 export async function getScoreboardToken(): Promise<{ key: string; apiBaseUrl?: string } | null> {
   try {
     const token = await getSubscriptionToken(inngest, { channel: scoreboardChannel, topics: ["games"] });
