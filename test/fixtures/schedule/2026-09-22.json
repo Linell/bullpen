@@ -1,0 +1,1011 @@
+{
+  "dates": [
+    {
+      "date": "2026-09-22",
+      "games": [
+        {
+          "gamePk": 823543,
+          "gameType": "R",
+          "season": "2026",
+          "gameDate": "2026-09-22T17:05:00Z",
+          "officialDate": "2026-09-22",
+          "status": {
+            "abstractGameState": "Final",
+            "codedGameState": "F",
+            "detailedState": "Final"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 139,
+                "name": "Tampa Bay Rays",
+                "season": 2026,
+                "venue": {
+                  "id": 12,
+                  "name": "Tropicana Field"
+                },
+                "abbreviation": "TB",
+                "teamName": "Rays"
+              },
+              "leagueRecord": {
+                "wins": 95,
+                "losses": 61
+              },
+              "score": 0
+            },
+            "home": {
+              "team": {
+                "id": 147,
+                "name": "New York Yankees",
+                "season": 2026,
+                "venue": {
+                  "id": 3313,
+                  "name": "Yankee Stadium"
+                },
+                "abbreviation": "NYY",
+                "teamName": "Yankees"
+              },
+              "leagueRecord": {
+                "wins": 90,
+                "losses": 66
+              },
+              "score": 2
+            }
+          },
+          "linescore": {
+            "currentInning": 9,
+            "inningHalf": "Top",
+            "teams": {
+              "home": {
+                "runs": 2
+              },
+              "away": {
+                "runs": 0
+              }
+            }
+          },
+          "venue": {
+            "id": 3313,
+            "name": "Yankee Stadium"
+          },
+          "gameNumber": 1
+        },
+        {
+          "gamePk": 823494,
+          "gameType": "R",
+          "season": "2026",
+          "gameDate": "2026-09-22T23:05:00Z",
+          "officialDate": "2026-09-22",
+          "status": {
+            "abstractGameState": "Preview",
+            "codedGameState": "S",
+            "detailedState": "Scheduled"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 139,
+                "name": "Tampa Bay Rays",
+                "season": 2026,
+                "venue": {
+                  "id": 12,
+                  "name": "Tropicana Field"
+                },
+                "abbreviation": "TB",
+                "teamName": "Rays"
+              },
+              "leagueRecord": {
+                "wins": 95,
+                "losses": 61
+              }
+            },
+            "home": {
+              "team": {
+                "id": 147,
+                "name": "New York Yankees",
+                "season": 2026,
+                "venue": {
+                  "id": 3313,
+                  "name": "Yankee Stadium"
+                },
+                "abbreviation": "NYY",
+                "teamName": "Yankees"
+              },
+              "leagueRecord": {
+                "wins": 90,
+                "losses": 66
+              }
+            }
+          },
+          "linescore": {
+            "teams": {
+              "home": {},
+              "away": {}
+            }
+          },
+          "venue": {
+            "id": 3313,
+            "name": "Yankee Stadium"
+          },
+          "gameNumber": 2
+        },
+        {
+          "gamePk": 824222,
+          "gameType": "R",
+          "season": "2026",
+          "gameDate": "2026-09-22T22:40:00Z",
+          "officialDate": "2026-09-22",
+          "status": {
+            "abstractGameState": "Preview",
+            "codedGameState": "P",
+            "detailedState": "Pre-Game"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 120,
+                "name": "Washington Nationals",
+                "season": 2026,
+                "venue": {
+                  "id": 3309,
+                  "name": "Nationals Park"
+                },
+                "abbreviation": "WSH",
+                "teamName": "Nationals"
+              },
+              "leagueRecord": {
+                "wins": 73,
+                "losses": 84
+              },
+              "score": 0
+            },
+            "home": {
+              "team": {
+                "id": 116,
+                "name": "Detroit Tigers",
+                "season": 2026,
+                "venue": {
+                  "id": 2394,
+                  "name": "Comerica Park"
+                },
+                "abbreviation": "DET",
+                "teamName": "Tigers"
+              },
+              "leagueRecord": {
+                "wins": 74,
+                "losses": 83
+              },
+              "score": 0
+            }
+          },
+          "linescore": {
+            "currentInning": 1,
+            "inningHalf": "Top",
+            "teams": {
+              "home": {
+                "runs": 0
+              },
+              "away": {
+                "runs": 0
+              }
+            }
+          },
+          "venue": {
+            "id": 2394,
+            "name": "Comerica Park"
+          },
+          "gameNumber": 1
+        },
+        {
+          "gamePk": 823328,
+          "gameType": "R",
+          "season": "2026",
+          "gameDate": "2026-09-22T22:40:00Z",
+          "officialDate": "2026-09-22",
+          "status": {
+            "abstractGameState": "Preview",
+            "codedGameState": "P",
+            "detailedState": "Pre-Game"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 138,
+                "name": "St. Louis Cardinals",
+                "season": 2026,
+                "venue": {
+                  "id": 2889,
+                  "name": "Busch Stadium"
+                },
+                "abbreviation": "STL",
+                "teamName": "Cardinals"
+              },
+              "leagueRecord": {
+                "wins": 76,
+                "losses": 80
+              },
+              "score": 0
+            },
+            "home": {
+              "team": {
+                "id": 134,
+                "name": "Pittsburgh Pirates",
+                "season": 2026,
+                "venue": {
+                  "id": 31,
+                  "name": "PNC Park"
+                },
+                "abbreviation": "PIT",
+                "teamName": "Pirates"
+              },
+              "leagueRecord": {
+                "wins": 79,
+                "losses": 77
+              },
+              "score": 0
+            }
+          },
+          "linescore": {
+            "currentInning": 1,
+            "inningHalf": "Top",
+            "teams": {
+              "home": {
+                "runs": 0
+              },
+              "away": {
+                "runs": 0
+              }
+            }
+          },
+          "venue": {
+            "id": 31,
+            "name": "PNC Park"
+          },
+          "gameNumber": 1
+        },
+        {
+          "gamePk": 823412,
+          "gameType": "R",
+          "season": "2026",
+          "gameDate": "2026-09-22T22:40:00Z",
+          "officialDate": "2026-09-22",
+          "status": {
+            "abstractGameState": "Preview",
+            "codedGameState": "P",
+            "detailedState": "Pre-Game"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 158,
+                "name": "Milwaukee Brewers",
+                "season": 2026,
+                "venue": {
+                  "id": 32,
+                  "name": "American Family Field"
+                },
+                "abbreviation": "MIL",
+                "teamName": "Brewers"
+              },
+              "leagueRecord": {
+                "wins": 98,
+                "losses": 58
+              },
+              "score": 0
+            },
+            "home": {
+              "team": {
+                "id": 143,
+                "name": "Philadelphia Phillies",
+                "season": 2026,
+                "venue": {
+                  "id": 2681,
+                  "name": "Citizens Bank Park"
+                },
+                "abbreviation": "PHI",
+                "teamName": "Phillies"
+              },
+              "leagueRecord": {
+                "wins": 86,
+                "losses": 70
+              },
+              "score": 0
+            }
+          },
+          "linescore": {
+            "currentInning": 1,
+            "inningHalf": "Top",
+            "teams": {
+              "home": {
+                "runs": 0
+              },
+              "away": {
+                "runs": 0
+              }
+            }
+          },
+          "venue": {
+            "id": 2681,
+            "name": "Citizens Bank Park"
+          },
+          "gameNumber": 1
+        },
+        {
+          "gamePk": 824709,
+          "gameType": "R",
+          "season": "2026",
+          "gameDate": "2026-09-22T22:45:00Z",
+          "officialDate": "2026-09-22",
+          "status": {
+            "abstractGameState": "Preview",
+            "codedGameState": "P",
+            "detailedState": "Pre-Game"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 114,
+                "name": "Cleveland Guardians",
+                "season": 2026,
+                "venue": {
+                  "id": 5,
+                  "name": "Progressive Field"
+                },
+                "abbreviation": "CLE",
+                "teamName": "Guardians"
+              },
+              "leagueRecord": {
+                "wins": 81,
+                "losses": 75
+              },
+              "score": 0
+            },
+            "home": {
+              "team": {
+                "id": 111,
+                "name": "Boston Red Sox",
+                "season": 2026,
+                "venue": {
+                  "id": 3,
+                  "name": "Fenway Park"
+                },
+                "abbreviation": "BOS",
+                "teamName": "Red Sox"
+              },
+              "leagueRecord": {
+                "wins": 84,
+                "losses": 72
+              },
+              "score": 0
+            }
+          },
+          "linescore": {
+            "currentInning": 1,
+            "inningHalf": "Top",
+            "teams": {
+              "home": {
+                "runs": 0
+              },
+              "away": {
+                "runs": 0
+              }
+            }
+          },
+          "venue": {
+            "id": 3,
+            "name": "Fenway Park"
+          },
+          "gameNumber": 1
+        },
+        {
+          "gamePk": 824867,
+          "gameType": "R",
+          "season": "2026",
+          "gameDate": "2026-09-22T23:15:00Z",
+          "officialDate": "2026-09-22",
+          "status": {
+            "abstractGameState": "Preview",
+            "codedGameState": "P",
+            "detailedState": "Pre-Game"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 113,
+                "name": "Cincinnati Reds",
+                "season": 2026,
+                "venue": {
+                  "id": 2602,
+                  "name": "Great American Ball Park"
+                },
+                "abbreviation": "CIN",
+                "teamName": "Reds"
+              },
+              "leagueRecord": {
+                "wins": 72,
+                "losses": 84
+              },
+              "score": 0
+            },
+            "home": {
+              "team": {
+                "id": 144,
+                "name": "Atlanta Braves",
+                "season": 2026,
+                "venue": {
+                  "id": 4705,
+                  "name": "Truist Park"
+                },
+                "abbreviation": "ATL",
+                "teamName": "Braves"
+              },
+              "leagueRecord": {
+                "wins": 92,
+                "losses": 64
+              },
+              "score": 0
+            }
+          },
+          "linescore": {
+            "currentInning": 1,
+            "inningHalf": "Top",
+            "teams": {
+              "home": {
+                "runs": 0
+              },
+              "away": {
+                "runs": 0
+              }
+            }
+          },
+          "venue": {
+            "id": 4705,
+            "name": "Truist Park"
+          },
+          "gameNumber": 1
+        },
+        {
+          "gamePk": 824061,
+          "gameType": "R",
+          "season": "2026",
+          "gameDate": "2026-09-22T23:40:00Z",
+          "officialDate": "2026-09-22",
+          "status": {
+            "abstractGameState": "Preview",
+            "codedGameState": "P",
+            "detailedState": "Pre-Game"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 145,
+                "name": "Chicago White Sox",
+                "season": 2026,
+                "venue": {
+                  "id": 4,
+                  "name": "Rate Field"
+                },
+                "abbreviation": "CWS",
+                "teamName": "White Sox"
+              },
+              "leagueRecord": {
+                "wins": 80,
+                "losses": 76
+              },
+              "score": 0
+            },
+            "home": {
+              "team": {
+                "id": 118,
+                "name": "Kansas City Royals",
+                "season": 2026,
+                "venue": {
+                  "id": 7,
+                  "name": "Kauffman Stadium"
+                },
+                "abbreviation": "KC",
+                "teamName": "Royals"
+              },
+              "leagueRecord": {
+                "wins": 67,
+                "losses": 89
+              },
+              "score": 0
+            }
+          },
+          "linescore": {
+            "currentInning": 1,
+            "inningHalf": "Top",
+            "teams": {
+              "home": {
+                "runs": 0
+              },
+              "away": {
+                "runs": 0
+              }
+            }
+          },
+          "venue": {
+            "id": 7,
+            "name": "Kauffman Stadium"
+          },
+          "gameNumber": 1
+        },
+        {
+          "gamePk": 824624,
+          "gameType": "R",
+          "season": "2026",
+          "gameDate": "2026-09-22T23:40:00Z",
+          "officialDate": "2026-09-22",
+          "status": {
+            "abstractGameState": "Preview",
+            "codedGameState": "P",
+            "detailedState": "Pre-Game"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 146,
+                "name": "Miami Marlins",
+                "season": 2026,
+                "venue": {
+                  "id": 4169,
+                  "name": "loanDepot park"
+                },
+                "abbreviation": "MIA",
+                "teamName": "Marlins"
+              },
+              "leagueRecord": {
+                "wins": 76,
+                "losses": 80
+              }
+            },
+            "home": {
+              "team": {
+                "id": 112,
+                "name": "Chicago Cubs",
+                "season": 2026,
+                "venue": {
+                  "id": 17,
+                  "name": "Wrigley Field"
+                },
+                "abbreviation": "CHC",
+                "teamName": "Cubs"
+              },
+              "leagueRecord": {
+                "wins": 87,
+                "losses": 69
+              }
+            }
+          },
+          "linescore": {
+            "teams": {
+              "home": {},
+              "away": {}
+            }
+          },
+          "venue": {
+            "id": 17,
+            "name": "Wrigley Field"
+          },
+          "gameNumber": 1
+        },
+        {
+          "gamePk": 822840,
+          "gameType": "R",
+          "season": "2026",
+          "gameDate": "2026-09-23T00:05:00Z",
+          "officialDate": "2026-09-22",
+          "status": {
+            "abstractGameState": "Preview",
+            "codedGameState": "P",
+            "detailedState": "Pre-Game"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 121,
+                "name": "New York Mets",
+                "season": 2026,
+                "venue": {
+                  "id": 3289,
+                  "name": "Citi Field"
+                },
+                "abbreviation": "NYM",
+                "teamName": "Mets"
+              },
+              "leagueRecord": {
+                "wins": 71,
+                "losses": 85
+              }
+            },
+            "home": {
+              "team": {
+                "id": 140,
+                "name": "Texas Rangers",
+                "season": 2026,
+                "venue": {
+                  "id": 5325,
+                  "name": "Globe Life Field"
+                },
+                "abbreviation": "TEX",
+                "teamName": "Rangers"
+              },
+              "leagueRecord": {
+                "wins": 78,
+                "losses": 78
+              }
+            }
+          },
+          "linescore": {
+            "teams": {
+              "home": {},
+              "away": {}
+            }
+          },
+          "venue": {
+            "id": 5325,
+            "name": "Globe Life Field"
+          },
+          "gameNumber": 1
+        },
+        {
+          "gamePk": 824302,
+          "gameType": "R",
+          "season": "2026",
+          "gameDate": "2026-09-23T00:40:00Z",
+          "officialDate": "2026-09-22",
+          "status": {
+            "abstractGameState": "Preview",
+            "codedGameState": "P",
+            "detailedState": "Pre-Game"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 109,
+                "name": "Arizona Diamondbacks",
+                "season": 2026,
+                "venue": {
+                  "id": 15,
+                  "name": "Chase Field"
+                },
+                "abbreviation": "AZ",
+                "teamName": "D-backs"
+              },
+              "leagueRecord": {
+                "wins": 82,
+                "losses": 74
+              },
+              "score": 0
+            },
+            "home": {
+              "team": {
+                "id": 115,
+                "name": "Colorado Rockies",
+                "season": 2026,
+                "venue": {
+                  "id": 19,
+                  "name": "Coors Field"
+                },
+                "abbreviation": "COL",
+                "teamName": "Rockies"
+              },
+              "leagueRecord": {
+                "wins": 57,
+                "losses": 99
+              },
+              "score": 0
+            }
+          },
+          "linescore": {
+            "currentInning": 1,
+            "inningHalf": "Top",
+            "teams": {
+              "home": {
+                "runs": 0
+              },
+              "away": {
+                "runs": 0
+              }
+            }
+          },
+          "venue": {
+            "id": 19,
+            "name": "Coors Field"
+          },
+          "gameNumber": 1
+        },
+        {
+          "gamePk": 824953,
+          "gameType": "R",
+          "season": "2026",
+          "gameDate": "2026-09-23T01:40:00Z",
+          "officialDate": "2026-09-22",
+          "status": {
+            "abstractGameState": "Preview",
+            "codedGameState": "S",
+            "detailedState": "Scheduled"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 108,
+                "name": "Los Angeles Angels",
+                "season": 2026,
+                "venue": {
+                  "id": 1,
+                  "name": "Angel Stadium"
+                },
+                "abbreviation": "LAA",
+                "teamName": "Angels"
+              },
+              "leagueRecord": {
+                "wins": 60,
+                "losses": 96
+              }
+            },
+            "home": {
+              "team": {
+                "id": 133,
+                "name": "Athletics",
+                "season": 2026,
+                "venue": {
+                  "id": 2529,
+                  "name": "Sutter Health Park"
+                },
+                "abbreviation": "ATH",
+                "teamName": "Athletics"
+              },
+              "leagueRecord": {
+                "wins": 61,
+                "losses": 95
+              }
+            }
+          },
+          "linescore": {
+            "teams": {
+              "home": {},
+              "away": {}
+            }
+          },
+          "venue": {
+            "id": 2529,
+            "name": "Sutter Health Park"
+          },
+          "gameNumber": 1
+        },
+        {
+          "gamePk": 823089,
+          "gameType": "R",
+          "season": "2026",
+          "gameDate": "2026-09-23T01:40:00Z",
+          "officialDate": "2026-09-22",
+          "status": {
+            "abstractGameState": "Preview",
+            "codedGameState": "S",
+            "detailedState": "Scheduled"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 117,
+                "name": "Houston Astros",
+                "season": 2026,
+                "venue": {
+                  "id": 2392,
+                  "name": "Daikin Park"
+                },
+                "abbreviation": "HOU",
+                "teamName": "Astros"
+              },
+              "leagueRecord": {
+                "wins": 77,
+                "losses": 79
+              }
+            },
+            "home": {
+              "team": {
+                "id": 136,
+                "name": "Seattle Mariners",
+                "season": 2026,
+                "venue": {
+                  "id": 680,
+                  "name": "T-Mobile Park"
+                },
+                "abbreviation": "SEA",
+                "teamName": "Mariners"
+              },
+              "leagueRecord": {
+                "wins": 73,
+                "losses": 83
+              }
+            }
+          },
+          "linescore": {
+            "teams": {
+              "home": {},
+              "away": {}
+            }
+          },
+          "venue": {
+            "id": 680,
+            "name": "T-Mobile Park"
+          },
+          "gameNumber": 1
+        },
+        {
+          "gamePk": 823166,
+          "gameType": "R",
+          "season": "2026",
+          "gameDate": "2026-09-23T01:45:00Z",
+          "officialDate": "2026-09-22",
+          "status": {
+            "abstractGameState": "Preview",
+            "codedGameState": "S",
+            "detailedState": "Scheduled"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 142,
+                "name": "Minnesota Twins",
+                "season": 2026,
+                "venue": {
+                  "id": 3312,
+                  "name": "Target Field"
+                },
+                "abbreviation": "MIN",
+                "teamName": "Twins"
+              },
+              "leagueRecord": {
+                "wins": 73,
+                "losses": 84
+              }
+            },
+            "home": {
+              "team": {
+                "id": 137,
+                "name": "San Francisco Giants",
+                "season": 2026,
+                "venue": {
+                  "id": 2395,
+                  "name": "Oracle Park"
+                },
+                "abbreviation": "SF",
+                "teamName": "Giants"
+              },
+              "leagueRecord": {
+                "wins": 65,
+                "losses": 92
+              }
+            }
+          },
+          "linescore": {
+            "teams": {
+              "home": {},
+              "away": {}
+            }
+          },
+          "venue": {
+            "id": 2395,
+            "name": "Oracle Park"
+          },
+          "gameNumber": 1
+        },
+        {
+          "gamePk": 823897,
+          "gameType": "R",
+          "season": "2026",
+          "gameDate": "2026-09-23T02:10:00Z",
+          "officialDate": "2026-09-22",
+          "status": {
+            "abstractGameState": "Preview",
+            "codedGameState": "S",
+            "detailedState": "Scheduled"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 135,
+                "name": "San Diego Padres",
+                "season": 2026,
+                "venue": {
+                  "id": 2680,
+                  "name": "Petco Park"
+                },
+                "abbreviation": "SD",
+                "teamName": "Padres"
+              },
+              "leagueRecord": {
+                "wins": 87,
+                "losses": 69
+              }
+            },
+            "home": {
+              "team": {
+                "id": 119,
+                "name": "Los Angeles Dodgers",
+                "season": 2026,
+                "venue": {
+                  "id": 22,
+                  "name": "UNIQLO Field at Dodger Stadium"
+                },
+                "abbreviation": "LAD",
+                "teamName": "Dodgers"
+              },
+              "leagueRecord": {
+                "wins": 96,
+                "losses": 60
+              }
+            }
+          },
+          "linescore": {
+            "teams": {
+              "home": {},
+              "away": {}
+            }
+          },
+          "venue": {
+            "id": 22,
+            "name": "UNIQLO Field at Dodger Stadium"
+          },
+          "gameNumber": 1
+        },
+        {
+          "gamePk": 824785,
+          "gameType": "R",
+          "season": "2026",
+          "gameDate": "2026-09-22T22:35:00Z",
+          "officialDate": "2026-09-23",
+          "status": {
+            "abstractGameState": "Final",
+            "codedGameState": "D",
+            "detailedState": "Postponed"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 141,
+                "name": "Toronto Blue Jays",
+                "season": 2026,
+                "venue": {
+                  "id": 14,
+                  "name": "Rogers Centre"
+                },
+                "abbreviation": "TOR",
+                "teamName": "Blue Jays"
+              },
+              "leagueRecord": {
+                "wins": 77,
+                "losses": 80
+              }
+            },
+            "home": {
+              "team": {
+                "id": 110,
+                "name": "Baltimore Orioles",
+                "season": 2026,
+                "venue": {
+                  "id": 2,
+                  "name": "Oriole Park at Camden Yards"
+                },
+                "abbreviation": "BAL",
+                "teamName": "Orioles"
+              },
+              "leagueRecord": {
+                "wins": 76,
+                "losses": 81
+              }
+            }
+          },
+          "venue": {
+            "id": 2,
+            "name": "Oriole Park at Camden Yards"
+          },
+          "gameNumber": 1
+        }
+      ]
+    }
+  ]
+}

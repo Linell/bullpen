@@ -1,0 +1,388 @@
+{
+  "dates": [
+    {
+      "date": "2026-07-21",
+      "games": [
+        {
+          "gamePk": 823519,
+          "gameType": "R",
+          "season": "2026",
+          "gameDate": "2026-07-21T23:05:00Z",
+          "officialDate": "2026-07-22",
+          "status": {
+            "abstractGameState": "Final",
+            "codedGameState": "D",
+            "detailedState": "Postponed"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 134,
+                "name": "Pittsburgh Pirates",
+                "season": 2026,
+                "venue": {
+                  "id": 31,
+                  "name": "PNC Park"
+                },
+                "abbreviation": "PIT",
+                "teamName": "Pirates"
+              },
+              "leagueRecord": {
+                "wins": 53,
+                "losses": 49
+              }
+            },
+            "home": {
+              "team": {
+                "id": 147,
+                "name": "New York Yankees",
+                "season": 2026,
+                "venue": {
+                  "id": 3313,
+                  "name": "Yankee Stadium"
+                },
+                "abbreviation": "NYY",
+                "teamName": "Yankees"
+              },
+              "leagueRecord": {
+                "wins": 56,
+                "losses": 45
+              }
+            }
+          },
+          "venue": {
+            "id": 3313,
+            "name": "Yankee Stadium"
+          },
+          "gameNumber": 1
+        },
+        {
+          "gamePk": 824735,
+          "gameType": "R",
+          "season": "2026",
+          "gameDate": "2026-07-21T23:10:00Z",
+          "officialDate": "2026-07-22",
+          "status": {
+            "abstractGameState": "Final",
+            "codedGameState": "D",
+            "detailedState": "Postponed"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 110,
+                "name": "Baltimore Orioles",
+                "season": 2026,
+                "venue": {
+                  "id": 2,
+                  "name": "Oriole Park at Camden Yards"
+                },
+                "abbreviation": "BAL",
+                "teamName": "Orioles"
+              },
+              "leagueRecord": {
+                "wins": 49,
+                "losses": 53
+              }
+            },
+            "home": {
+              "team": {
+                "id": 111,
+                "name": "Boston Red Sox",
+                "season": 2026,
+                "venue": {
+                  "id": 3,
+                  "name": "Fenway Park"
+                },
+                "abbreviation": "BOS",
+                "teamName": "Red Sox"
+              },
+              "leagueRecord": {
+                "wins": 52,
+                "losses": 48
+              }
+            }
+          },
+          "venue": {
+            "id": 3,
+            "name": "Fenway Park"
+          },
+          "gameNumber": 1
+        }
+      ]
+    },
+    {
+      "date": "2026-07-22",
+      "games": [
+        {
+          "gamePk": 823518,
+          "gameType": "R",
+          "season": "2026",
+          "gameDate": "2026-07-22T17:05:00Z",
+          "officialDate": "2026-07-22",
+          "status": {
+            "abstractGameState": "Final",
+            "codedGameState": "F",
+            "detailedState": "Final"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 134,
+                "name": "Pittsburgh Pirates",
+                "season": 2026,
+                "venue": {
+                  "id": 31,
+                  "name": "PNC Park"
+                },
+                "abbreviation": "PIT",
+                "teamName": "Pirates"
+              },
+              "leagueRecord": {
+                "wins": 53,
+                "losses": 49
+              },
+              "score": 5
+            },
+            "home": {
+              "team": {
+                "id": 147,
+                "name": "New York Yankees",
+                "season": 2026,
+                "venue": {
+                  "id": 3313,
+                  "name": "Yankee Stadium"
+                },
+                "abbreviation": "NYY",
+                "teamName": "Yankees"
+              },
+              "leagueRecord": {
+                "wins": 56,
+                "losses": 45
+              },
+              "score": 3
+            }
+          },
+          "linescore": {
+            "currentInning": 10,
+            "inningHalf": "Bottom",
+            "teams": {
+              "home": {
+                "runs": 3
+              },
+              "away": {
+                "runs": 5
+              }
+            }
+          },
+          "venue": {
+            "id": 3313,
+            "name": "Yankee Stadium"
+          },
+          "gameNumber": 1
+        },
+        {
+          "gamePk": 823519,
+          "gameType": "R",
+          "season": "2026",
+          "gameDate": "2026-07-22T23:05:00Z",
+          "officialDate": "2026-07-22",
+          "status": {
+            "abstractGameState": "Final",
+            "codedGameState": "F",
+            "detailedState": "Final"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 134,
+                "name": "Pittsburgh Pirates",
+                "season": 2026,
+                "venue": {
+                  "id": 31,
+                  "name": "PNC Park"
+                },
+                "abbreviation": "PIT",
+                "teamName": "Pirates"
+              },
+              "leagueRecord": {
+                "wins": 53,
+                "losses": 50
+              },
+              "score": 0
+            },
+            "home": {
+              "team": {
+                "id": 147,
+                "name": "New York Yankees",
+                "season": 2026,
+                "venue": {
+                  "id": 3313,
+                  "name": "Yankee Stadium"
+                },
+                "abbreviation": "NYY",
+                "teamName": "Yankees"
+              },
+              "leagueRecord": {
+                "wins": 57,
+                "losses": 45
+              },
+              "score": 2
+            }
+          },
+          "linescore": {
+            "currentInning": 9,
+            "inningHalf": "Top",
+            "teams": {
+              "home": {
+                "runs": 2
+              },
+              "away": {
+                "runs": 0
+              }
+            }
+          },
+          "venue": {
+            "id": 3313,
+            "name": "Yankee Stadium"
+          },
+          "gameNumber": 2
+        },
+        {
+          "gamePk": 824735,
+          "gameType": "R",
+          "season": "2026",
+          "gameDate": "2026-07-22T17:35:00Z",
+          "officialDate": "2026-07-22",
+          "status": {
+            "abstractGameState": "Final",
+            "codedGameState": "F",
+            "detailedState": "Final"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 110,
+                "name": "Baltimore Orioles",
+                "season": 2026,
+                "venue": {
+                  "id": 2,
+                  "name": "Oriole Park at Camden Yards"
+                },
+                "abbreviation": "BAL",
+                "teamName": "Orioles"
+              },
+              "leagueRecord": {
+                "wins": 49,
+                "losses": 53
+              },
+              "score": 3
+            },
+            "home": {
+              "team": {
+                "id": 111,
+                "name": "Boston Red Sox",
+                "season": 2026,
+                "venue": {
+                  "id": 3,
+                  "name": "Fenway Park"
+                },
+                "abbreviation": "BOS",
+                "teamName": "Red Sox"
+              },
+              "leagueRecord": {
+                "wins": 52,
+                "losses": 48
+              },
+              "score": 6
+            }
+          },
+          "linescore": {
+            "currentInning": 9,
+            "inningHalf": "Top",
+            "teams": {
+              "home": {
+                "runs": 6
+              },
+              "away": {
+                "runs": 3
+              }
+            }
+          },
+          "venue": {
+            "id": 3,
+            "name": "Fenway Park"
+          },
+          "gameNumber": 1
+        },
+        {
+          "gamePk": 824732,
+          "gameType": "R",
+          "season": "2026",
+          "gameDate": "2026-07-22T23:10:00Z",
+          "officialDate": "2026-07-22",
+          "status": {
+            "abstractGameState": "Final",
+            "codedGameState": "F",
+            "detailedState": "Final"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 110,
+                "name": "Baltimore Orioles",
+                "season": 2026,
+                "venue": {
+                  "id": 2,
+                  "name": "Oriole Park at Camden Yards"
+                },
+                "abbreviation": "BAL",
+                "teamName": "Orioles"
+              },
+              "leagueRecord": {
+                "wins": 50,
+                "losses": 53
+              },
+              "score": 5
+            },
+            "home": {
+              "team": {
+                "id": 111,
+                "name": "Boston Red Sox",
+                "season": 2026,
+                "venue": {
+                  "id": 3,
+                  "name": "Fenway Park"
+                },
+                "abbreviation": "BOS",
+                "teamName": "Red Sox"
+              },
+              "leagueRecord": {
+                "wins": 52,
+                "losses": 49
+              },
+              "score": 1
+            }
+          },
+          "linescore": {
+            "currentInning": 9,
+            "inningHalf": "Bottom",
+            "teams": {
+              "home": {
+                "runs": 1
+              },
+              "away": {
+                "runs": 5
+              }
+            }
+          },
+          "venue": {
+            "id": 3,
+            "name": "Fenway Park"
+          },
+          "gameNumber": 2
+        }
+      ]
+    }
+  ]
+}
