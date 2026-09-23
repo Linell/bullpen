@@ -1,25 +1,27 @@
-# Bullpen: MLB ingest and live scores spec
+# Bullpen: MLB ingest and scoreboard spec
 
 ## Problem
 
-- We can't see which MLB games are live today, or their scores.
+- We can't see which MLB games are live today, or their scores. A scoreboard that refreshes on each page load is enough.
 - We have no queryable 2026 season dataset (games, plays, pitches) for analytics.
 - The only source is MLB's unofficial Stats API, so we must fetch politely and avoid re-fetching data we already have.
 
 ## Solution
 
-Three Inngest functions and two typed events feed a MotherDuck database. Raw game JSON is the source of truth, and analytics tables are derived from it in SQL.
+Five Inngest functions and four typed events feed a MotherDuck database. Raw game JSON is the source of truth, and analytics tables are derived from it in SQL.
 
-- **`scoreboard`** runs every minute during baseball months and hours. One schedule request returns every game's status and score. It updates `games`, pushes changes to the UI, and emits `mlb/game.final` when a game ends.
-- **`backfill-season`** emits `mlb/game.final` for every completed game in a season.
-- **`ingest-game`** fetches a final game's feed, stores the raw JSON, and runs `derive.sql` to rebuild that game's rows.
+- **`sync-schedule`** runs every minute during baseball months and hours. One schedule request returns every game's status and score. It updates `games` and emits `mlb/game.completed` for each completed game.
+- **`backfill-season`** does the same for a whole season when a person asks for it.
+- **`ingest-game-feed`** fetches a completed game's feed, stores the raw JSON, and emits `mlb/game-feed.stored`.
+- **`derive-game-tables`** runs `derive.sql` to rebuild that game's rows.
+- **`rebuild-game-tables`** emits `mlb/game-feed.stored` for every stored feed, so every game is re-derived without refetching.
 
-Live and backfill share one ingest path. Re-running anything is safe, because unchanged feeds are skipped.
+Live and backfill share one ingest path. Re-running anything is safe: unchanged feeds aren't re-stored, deriving a game replaces its rows, and deterministic event ids stop Inngest from repeating work.
 
 ## Out of scope
 
 - Seasons before 2026. The schema supports them, and loading one later is just another backfill event.
-- Pitch-by-pitch live updates. Live scores refresh once a minute.
+- Pushing live score updates to the UI. The page reads `games` on each request; Inngest Realtime can be added later.
 - Analytics UI and models.
 - Automatic rechecks for scorer corrections. Re-run the backfill instead.
 
@@ -28,7 +30,7 @@ Live and backfill share one ingest path. Re-running anything is safe, because un
 - **Unofficial API.** MLB's API has no SLA and its fields change; ABS challenges were added in 2026, for example. Mitigation: store the raw JSON so tables can be rebuilt without re-fetching.
 - **Usage terms.** MLB's copyright notice limits use to individual, non-commercial purposes. The project stays personal.
 - **Native binary.** `@duckdb/node-api` may not run on serverless platforms. Verify on the deploy target early.
-- **Local single writer.** An offline `.duckdb` file allows one writer at a time, so set ingest concurrency to 1 when using it.
+- **Local single writer.** An offline `.duckdb` file can only be opened by one process, so run a single app server against it.
 
 ## Release
 
@@ -37,17 +39,18 @@ Live and backfill share one ingest path. Re-running anything is safe, because un
 3. Backfill the 2026 season in dev.
 4. Point prod at `md:bullpen`, deploy, and run the backfill there.
 
-Rollback: the derived tables can be dropped and rebuilt from `raw_game_feeds`.
+Rollback: fix `derive.sql` and send `mlb/game-tables.rebuild.requested` to rebuild the derived tables from `raw_game_feeds`. Failed runs can also be replayed from the Inngest dashboard.
 
 ## Context
 
-- **Schedule** (`/api/v1/schedule?sportId=1&date=…&hydrate=linescore`) returns every game's `gamePk`, status and score in one call. It also accepts `startDate`/`endDate`.
+- **Schedule** (`/api/v1/schedule?sportId=1&startDate=…&endDate=…&gameType=R,F,D,L,W&hydrate=linescore,team&fields=…`) returns every game's `gamePk`, status and score over a date range in one call. `fields` trims the response to what `games` needs.
 - **Game feed** (`/api/v1.1/game/{gamePk}/feed/live`, about 670 KB) has pitch-level data: velocity, spin, movement and location, plus exit velocity and launch angle on balls in play. It also includes weather, umpires, box score and ABS challenges. `metaData.timeStamp` identifies the feed version.
 - A season is about 2,430 games, 185k plate appearances and 700k pitches.
 - Gotchas:
   - `gameDate` is UTC. Bucket games by `officialDate`.
   - Doubleheaders have separate `gamePk`s; use `gameNumber` to tell them apart.
-  - Postponed games show `abstractGameState: Final` with `codedGameState: D`. Use `codedGameState` in `F`/`O` to mean "actually played."
+  - Postponed games show `abstractGameState: Final` with `codedGameState: D`. A game is completed when `codedGameState` is `F` or `O`, or `Q`/`R` for a forfeit.
+  - Forfeited games are ingested like any other. Official Baseball Rule 9.03(e) keeps the stats of a forfeited regulation game, so the tables store the plays as they happened. Analytics can filter on `coded_state IN ('Q', 'R')`. The scoreboard shows the API's score with a "Forfeit" note.
   - Suspended games span dates. Key everything by `gamePk`.
   - Filter by `gameType`: `R` is regular season, `S` spring, `F`/`D`/`L`/`W` postseason.
 
@@ -63,32 +66,66 @@ TypeScript writes two tables. SQL derives the rest. Every table has `season`. DD
 - **`pitches`** (SQL): keyed by `(game_pk, at_bat_index, pitch_index)`, because `playId` can be null.
 - **`players`, `teams`** (SQL): the latest row per id, taken from `gameData`.
 
-Derived tables are real tables, not views, because a view would re-parse the JSON on every query. `sql/derive.sql` parses each feed once with `json_transform` into a temp table, then deletes and re-inserts one game's rows. Run without the game filter, the same SQL rebuilds everything. Players and teams come only from played games.
+Derived tables are real tables, not views, because a view would re-parse the JSON on every query. `sql/derive.sql` parses a game's feed once with `json_transform` into a temp table, then deletes and re-inserts that game's rows. Players and teams come only from feeds that have plays.
 
 ### Events
 
-Both events are defined with the Inngest TS SDK's typed event schemas.
+All events are defined with `eventType` and a Zod schema, so they are validated when sent and when they trigger a function.
 
-- `mlb/season.backfill.requested` `{ season: number, gameTypes?: string[] }`: validate with Zod, because a person sends it.
-- `mlb/game.final` `{ gamePk: number, season: number }`
+- `mlb/season.backfill.requested` `{ season: number }`: sent by a person.
+- `mlb/game-tables.rebuild.requested` `{}`: sent by a person.
+- `mlb/game.completed` `{ gamePk: number }`
+- `mlb/game-feed.stored` `{ gamePk: number }`
 
 Events carry ids only. Feeds exceed the free tier's 256 KB event limit.
 
+Every emitted event has a deterministic id, `<event>-<key>[-<discriminator>]`. The discriminator is what makes a repeat distinct: the feed version for ingest, and the request time for backfill and rebuild. Inngest drops a second event with the same id for 24 hours, so retries and overlapping runs don't repeat work.
+
+| Emitted by | Event | Id |
+| --- | --- | --- |
+| `sync-schedule` | `mlb/game.completed` | `game-completed-{gamePk}` |
+| `backfill-season` | `mlb/game.completed` | `game-completed-{gamePk}-{event.ts}` |
+| `ingest-game-feed` | `mlb/game-feed.stored` | `game-feed-stored-{gamePk}-{feedTs}` |
+| `rebuild-game-tables` | `mlb/game-feed.stored` | `game-feed-stored-{gamePk}-{event.ts}` |
+
+`event.ts` is when the person sent the request, so it is stable across retries of that run but new for each request.
+
+### Naming
+
+- Function id is `verb-object`, matching its file name.
+- Events are `mlb/<noun>.<past-tense>`, or `mlb/<noun>.<verb>.requested` when a person asks for something. Compound nouns are hyphenated, as in `game-feed`.
+- Step ids say what the step does with one of four verbs: `load-<source>` extracts and loads in one step, which keeps large payloads out of Inngest state; `derive-<thing>` transforms; `list-<source>` reads; and `emit-<event>` sends an event.
+- Functions return what they processed and counts, never arrays.
+
 ### Functions
 
-- **`scoreboard`**
-  - Cron, every minute, limited to baseball months and hours: `TZ=UTC * 15-23,0-7 * 2-11 *` (February–November, about 11am–4am ET).
-  - One schedule call for yesterday and today (US Eastern), which catches late-running and resumed games. No future fetch: tomorrow's games appear once the date rolls over.
-  - Upsert `games`, and publish to Inngest Realtime only for rows that changed.
-  - Emit `mlb/game.final` when `coded_state` becomes `F` or `O`.
+All functions open a short-lived database connection per step with `withConnection`.
+
+- **`sync-schedule`**
+  - Cron, every minute, limited to baseball months and hours: `TZ=UTC * 15-23,0-7 * 2-11 *` (February–November, about 11am–4am ET). `singleton: { mode: "skip" }` skips a run while the previous one is still going, so a run stuck retrying blocks the minutes after it.
+  - Step `load-schedule`: one schedule call for yesterday and today (US Eastern), which catches late-running and resumed games. No future fetch: tomorrow's games appear once the date rolls over. Upsert only the `games` rows that changed.
+  - Step `emit-game-completed`: `mlb/game.completed` for every completed game in the window. The id `game-completed-{gamePk}` has no time in it, so consecutive runs don't send it again. A game still in the window after 24 hours is sent once more, which is harmless because ingest is idempotent.
+  - Returns `{ startDate, endDate, games, changed, completed }`.
 - **`backfill-season`**
-  - One schedule call over the season's date range.
-  - Upsert `games`, then one `step.sendEvent` of `mlb/game.final` for every completed game (under the 5,000-per-send limit).
-- **`ingest-game`**
-  - Triggered by `mlb/game.final`, with concurrency 2 (1 offline).
-  - One step: fetch the feed, then in one transaction upsert raw (skipped if `feed_ts` is unchanged) and run `derive.sql`, so a failed derive is retried.
-  - Returns only a summary, which keeps the 670 KB feed out of Inngest state.
-  - Inngest retries handle MLB errors.
+  - Triggered by `mlb/season.backfill.requested`.
+  - Step `load-schedule`: fetch the season's date range, then one schedule call over it. Upsert only the `games` rows that changed.
+  - Step `emit-game-completed`: one `step.sendEvent` of `mlb/game.completed` for every completed game (under the 5,000-per-send limit). The id includes `event.ts`, so re-sending the request re-checks every game.
+  - Returns `{ season, games, changed, completed }`.
+- **`ingest-game-feed`**
+  - Triggered by `mlb/game.completed`, with concurrency 2 to stay polite to MLB's API.
+  - Step `load-game-feed`: fetch the feed and upsert `raw_game_feeds`, skipped if `feed_ts` is unchanged. Only a summary is returned, which keeps the 670 KB feed out of Inngest state.
+  - Step `emit-game-feed-stored`: always emits `mlb/game-feed.stored`, even when the feed was unchanged. That covers a feed that was stored but never announced. Within 24 hours a repeat has the same id and Inngest drops it, so this won't re-run a derive that ran out of retries. For that, replay the run from the Inngest dashboard or send `mlb/game-tables.rebuild.requested`, whose ids use `event.ts`.
+  - Inngest retries handle MLB errors, and a 429 with `Retry-After` becomes a `RetryAfterError`.
+  - Returns `{ gamePk, feedTs, status }`.
+- **`derive-game-tables`**
+  - Triggered by `mlb/game-feed.stored`, with concurrency 1 so derives never conflict on `players` and `teams`.
+  - Step `derive-game`: runs `derive.sql` for one game in a transaction. A failure leaves the previous rows in place, and Inngest retries it without refetching the feed.
+  - Returns `{ gamePk, plays, pitches }`.
+- **`rebuild-game-tables`**
+  - Triggered by `mlb/game-tables.rebuild.requested`.
+  - Step `list-raw-feeds`: every `game_pk` in `raw_game_feeds`.
+  - Steps `emit-game-feed-stored-1`, `emit-game-feed-stored-2`, …: `mlb/game-feed.stored` for each game, at most 5,000 per send, one numbered step per batch.
+  - Returns `{ feeds }`.
 
 ### Config
 
@@ -100,9 +137,9 @@ All live in `.env.local`, which is gitignored.
 
 ## Testing
 
-- **`derive.sql`**: run it on saved feed fixtures, including a doubleheader, a postponed game, a suspended game and an extra-innings game. Row counts and final scores should match the box score.
-- **`scoreboard`**: the status-transition logic emits `game.final` only for `F`/`O`, and only once per game.
-- **Idempotency**: ingesting the same game twice leaves the row counts unchanged.
+- **`derive.sql`**: run it on saved feed fixtures, including a doubleheader, a postponed game, a suspended game and an extra-innings game. Row counts and final scores should match the box score. Re-deriving leaves the row counts unchanged, and a failed derive keeps the previous rows.
+- **Schedule**: parsing, which rows count as changed, and which games count as completed, including a forfeit and a postponed game.
+- **Functions**: `@inngest/test` runs each function that sends events, with its steps mocked, and checks the events and their ids. `sync-schedule` sends nothing when no game is completed, `ingest-game-feed` emits even for an unchanged feed, and `rebuild-game-tables` splits its events into batches of 5,000.
 
 ## Alternatives
 
@@ -121,6 +158,5 @@ All live in `.env.local`, which is gitignored.
 - [Inngest usage limits](https://www.inngest.com/docs/usage-limits/inngest)
 - [Inngest concurrency](https://www.inngest.com/docs/guides/concurrency)
 - [Inngest scheduled functions](https://www.inngest.com/docs/guides/scheduled-functions)
-- [Inngest Realtime](https://www.inngest.com/docs/features/realtime)
 - [DuckDB Quack remote protocol](https://duckdb.org/2026/05/12/quack-remote-protocol)
 - [MotherDuck: materialized views](https://motherduck.com/glossary/materialized-view/)
