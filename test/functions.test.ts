@@ -62,17 +62,42 @@ describe("backfill-season", () => {
 });
 
 describe("ingest-game-feed", () => {
-  it("emits game-feed.stored even when the feed is unchanged", async () => {
+  const stored = { gamePk: 101, feedTs: "20260921_230000", status: "stored" };
+
+  it("emits game-feed.stored when the feed is stored", async () => {
     const t = new InngestTestEngine({ function: ingestGameFeed });
     const { ctx, result } = await t.execute({
       events: [{ name: "mlb/game.completed", data: { gamePk: 101 } }],
-      steps: [
-        mockStep("load-game-feed", { gamePk: 101, feedTs: "20260921_230000", status: "unchanged" }),
-        mockSend("emit-game-feed-stored"),
-      ],
+      steps: [mockStep("load-game-feed", stored), mockSend("emit-game-feed-stored")],
     });
 
-    expect(result).toEqual({ gamePk: 101, feedTs: "20260921_230000", status: "unchanged" });
+    expect(result).toEqual(stored);
+    expect(ctx.step.sendEvent).toHaveBeenCalledWith(
+      "emit-game-feed-stored",
+      expect.objectContaining({ data: { gamePk: 101 }, id: "game-feed-stored-101-20260921_230000" }),
+    );
+  });
+
+  it("sends nothing when the feed is unchanged", async () => {
+    const unchanged = { ...stored, status: "unchanged" };
+    const t = new InngestTestEngine({ function: ingestGameFeed });
+    const { ctx, result } = await t.execute({
+      events: [{ name: "mlb/game.completed", data: { gamePk: 101 } }],
+      steps: [mockStep("load-game-feed", unchanged)],
+    });
+
+    expect(result).toEqual(unchanged);
+    expect(ctx.step.sendEvent).not.toHaveBeenCalled();
+  });
+
+  it("runs on game.updated", async () => {
+    const t = new InngestTestEngine({ function: ingestGameFeed });
+    const { ctx, result } = await t.execute({
+      events: [{ name: "mlb/game.updated", data: { gamePk: 101 } }],
+      steps: [mockStep("load-game-feed", stored), mockSend("emit-game-feed-stored")],
+    });
+
+    expect(result).toEqual(stored);
     expect(ctx.step.sendEvent).toHaveBeenCalledWith(
       "emit-game-feed-stored",
       expect.objectContaining({ data: { gamePk: 101 }, id: "game-feed-stored-101-20260921_230000" }),

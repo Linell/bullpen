@@ -11,6 +11,10 @@ export const gameCompleted = eventType("mlb/game.completed", {
   schema: z.object({ gamePk }),
 });
 
+export const gameUpdated = eventType("mlb/game.updated", {
+  schema: z.object({ gamePk }),
+});
+
 export const gameFeedStored = eventType("mlb/game-feed.stored", {
   schema: z.object({ gamePk }),
 });

@@ -8,11 +8,11 @@
 
 ## Solution
 
-Five Inngest functions and four typed events feed a MotherDuck database. Raw game JSON is the source of truth, and analytics tables are derived from it in SQL.
+Five Inngest functions and five typed events feed a MotherDuck database. Raw game JSON is the source of truth, and analytics tables are derived from it in SQL.
 
 - **`sync-schedule`** runs every minute during baseball months and hours. One schedule request returns every game's status and score. It updates `games` and emits `mlb/game.completed` for each completed game.
 - **`backfill-season`** does the same for a whole season when a person asks for it.
-- **`ingest-game-feed`** fetches a completed game's feed, stores the raw JSON, and emits `mlb/game-feed.stored`.
+- **`ingest-game-feed`** fetches a completed or live game's feed, stores the raw JSON if it is newer, and emits `mlb/game-feed.stored`.
 - **`derive-game-tables`** runs `derive.sql` to rebuild that game's rows.
 - **`rebuild-game-tables`** emits `mlb/game-feed.stored` for every stored feed, so every game is re-derived without refetching.
 
@@ -60,7 +60,7 @@ Rollback: fix `derive.sql` and send `mlb/game-tables.rebuild.requested` to rebui
 
 TypeScript writes two tables. SQL derives the rest. Every table has `season`. DDL lives in ordered files under `sql/`.
 
-- **`raw_game_feeds`** (TS): `game_pk` PK, `season`, `feed_ts`, `fetched_at`, `json JSON`. Holds the latest feed per game, replaced when `feed_ts` changes.
+- **`raw_game_feeds`** (TS): `game_pk` PK, `season`, `feed_ts`, `fetched_at`, `json JSON`. Holds the latest feed per game, replaced only by a newer `feed_ts`.
 - **`games`** (TS): `game_pk` PK, `season`, `official_date`, `game_type`, `game_number`, `abstract_state`, `coded_state`, `detailed_state`, `home_team_id`, `away_team_id`, `home_score`, `away_score`, `inning`, `inning_half`, `start_utc`, `venue_name`, `home_record`, `away_record`, `updated_at`.
 - **`plays`** (SQL): one row per completed play, keyed by `(game_pk, at_bat_index)`.
 - **`pitches`** (SQL): keyed by `(game_pk, at_bat_index, pitch_index)`, because `playId` can be null.
@@ -75,6 +75,7 @@ All events are defined with `eventType` and a Zod schema, so they are validated 
 - `mlb/season.backfill.requested` `{ season: number }`: sent by a person.
 - `mlb/game-tables.rebuild.requested` `{}`: sent by a person.
 - `mlb/game.completed` `{ gamePk: number }`
+- `mlb/game.updated` `{ gamePk: number }`: a live game changed.
 - `mlb/game-feed.stored` `{ gamePk: number }`
 
 Events carry ids only. Feeds exceed the free tier's 256 KB event limit.
@@ -112,9 +113,9 @@ All functions open a short-lived database connection per step with `withConnecti
   - Step `emit-game-completed`: one `step.sendEvent` of `mlb/game.completed` for every completed game (under the 5,000-per-send limit). The id includes `event.ts`, so re-sending the request re-checks every game.
   - Returns `{ season, games, changed, completed }`.
 - **`ingest-game-feed`**
-  - Triggered by `mlb/game.completed`, with concurrency 2 to stay polite to MLB's API.
-  - Step `load-game-feed`: fetch the feed and upsert `raw_game_feeds`, skipped if `feed_ts` is unchanged. Only a summary is returned, which keeps the 670 KB feed out of Inngest state.
-  - Step `emit-game-feed-stored`: always emits `mlb/game-feed.stored`, even when the feed was unchanged. That covers a feed that was stored but never announced. Within 24 hours a repeat has the same id and Inngest drops it, so this won't re-run a derive that ran out of retries. For that, replay the run from the Inngest dashboard or send `mlb/game-tables.rebuild.requested`, whose ids use `event.ts`.
+  - Triggered by `mlb/game.completed` or `mlb/game.updated`, with concurrency 2 to stay polite to MLB's API.
+  - Step `load-game-feed`: fetch the feed and upsert `raw_game_feeds`, skipped unless `feed_ts` is newer than the stored one. `feed_ts` is `YYYYMMDD_HHMMSS`, so text comparison orders it, and a late older feed never replaces a newer one. Only a summary is returned, which keeps the 670 KB feed out of Inngest state.
+  - Step `emit-game-feed-stored`: emits `mlb/game-feed.stored` only when the feed was stored, so an unchanged or older feed causes no derive. To re-run a derive that ran out of retries, replay the run from the Inngest dashboard or send `mlb/game-tables.rebuild.requested`, whose ids use `event.ts`.
   - Inngest retries handle MLB errors, and a 429 with `Retry-After` becomes a `RetryAfterError`.
   - Returns `{ gamePk, feedTs, status }`.
 - **`derive-game-tables`**
@@ -137,9 +138,9 @@ All live in `.env.local`, which is gitignored.
 
 ## Testing
 
-- **`derive.sql`**: run it on saved feed fixtures, including a doubleheader, a postponed game, a suspended game and an extra-innings game. Row counts and final scores should match the box score. Re-deriving leaves the row counts unchanged, and a failed derive keeps the previous rows.
+- **`derive.sql`**: run it on saved feed fixtures, including a doubleheader, a postponed game, a suspended game and an extra-innings game. Row counts and final scores should match the box score. Re-deriving leaves the row counts unchanged, a failed derive keeps the previous rows, and an older feed never replaces a newer one.
 - **Schedule**: parsing, which rows count as changed, and which games count as completed, including a forfeit and a postponed game.
-- **Functions**: `@inngest/test` runs each function that sends events, with its steps mocked, and checks the events and their ids. `sync-schedule` sends nothing when no game is completed, `ingest-game-feed` emits even for an unchanged feed, and `rebuild-game-tables` splits its events into batches of 5,000.
+- **Functions**: `@inngest/test` runs each function that sends events, with its steps mocked, and checks the events and their ids. `sync-schedule` sends nothing when no game is completed, `ingest-game-feed` emits only for a stored feed and runs on `mlb/game.updated`, and `rebuild-game-tables` splits its events into batches of 5,000.
 
 ## Alternatives
 

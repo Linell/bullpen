@@ -20,7 +20,7 @@ export async function storeFeed(conn: DuckDBConnection, feed: unknown) {
        feed_ts = excluded.feed_ts,
        fetched_at = excluded.fetched_at,
        json = excluded.json
-     WHERE excluded.feed_ts <> raw_game_feeds.feed_ts
+     WHERE excluded.feed_ts > raw_game_feeds.feed_ts
      RETURNING game_pk`,
     { gamePk, season, feedTs, json: JSON.stringify(feed) },
   );

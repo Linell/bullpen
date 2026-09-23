@@ -299,6 +299,18 @@ describe("derive.sql", () => {
     expect(await deriveGame(conn, feed.gamePk)).toEqual(firstRun.get(feed.gamePk));
   });
 
+  it("never replaces a feed with an older one", async () => {
+    const [feed] = played;
+    const newest = "99999999_999999";
+    await storeFeed(conn, withTimeStamp(feed, newest));
+
+    expect((await storeFeed(conn, withTimeStamp(feed, "20000101_000000"))).status).toBe("unchanged");
+    const [row] = await rows(conn, "SELECT feed_ts FROM raw_game_feeds WHERE game_pk = $gamePk", {
+      gamePk: feed.gamePk,
+    });
+    expect(row.feed_ts).toBe(newest);
+  });
+
   it("lists every stored feed", async () => {
     expect(await rawFeedGamePks(conn)).toEqual(feeds.map((f) => f.gamePk).sort((a, b) => a - b));
   });
