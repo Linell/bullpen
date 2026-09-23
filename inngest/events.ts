@@ -22,3 +22,7 @@ export const gameFeedStored = eventType("mlb/game-feed.stored", {
 export const gameTablesRebuildRequested = eventType("mlb/game-tables.rebuild.requested", {
   schema: z.object({}),
 });
+
+export const gameProbablesChanged = eventType("mlb/game-probables.changed", {
+  schema: z.object({ gamePk }),
+});

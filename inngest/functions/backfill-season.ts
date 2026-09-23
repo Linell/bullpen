@@ -1,8 +1,9 @@
 import { withConnection } from "@/lib/db";
 import { fetchSchedule, fetchSeasonDates } from "@/lib/mlb";
+import { recordProbables } from "@/lib/probables";
 import { findCompletedGamePks, parseSchedule, upsertGames } from "@/lib/schedule";
 import { inngest } from "../client";
-import { gameCompleted, seasonBackfillRequested } from "../events";
+import { gameCompleted, gameProbablesChanged, seasonBackfillRequested } from "../events";
 
 export const backfillSeason = inngest.createFunction(
   { id: "backfill-season", triggers: [seasonBackfillRequested] },
@@ -17,6 +18,11 @@ export const backfillSeason = inngest.createFunction(
       withConnection((conn) => upsertGames(conn, rows)),
     );
 
+    const gamePks = rows.map((row) => row.gamePk);
+    const probablesGamePks = await step.run("record-probables", () =>
+      withConnection((conn) => recordProbables(conn, gamePks)),
+    );
+
     const completedGamePks = findCompletedGamePks(rows);
 
     if (completedGamePks.length > 0) {
@@ -28,6 +34,21 @@ export const backfillSeason = inngest.createFunction(
       );
     }
 
-    return { season, games: rows.length, changed, completed: completedGamePks.length };
+    if (probablesGamePks.length > 0) {
+      await step.sendEvent(
+        "emit-game-probables-changed",
+        probablesGamePks.map((gamePk) =>
+          gameProbablesChanged.create({ gamePk }, { id: `game-probables-changed-${gamePk}-${event.ts}` }),
+        ),
+      );
+    }
+
+    return {
+      season,
+      games: rows.length,
+      changed,
+      completed: completedGamePks.length,
+      probablesChanged: probablesGamePks.length,
+    };
   },
 );

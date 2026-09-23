@@ -2,9 +2,10 @@ import { cron } from "inngest";
 import { shiftDate, todayOfficialDate } from "@/lib/dates";
 import { withConnection } from "@/lib/db";
 import { fetchSchedule } from "@/lib/mlb";
+import { recordProbables } from "@/lib/probables";
 import { findCompletedGamePks, findLiveGamePks, parseSchedule, upsertGames } from "@/lib/schedule";
 import { inngest } from "../client";
-import { gameCompleted, gameUpdated } from "../events";
+import { gameCompleted, gameProbablesChanged, gameUpdated } from "../events";
 
 export const syncSchedule = inngest.createFunction(
   {
@@ -14,14 +15,19 @@ export const syncSchedule = inngest.createFunction(
   },
   async ({ event, step }) => {
     const { startDate, endDate, rows } = await step.run("fetch-schedule", async () => {
-      const endDate = todayOfficialDate();
-      const startDate = shiftDate(endDate, -1);
+      const today = todayOfficialDate();
+      const startDate = shiftDate(today, -1);
+      const endDate = shiftDate(today, 6);
       const rows = parseSchedule(await fetchSchedule({ startDate, endDate }));
       return { startDate, endDate, rows };
     });
 
     const { changed, changedGamePks } = await step.run("upsert-games", () =>
       withConnection((conn) => upsertGames(conn, rows)),
+    );
+
+    const probablesGamePks = await step.run("record-probables", () =>
+      withConnection((conn) => recordProbables(conn, changedGamePks)),
     );
 
     const completedGamePks = findCompletedGamePks(rows);
@@ -43,6 +49,15 @@ export const syncSchedule = inngest.createFunction(
       );
     }
 
+    if (probablesGamePks.length > 0) {
+      await step.sendEvent(
+        "emit-game-probables-changed",
+        probablesGamePks.map((gamePk) =>
+          gameProbablesChanged.create({ gamePk }, { id: `game-probables-changed-${gamePk}-${event.ts}` }),
+        ),
+      );
+    }
+
     return {
       startDate,
       endDate,
@@ -50,6 +65,7 @@ export const syncSchedule = inngest.createFunction(
       changed,
       completed: completedGamePks.length,
       updated: updatedGamePks.length,
+      probablesChanged: probablesGamePks.length,
     };
   },
 );
