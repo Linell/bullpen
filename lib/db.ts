@@ -1,5 +1,6 @@
 import "server-only";
 import { readdir, readFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { DuckDBInstance, type DuckDBConnection } from "@duckdb/node-api";
 
@@ -45,6 +46,7 @@ export async function openDb(url: string) {
 }
 
 async function openInstance(url: string) {
+  if (process.env.VERCEL) process.env.HOME = os.tmpdir();
   const instance = await DuckDBInstance.fromCache(url);
   const conn = await instance.connect();
   await migrate(conn);
