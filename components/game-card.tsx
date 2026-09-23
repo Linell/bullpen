@@ -29,45 +29,49 @@ function TeamRow({ side, dimmed }: { side: GameSide; dimmed: boolean }) {
 export function GameCard({ game }: { game: Game }) {
   const { away, home, status } = game;
   const isFinal = status.state === "final";
-  const isLinked = game.completed || status.state === "live";
-
-  const card = (
-    <Card
-      size="sm"
-      className={cn(
-        status.state === "live" && "shadow-live",
-        isLinked &&
-          "h-full transition-all group-hover:translate-x-boxShadowX group-hover:translate-y-boxShadowY group-hover:shadow-none",
-      )}
-    >
-      <CardContent className="flex flex-col gap-4">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <StatusBadge game={game} />
-            {status.state === "live" && status.situation && (
-              <Diamond situation={status.situation} />
-            )}
-            {game.doubleHeader && <Badge variant="neutral">Game {game.gameNumber}</Badge>}
-            {game.postseason && <Badge variant="neutral">{game.postseason}</Badge>}
-          </div>
-          <span className="truncate text-xs opacity-70">{game.venue}</span>
-        </div>
-        <div className="flex flex-col gap-3">
-          <TeamRow side={away} dimmed={isFinal && (away.score ?? 0) < (home.score ?? 0)} />
-          <TeamRow side={home} dimmed={isFinal && (home.score ?? 0) < (away.score ?? 0)} />
-        </div>
-        {game.makeupOf && (
-          <span className="text-xs opacity-70">Makeup of {formatShortDate(game.makeupOf)}</span>
-        )}
-      </CardContent>
-    </Card>
-  );
-
-  if (!isLinked) return card;
 
   return (
     <Link href={`/games/${game.gamePk}`} className="group rounded-base">
-      {card}
+      <Card
+        size="sm"
+        className={cn(
+          "h-full transition-all group-hover:translate-x-boxShadowX group-hover:translate-y-boxShadowY group-hover:shadow-none",
+          status.state === "live" && "shadow-live",
+        )}
+      >
+        <CardContent className="flex flex-col gap-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <StatusBadge game={game} />
+              {status.state === "live" && status.situation && (
+                <Diamond situation={status.situation} />
+              )}
+              {game.doubleHeader && (
+                <Badge variant="neutral">Game {game.gameNumber}</Badge>
+              )}
+              {game.postseason && (
+                <Badge variant="neutral">{game.postseason}</Badge>
+              )}
+            </div>
+            <span className="truncate text-xs opacity-70">{game.venue}</span>
+          </div>
+          <div className="flex flex-col gap-3">
+            <TeamRow
+              side={away}
+              dimmed={isFinal && (away.score ?? 0) < (home.score ?? 0)}
+            />
+            <TeamRow
+              side={home}
+              dimmed={isFinal && (home.score ?? 0) < (away.score ?? 0)}
+            />
+          </div>
+          {game.makeupOf && (
+            <span className="text-xs opacity-70">
+              Makeup of {formatShortDate(game.makeupOf)}
+            </span>
+          )}
+        </CardContent>
+      </Card>
     </Link>
   );
 }
