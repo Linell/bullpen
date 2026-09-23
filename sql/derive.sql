@@ -52,7 +52,7 @@ WITH parsed AS (
     }]}}
   }') AS g
   FROM raw_game_feeds
-  WHERE $game_pk::INTEGER IS NULL OR game_pk = $game_pk::INTEGER
+  WHERE game_pk = $game_pk::INTEGER
 )
 SELECT
   game_pk,
@@ -62,7 +62,7 @@ SELECT
   map_values(g.gameData.teams) AS home_and_away,
   map_values(g.gameData.players) AS roster,
   g.liveData.plays.allPlays AS all_plays,
-  len(g.liveData.plays.allPlays) > 0 AS was_played
+  len(g.liveData.plays.allPlays) > 0 AS has_plays
 FROM parsed;
 
 CREATE OR REPLACE TEMP TABLE completed_plays AS
@@ -71,10 +71,10 @@ FROM feed, unnest(all_plays) AS unnested(play)
 WHERE play.about.isComplete;
 
 DELETE FROM pitches
-WHERE $game_pk::INTEGER IS NULL OR game_pk = $game_pk::INTEGER;
+WHERE game_pk = $game_pk::INTEGER;
 
 DELETE FROM plays
-WHERE $game_pk::INTEGER IS NULL OR game_pk = $game_pk::INTEGER;
+WHERE game_pk = $game_pk::INTEGER;
 
 INSERT INTO plays BY NAME
 WITH plays_with_ball_in_play AS (
@@ -250,7 +250,7 @@ WITH newest_team_rows AS (
     official_date AS source_date,
     game_number AS source_game_number
   FROM feed, unnest(home_and_away) AS unnested(team)
-  WHERE was_played AND team.id IS NOT NULL
+  WHERE has_plays AND team.id IS NOT NULL
   QUALIFY row_number() OVER (
     PARTITION BY team_id ORDER BY source_date DESC, source_game_number DESC, source_game_pk DESC
   ) = 1
@@ -285,7 +285,7 @@ WITH newest_player_rows AS (
     official_date AS source_date,
     game_number AS source_game_number
   FROM feed, unnest(roster) AS unnested(player)
-  WHERE was_played AND player.id IS NOT NULL
+  WHERE has_plays AND player.id IS NOT NULL
   QUALIFY row_number() OVER (
     PARTITION BY player_id ORDER BY source_date DESC, source_game_number DESC, source_game_pk DESC
   ) = 1
