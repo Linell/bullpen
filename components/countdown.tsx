@@ -14,9 +14,13 @@ function currentMinute() {
 
 export function Countdown({ startTime }: { startTime: string }) {
   const now = useSyncExternalStore(subscribe, currentMinute, () => undefined);
-  if (now === undefined) return null;
+  const remaining = now === undefined ? undefined : formatCountdown(Date.parse(startTime) - now);
 
-  const remaining = formatCountdown(Date.parse(startTime) - now);
-  if (!remaining) return null;
-  return <p className="font-heading">First pitch in {remaining}</p>;
+  if (!remaining) return <span className="text-xl font-heading opacity-70">@</span>;
+  return (
+    <span className="flex flex-col items-center">
+      <span className="text-xs opacity-70">First pitch</span>
+      <span className="font-heading tabular-nums whitespace-nowrap">{remaining}</span>
+    </span>
+  );
 }

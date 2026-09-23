@@ -10,7 +10,9 @@ import type { Game, GameSide } from "@/lib/scoreboard";
 function TeamScore({ side }: { side: GameSide }) {
   return (
     <div className="flex min-w-0 flex-col items-center gap-1 text-center">
-      <span className="text-4xl font-heading tabular-nums">{side.score ?? "–"}</span>
+      {side.score !== undefined && (
+        <span className="text-4xl font-heading tabular-nums">{side.score}</span>
+      )}
       <span className="truncate font-heading">{side.team.name}</span>
       {side.team.record && <span className="text-xs opacity-70">{side.team.record}</span>}
     </div>
@@ -50,10 +52,13 @@ export function GameHeader({ game, decisions }: { game: Game; decisions?: Decisi
           {game.doubleHeader && <Badge variant="neutral">Game {game.gameNumber}</Badge>}
           {game.postseason && <Badge variant="neutral">{game.postseason}</Badge>}
         </div>
-        {game.status.state === "scheduled" && <Countdown startTime={game.startTime} />}
         <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4">
           <TeamScore side={game.away} />
-          <span className="text-xl font-heading opacity-70">@</span>
+          {game.status.state === "scheduled" ? (
+            <Countdown startTime={game.startTime} />
+          ) : (
+            <span className="text-xl font-heading opacity-70">@</span>
+          )}
           <TeamScore side={game.home} />
         </div>
         <p className="text-center text-sm opacity-70">
