@@ -8,12 +8,8 @@ function StatusBadge({ game }: { game: Game }) {
   const { status } = game;
 
   if (status.state === "live") {
-    return (
-      <Badge className="bg-main text-main-foreground">
-        <span className="size-2 animate-pulse rounded-full bg-main-foreground" />
-        {[status.note ?? "Live", status.inning].filter(Boolean).join(" · ")}
-      </Badge>
-    );
+    const label = [status.note, status.inning].filter(Boolean).join(" · ");
+    return <Badge variant="neutral">{label || "In progress"}</Badge>;
   }
 
   if (status.state === "final") {
