@@ -4,9 +4,14 @@ export type Team = {
   record?: string;
 };
 
+export type Situation = {
+  outs: number;
+  bases: [first: boolean, second: boolean, third: boolean];
+};
+
 export type GameStatus =
   | { state: "scheduled"; note?: string }
-  | { state: "live"; inning: string; note?: string }
+  | { state: "live"; inning: string; note?: string; situation?: Situation }
   | { state: "final"; innings: number; note?: string }
   | { state: "postponed" }
   | { state: "suspended" }
@@ -39,6 +44,8 @@ type StatusFields = {
   detailedState: string;
   inning: number | null;
   inningHalf: string | null;
+  outs: number | null;
+  bases: Situation["bases"];
 };
 
 const POSTSEASON: Record<string, string> = {
@@ -65,6 +72,10 @@ function inningLabel(inning: number | null, half: string | null) {
   return `${prefix} ${inning}`.trim();
 }
 
+function situation({ outs, bases }: StatusFields): Situation | undefined {
+  return outs != null && outs < 3 ? { outs, bases } : undefined;
+}
+
 export function toStatus(s: StatusFields): GameStatus {
   const detailed = s.detailedState;
   switch (s.codedState) {
@@ -79,10 +90,16 @@ export function toStatus(s: StatusFields): GameStatus {
         state: "live",
         inning: inningLabel(s.inning, s.inningHalf),
         note: detailed.startsWith("Delayed") ? "Delayed" : undefined,
+        situation: situation(s),
       };
     case "M":
     case "N":
-      return { state: "live", inning: inningLabel(s.inning, s.inningHalf), note: "Review" };
+      return {
+        state: "live",
+        inning: inningLabel(s.inning, s.inningHalf),
+        note: "Review",
+        situation: situation(s),
+      };
     case "F":
     case "O":
       return { state: "final", innings: s.inning ?? 9 };
@@ -99,7 +116,9 @@ export function toStatus(s: StatusFields): GameStatus {
       return s.abstractState === "Preview" ? { state: "scheduled" } : { state: "suspended" };
   }
   if (s.abstractState === "Final") return { state: "final", innings: s.inning ?? 9 };
-  if (s.abstractState === "Live") return { state: "live", inning: inningLabel(s.inning, s.inningHalf) };
+  if (s.abstractState === "Live") {
+    return { state: "live", inning: inningLabel(s.inning, s.inningHalf), situation: situation(s) };
+  }
   return { state: "scheduled" };
 }
 

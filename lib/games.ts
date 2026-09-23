@@ -20,6 +20,10 @@ export type GameQueryRow = {
   away_score: number | null;
   inning: number | null;
   inning_half: string | null;
+  outs: number | null;
+  on_first: boolean;
+  on_second: boolean;
+  on_third: boolean;
   start_ms: number;
   venue_name: string | null;
   home_record: string | null;
@@ -35,6 +39,7 @@ const GAME_COLUMNS = `
   g.double_header, strftime(g.rescheduled_from, '%Y-%m-%d') AS rescheduled_from,
   g.abstract_state, g.coded_state, g.detailed_state, g.home_team_id, g.away_team_id,
   g.home_score, g.away_score, g.inning, g.inning_half, g.venue_name, g.home_record, g.away_record,
+  g.outs, g.on_first, g.on_second, g.on_third,
   epoch_ms(g.start_utc)::DOUBLE AS start_ms`;
 
 export const GAMES_SELECT = `
@@ -72,6 +77,8 @@ export function toGame(r: GameQueryRow): Game {
     detailedState: r.detailed_state,
     inning: r.inning,
     inningHalf: r.inning_half,
+    outs: r.outs,
+    bases: [r.on_first, r.on_second, r.on_third],
   });
   return {
     id: String(r.game_pk),

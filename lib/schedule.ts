@@ -18,6 +18,10 @@ export type GameRow = {
   awayScore: number | null;
   inning: number | null;
   inningHalf: string | null;
+  outs: number | null;
+  onFirst: boolean;
+  onSecond: boolean;
+  onThird: boolean;
   startUtc: string;
   venueName: string | null;
   homeRecord: string | null;
@@ -41,6 +45,10 @@ const COLUMNS = [
   ["awayScore", "away_score", "INTEGER"],
   ["inning", "inning", "INTEGER"],
   ["inningHalf", "inning_half", "VARCHAR"],
+  ["outs", "outs", "INTEGER"],
+  ["onFirst", "on_first", "BOOLEAN"],
+  ["onSecond", "on_second", "BOOLEAN"],
+  ["onThird", "on_third", "BOOLEAN"],
   ["startUtc", "start_utc", "TIMESTAMPTZ"],
   ["venueName", "venue_name", "VARCHAR"],
   ["homeRecord", "home_record", "VARCHAR"],
@@ -84,6 +92,10 @@ function toRow(g: ScheduleGame): GameRow {
     awayScore: ls?.teams?.away?.runs ?? away.score ?? null,
     inning: ls?.currentInning ?? null,
     inningHalf: ls?.inningHalf ?? null,
+    outs: ls?.outs ?? null,
+    onFirst: ls?.offense?.first != null,
+    onSecond: ls?.offense?.second != null,
+    onThird: ls?.offense?.third != null,
     startUtc: new Date(g.gameDate).toISOString(),
     venueName: g.venue?.name ?? null,
     homeRecord: record(home),

@@ -32,10 +32,26 @@ describe("parseSchedule", () => {
       awayScore: 3,
       inning: 9,
       inningHalf: "Top",
+      outs: null,
+      onFirst: false,
+      onSecond: false,
+      onThird: false,
       startUtc: "2026-09-21T22:35:00.000Z",
       venueName: "Oriole Park at Camden Yards",
       homeRecord: "76-81",
       awayRecord: "77-80",
+    });
+  });
+
+  it("maps outs and runners", () => {
+    const json = fixture("2026-09-21");
+    const game = json.dates[0].games[0];
+    game.linescore = { ...game.linescore, outs: 2, offense: { first: { id: 1 }, third: { id: 3 } } };
+    expect(parseSchedule(json).find((r) => r.gamePk === game.gamePk)).toMatchObject({
+      outs: 2,
+      onFirst: true,
+      onSecond: false,
+      onThird: true,
     });
   });
 
@@ -124,6 +140,12 @@ describe("changedGames", () => {
     const [row] = parseSchedule(fixture("2026-09-21"));
     const scored = { ...row, homeScore: (row.homeScore ?? 0) + 1 };
     expect(changedGames(new Map([[row.gamePk, row]]), [scored])).toEqual([scored]);
+  });
+
+  it("flags a runner change", () => {
+    const [row] = parseSchedule(fixture("2026-09-21"));
+    const runner = { ...row, onSecond: true };
+    expect(changedGames(new Map([[row.gamePk, row]]), [runner])).toEqual([runner]);
   });
 
   it("ignores unchanged rows", () => {

@@ -13,7 +13,7 @@ const SCHEDULE_FIELDS = [
   "gameNumber", "doubleHeader", "rescheduledFromDate", "status", "abstractGameState", "codedGameState", "detailedState",
   "teams", "home", "away", "team", "id", "name", "teamName", "abbreviation",
   "leagueRecord", "wins", "losses", "score", "linescore", "currentInning", "inningHalf",
-  "runs", "venue",
+  "runs", "outs", "offense", "first", "second", "third", "venue",
 ].join(",");
 
 type Side = {
@@ -36,6 +36,8 @@ export type ScheduleGame = {
   linescore?: {
     currentInning?: number;
     inningHalf?: string;
+    outs?: number;
+    offense?: { first?: { id: number }; second?: { id: number }; third?: { id: number } };
     teams?: { home?: { runs?: number }; away?: { runs?: number } };
   };
   venue?: { id: number; name?: string };
