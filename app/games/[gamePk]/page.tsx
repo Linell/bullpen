@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { GameHeader } from "@/components/game-header";
+import { HeadToHead, RecentForm } from "@/components/matchup";
 import { LinescoreTable } from "@/components/linescore-table";
 import { PlayByPlay } from "@/components/play-by-play";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,24 +25,37 @@ export async function generateMetadata(props: PageProps<"/games/[gamePk]">): Pro
 }
 
 export default async function GamePage(props: PageProps<"/games/[gamePk]">) {
-  const { game, decisions, linescore, halfInnings } = await loadGame(props);
+  const { game, decisions, linescore, halfInnings, awayForm, homeForm, headToHead } =
+    await loadGame(props);
   const { away, home } = game;
   const isLive = game.status.state === "live";
+  const isScheduled = game.status.state === "scheduled";
+
+  const matchup = (
+    <>
+      <RecentForm away={away.team} home={home.team} awayForm={awayForm} homeForm={homeForm} />
+      <HeadToHead away={away.team} home={home.team} {...headToHead} />
+    </>
+  );
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 pt-6 pb-24">
       <h1 className="text-4xl">{gameTitle(game)}</h1>
       <GameHeader game={game} decisions={decisions} />
+      {isScheduled && matchup}
       {linescore && <LinescoreTable linescore={linescore} away={away.team} home={home.team} />}
       {halfInnings.length > 0 ? (
         <PlayByPlay halfInnings={halfInnings} away={away.team} home={home.team} />
-      ) : (
+      ) : isScheduled ? null : (
         <Card>
           <CardContent>
-            {isLive ? "Plays appear here as each plate appearance finishes." : "No play-by-play for this game yet."}
+            {isLive
+              ? "Plays appear here as each plate appearance finishes."
+              : "No play-by-play for this game yet."}
           </CardContent>
         </Card>
       )}
+      {!isScheduled && matchup}
     </main>
   );
 }

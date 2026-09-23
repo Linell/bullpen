@@ -3,6 +3,14 @@ import { connection } from "next/server";
 import { cache } from "react";
 import { readRows } from "@/lib/db";
 import { GAMES_SELECT, toGame, type GameQueryRow } from "@/lib/games";
+import {
+  seriesRecord,
+  streak,
+  toResult,
+  type Form,
+  type SeriesRecord,
+  type TeamResult,
+} from "@/lib/matchup";
 import { toLinescore, type Linescore, type LinescoreRow } from "@/lib/linescore";
 import { toHalfInnings, type HalfInning, type PlayRow, type StepRow } from "@/lib/play-by-play";
 import type { Game } from "@/lib/scoreboard";
@@ -18,6 +26,9 @@ export type GameDetail = {
   decisions?: Decisions;
   linescore?: Linescore;
   halfInnings: HalfInning[];
+  awayForm: Form;
+  homeForm: Form;
+  headToHead: { record: SeriesRecord; results: TeamResult[] };
 };
 
 type GameWithDecisionsRow = GameQueryRow & {
@@ -25,6 +36,8 @@ type GameWithDecisionsRow = GameQueryRow & {
   loser: string | null;
   save: string | null;
 };
+
+type FormRow = GameQueryRow & { team_id: number };
 
 const GAME_QUERY = `
   SELECT game.*, w.full_name AS winner, l.full_name AS loser, s.full_name AS save
@@ -62,6 +75,35 @@ const STEPS_QUERY = `
   WHERE game_pk = $gamePk::INTEGER
   ORDER BY at_bat_index, step_index`;
 
+const COMPLETED_FILTER = `g.coded_state IN ('F', 'O', 'Q', 'R')`;
+
+const FORM_QUERY = `
+  SELECT s.team_id, game.*
+  FROM (${GAMES_SELECT} WHERE ${COMPLETED_FILTER}) game
+  JOIN (
+    SELECT unnest([home_team_id, away_team_id]) AS team_id, season, epoch_ms(start_utc)::DOUBLE AS start_ms
+    FROM games
+    WHERE game_pk = $gamePk::INTEGER
+  ) s ON s.team_id IN (game.home_team_id, game.away_team_id) AND game.season = s.season AND game.start_ms < s.start_ms
+  QUALIFY row_number() OVER (PARTITION BY s.team_id ORDER BY game.start_ms DESC) <= 10
+  ORDER BY game.start_ms DESC`;
+
+const HEAD_TO_HEAD_QUERY = `${GAMES_SELECT}
+  JOIN games cur ON cur.game_pk = $gamePk::INTEGER
+  WHERE ${COMPLETED_FILTER}
+    AND g.game_pk <> cur.game_pk
+    AND g.season = cur.season
+    AND least(g.home_team_id, g.away_team_id) = least(cur.home_team_id, cur.away_team_id)
+    AND greatest(g.home_team_id, g.away_team_id) = greatest(cur.home_team_id, cur.away_team_id)
+  ORDER BY g.start_utc DESC`;
+
+function toForm(rows: FormRow[], teamId: number): Form {
+  const results = rows
+    .filter((r) => r.team_id === teamId)
+    .map((r) => toResult(toGame(r), r.home_team_id === teamId));
+  return { results, streak: streak(results) };
+}
+
 function toDecisions(row: GameWithDecisionsRow): Decisions | undefined {
   if (!row.winner) return undefined;
   return { winner: row.winner, loser: row.loser ?? undefined, save: row.save ?? undefined };
@@ -70,19 +112,25 @@ function toDecisions(row: GameWithDecisionsRow): Decisions | undefined {
 export const getGameDetail = cache(async (gamePk: number): Promise<GameDetail | undefined> => {
   await connection();
   const params = { gamePk };
-  const [[row], linescore, plays, steps] = await Promise.all([
+  const [[row], linescore, plays, steps, form, meetings] = await Promise.all([
     readRows<GameWithDecisionsRow>(GAME_QUERY, params),
     readRows<LinescoreRow>(LINESCORE_QUERY, params),
     readRows<PlayRow>(PLAYS_QUERY, params),
     readRows<StepRow>(STEPS_QUERY, params),
+    readRows<FormRow>(FORM_QUERY, params),
+    readRows<GameQueryRow>(HEAD_TO_HEAD_QUERY, params),
   ]);
   if (!row) return undefined;
 
   const game = toGame(row);
+  const headToHead = meetings.map((r) => toResult(toGame(r), r.home_team_id === row.away_team_id));
   return {
     game,
     decisions: toDecisions(row),
     linescore: linescore.length > 0 ? toLinescore(linescore, game.completed) : undefined,
     halfInnings: toHalfInnings(plays, steps),
+    awayForm: toForm(form, row.away_team_id),
+    homeForm: toForm(form, row.home_team_id),
+    headToHead: { record: seriesRecord(headToHead), results: headToHead },
   };
 });

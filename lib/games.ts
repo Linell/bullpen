@@ -6,6 +6,7 @@ import { postseasonLabel, score, toStatus, type Game, type Team } from "@/lib/sc
 
 export type GameQueryRow = {
   game_pk: number;
+  season: number;
   official_date: string;
   game_type: string;
   game_number: number;
@@ -35,7 +36,7 @@ export type GameQueryRow = {
 };
 
 const GAME_COLUMNS = `
-  g.game_pk, strftime(g.official_date, '%Y-%m-%d') AS official_date, g.game_type, g.game_number,
+  g.game_pk, g.season, strftime(g.official_date, '%Y-%m-%d') AS official_date, g.game_type, g.game_number,
   g.double_header, strftime(g.rescheduled_from, '%Y-%m-%d') AS rescheduled_from,
   g.abstract_state, g.coded_state, g.detailed_state, g.home_team_id, g.away_team_id,
   g.home_score, g.away_score, g.inning, g.inning_half, g.venue_name, g.home_record, g.away_record,
