@@ -1,0 +1,198 @@
+{
+  "dates": [
+    {
+      "date": "2026-09-23",
+      "games": [
+        {
+          "gamePk": 824785,
+          "gameType": "R",
+          "season": "2026",
+          "gameDate": "2026-09-23T17:35:00Z",
+          "officialDate": "2026-09-23",
+          "rescheduledFromDate": "2026-09-22",
+          "status": {
+            "abstractGameState": "Live",
+            "codedGameState": "I",
+            "detailedState": "In Progress"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 141,
+                "name": "Toronto Blue Jays",
+                "season": 2026,
+                "venue": {
+                  "id": 14,
+                  "name": "Rogers Centre"
+                },
+                "abbreviation": "TOR",
+                "teamName": "Blue Jays"
+              },
+              "leagueRecord": {
+                "wins": 77,
+                "losses": 80
+              },
+              "score": 2
+            },
+            "home": {
+              "team": {
+                "id": 110,
+                "name": "Baltimore Orioles",
+                "season": 2026,
+                "venue": {
+                  "id": 2,
+                  "name": "Oriole Park at Camden Yards"
+                },
+                "abbreviation": "BAL",
+                "teamName": "Orioles"
+              },
+              "leagueRecord": {
+                "wins": 76,
+                "losses": 81
+              },
+              "score": 4
+            }
+          },
+          "linescore": {
+            "currentInning": 9,
+            "inningHalf": "Top",
+            "teams": {
+              "home": {
+                "runs": 4
+              },
+              "away": {
+                "runs": 2
+              }
+            }
+          },
+          "venue": {
+            "id": 2,
+            "name": "Oriole Park at Camden Yards"
+          },
+          "gameNumber": 1,
+          "doubleHeader": "S"
+        },
+        {
+          "gamePk": 824784,
+          "gameType": "R",
+          "season": "2026",
+          "gameDate": "2026-09-23T22:35:00Z",
+          "officialDate": "2026-09-23",
+          "status": {
+            "abstractGameState": "Preview",
+            "codedGameState": "S",
+            "detailedState": "Scheduled"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 141,
+                "name": "Toronto Blue Jays",
+                "season": 2026,
+                "venue": {
+                  "id": 14,
+                  "name": "Rogers Centre"
+                },
+                "abbreviation": "TOR",
+                "teamName": "Blue Jays"
+              },
+              "leagueRecord": {
+                "wins": 77,
+                "losses": 80
+              }
+            },
+            "home": {
+              "team": {
+                "id": 110,
+                "name": "Baltimore Orioles",
+                "season": 2026,
+                "venue": {
+                  "id": 2,
+                  "name": "Oriole Park at Camden Yards"
+                },
+                "abbreviation": "BAL",
+                "teamName": "Orioles"
+              },
+              "leagueRecord": {
+                "wins": 76,
+                "losses": 81
+              }
+            }
+          },
+          "linescore": {
+            "teams": {
+              "home": {},
+              "away": {}
+            }
+          },
+          "venue": {
+            "id": 2,
+            "name": "Oriole Park at Camden Yards"
+          },
+          "gameNumber": 2,
+          "doubleHeader": "S"
+        },
+        {
+          "gamePk": 823492,
+          "gameType": "R",
+          "season": "2026",
+          "gameDate": "2026-09-23T23:05:00Z",
+          "officialDate": "2026-09-23",
+          "status": {
+            "abstractGameState": "Preview",
+            "codedGameState": "P",
+            "detailedState": "Pre-Game"
+          },
+          "teams": {
+            "away": {
+              "team": {
+                "id": 139,
+                "name": "Tampa Bay Rays",
+                "season": 2026,
+                "venue": {
+                  "id": 12,
+                  "name": "Tropicana Field"
+                },
+                "abbreviation": "TB",
+                "teamName": "Rays"
+              },
+              "leagueRecord": {
+                "wins": 96,
+                "losses": 61
+              }
+            },
+            "home": {
+              "team": {
+                "id": 147,
+                "name": "New York Yankees",
+                "season": 2026,
+                "venue": {
+                  "id": 3313,
+                  "name": "Yankee Stadium"
+                },
+                "abbreviation": "NYY",
+                "teamName": "Yankees"
+              },
+              "leagueRecord": {
+                "wins": 90,
+                "losses": 67
+              }
+            }
+          },
+          "linescore": {
+            "teams": {
+              "home": {},
+              "away": {}
+            }
+          },
+          "venue": {
+            "id": 3313,
+            "name": "Yankee Stadium"
+          },
+          "gameNumber": 1,
+          "doubleHeader": "N"
+        }
+      ]
+    }
+  ]
+}

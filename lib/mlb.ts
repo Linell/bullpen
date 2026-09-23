@@ -10,7 +10,7 @@ const HEADERS = {
 
 const SCHEDULE_FIELDS = [
   "dates", "date", "games", "gamePk", "gameType", "season", "gameDate", "officialDate",
-  "gameNumber", "status", "abstractGameState", "codedGameState", "detailedState",
+  "gameNumber", "doubleHeader", "rescheduledFromDate", "status", "abstractGameState", "codedGameState", "detailedState",
   "teams", "home", "away", "team", "id", "name", "teamName", "abbreviation",
   "leagueRecord", "wins", "losses", "score", "linescore", "currentInning", "inningHalf",
   "runs", "venue",
@@ -29,6 +29,8 @@ export type ScheduleGame = {
   gameDate: string;
   officialDate: string;
   gameNumber: number;
+  doubleHeader?: string;
+  rescheduledFromDate?: string;
   status: { abstractGameState: string; codedGameState: string; detailedState: string };
   teams: { home: Side; away: Side };
   linescore?: {

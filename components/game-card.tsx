@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatGameTime } from "@/lib/dates";
+import { formatGameTime, formatShortDate } from "@/lib/dates";
 import type { Game, GameSide } from "@/lib/scoreboard";
 import { cn } from "@/lib/utils";
 
@@ -54,6 +54,7 @@ export function GameCard({ game }: { game: Game }) {
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <StatusBadge game={game} />
+            {game.doubleHeader && <Badge variant="neutral">Game {game.gameNumber}</Badge>}
             {game.postseason && <Badge variant="neutral">{game.postseason}</Badge>}
           </div>
           <span className="truncate text-xs opacity-70">{game.venue}</span>
@@ -62,6 +63,9 @@ export function GameCard({ game }: { game: Game }) {
           <TeamRow side={away} dimmed={isFinal && (away.score ?? 0) < (home.score ?? 0)} />
           <TeamRow side={home} dimmed={isFinal && (home.score ?? 0) < (away.score ?? 0)} />
         </div>
+        {game.makeupOf && (
+          <span className="text-xs opacity-70">Makeup of {formatShortDate(game.makeupOf)}</span>
+        )}
       </CardContent>
     </Card>
   );

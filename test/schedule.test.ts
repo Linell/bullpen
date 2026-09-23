@@ -21,6 +21,8 @@ describe("parseSchedule", () => {
       officialDate: "2026-09-21",
       gameType: "R",
       gameNumber: 1,
+      doubleHeader: null,
+      rescheduledFrom: null,
       abstractState: "Final",
       codedState: "F",
       detailedState: "Final",
@@ -73,6 +75,17 @@ describe("parseSchedule", () => {
       ]),
     );
     expect(rows[0].homeScore).not.toBe(rows[1].homeScore);
+  });
+
+  it("maps doubleheader and makeup fields", () => {
+    const rows = parseSchedule(fixture("2026-09-23"));
+    const fields = (pk: number) => {
+      const row = rows.find((r) => r.gamePk === pk)!;
+      return [row.gameNumber, row.doubleHeader, row.rescheduledFrom];
+    };
+    expect(fields(824785)).toEqual([1, "S", "2026-09-22"]);
+    expect(fields(824784)).toEqual([2, "S", null]);
+    expect(fields(823492)).toEqual([1, "N", null]);
   });
 });
 
@@ -148,6 +161,12 @@ describe("upsertGames", () => {
       `SELECT epoch_ms(updated_at) AS t FROM games WHERE game_pk = ${row.gamePk}`,
     );
     expect(next.getRowObjectsJS()).toEqual(prev.getRowObjectsJS());
+  });
+
+  it("round-trips doubleheader and makeup fields", async () => {
+    const rows = parseSchedule(fixture("2026-09-23"));
+    expect(await upsertGames(conn, rows)).toEqual({ changed: rows.length });
+    expect(await upsertGames(conn, rows)).toEqual({ changed: 0 });
   });
 
   it("writes rows that differ outside the status fields", async () => {

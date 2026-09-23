@@ -36,3 +36,11 @@ export function formatOfficialDate(date: string) {
     day: "numeric",
   });
 }
+
+export function formatShortDate(date: string) {
+  return new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", {
+    timeZone: "UTC",
+    month: "short",
+    day: "numeric",
+  });
+}

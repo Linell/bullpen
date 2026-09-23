@@ -1,0 +1,2 @@
+ALTER TABLE games ADD COLUMN IF NOT EXISTS double_header VARCHAR;
+ALTER TABLE games ADD COLUMN IF NOT EXISTS rescheduled_from DATE;

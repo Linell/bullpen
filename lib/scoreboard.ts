@@ -22,6 +22,8 @@ export type Game = {
   gamePk: number;
   officialDate: string;
   gameNumber: number;
+  doubleHeader: boolean;
+  makeupOf?: string;
   postseason?: string;
   startTime: string;
   venue?: string;

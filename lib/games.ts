@@ -8,6 +8,8 @@ type Row = {
   official_date: string;
   game_type: string;
   game_number: number;
+  double_header: string | null;
+  rescheduled_from: string | null;
   abstract_state: string;
   coded_state: string;
   detailed_state: string;
@@ -29,6 +31,7 @@ type Row = {
 
 const GAME_COLUMNS = `
   g.game_pk, strftime(g.official_date, '%Y-%m-%d') AS official_date, g.game_type, g.game_number,
+  g.double_header, strftime(g.rescheduled_from, '%Y-%m-%d') AS rescheduled_from,
   g.abstract_state, g.coded_state, g.detailed_state, g.home_team_id, g.away_team_id,
   g.home_score, g.away_score, g.inning, g.inning_half, g.venue_name, g.home_record, g.away_record,
   epoch_ms(g.start_utc)::DOUBLE AS start_ms`;
@@ -55,6 +58,10 @@ function team(id: number, name: string | null, abbr: string | null, record: stri
   };
 }
 
+function makeupOf(rescheduledFrom: string | null, officialDate: string) {
+  return rescheduledFrom && rescheduledFrom !== officialDate ? rescheduledFrom : undefined;
+}
+
 function toGame(r: Row): Game {
   const status = toStatus({
     abstractState: r.abstract_state,
@@ -68,6 +75,8 @@ function toGame(r: Row): Game {
     gamePk: r.game_pk,
     officialDate: r.official_date,
     gameNumber: r.game_number,
+    doubleHeader: r.double_header === "Y" || r.double_header === "S",
+    makeupOf: makeupOf(r.rescheduled_from, r.official_date),
     postseason: postseasonLabel(r.game_type),
     startTime: new Date(r.start_ms).toISOString(),
     venue: r.venue_name ?? undefined,

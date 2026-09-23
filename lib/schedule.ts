@@ -7,6 +7,8 @@ export type GameRow = {
   officialDate: string;
   gameType: string;
   gameNumber: number;
+  doubleHeader: string | null;
+  rescheduledFrom: string | null;
   abstractState: string;
   codedState: string;
   detailedState: string;
@@ -28,6 +30,8 @@ const COLUMNS = [
   ["officialDate", "official_date", "DATE"],
   ["gameType", "game_type", "VARCHAR"],
   ["gameNumber", "game_number", "INTEGER"],
+  ["doubleHeader", "double_header", "VARCHAR"],
+  ["rescheduledFrom", "rescheduled_from", "DATE"],
   ["abstractState", "abstract_state", "VARCHAR"],
   ["codedState", "coded_state", "VARCHAR"],
   ["detailedState", "detailed_state", "VARCHAR"],
@@ -69,6 +73,8 @@ function toRow(g: ScheduleGame): GameRow {
     officialDate: g.officialDate,
     gameType: g.gameType,
     gameNumber: g.gameNumber,
+    doubleHeader: g.doubleHeader ?? null,
+    rescheduledFrom: g.rescheduledFromDate ?? null,
     abstractState: g.status.abstractGameState,
     codedState: g.status.codedGameState,
     detailedState: g.status.detailedState,
