@@ -13,13 +13,14 @@ const SCHEDULE_FIELDS = [
   "gameNumber", "doubleHeader", "rescheduledFromDate", "status", "abstractGameState", "codedGameState", "detailedState",
   "teams", "home", "away", "team", "id", "name", "teamName", "abbreviation",
   "leagueRecord", "wins", "losses", "score", "linescore", "currentInning", "inningHalf",
-  "runs", "outs", "offense", "first", "second", "third", "venue",
+  "runs", "outs", "offense", "first", "second", "third", "venue", "probablePitcher", "fullName",
 ].join(",");
 
 type Side = {
   team: { id: number; name?: string; teamName?: string; abbreviation?: string };
   leagueRecord?: { wins: number; losses: number };
   score?: number;
+  probablePitcher?: { id: number; fullName: string };
 };
 
 export type ScheduleGame = {
@@ -75,7 +76,7 @@ export function fetchSchedule({
     startDate,
     endDate,
     gameType: GAME_TYPES.join(","),
-    hydrate: "linescore,team",
+    hydrate: "linescore,team,probablePitcher",
     fields: SCHEDULE_FIELDS,
   });
 }

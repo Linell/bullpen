@@ -40,6 +40,10 @@ describe("parseSchedule", () => {
       venueName: "Oriole Park at Camden Yards",
       homeRecord: "76-81",
       awayRecord: "77-80",
+      homeProbableId: null,
+      homeProbableName: null,
+      awayProbableId: null,
+      awayProbableName: null,
     });
   });
 
@@ -102,6 +106,16 @@ describe("parseSchedule", () => {
     expect(fields(824785)).toEqual([1, "S", "2026-09-22"]);
     expect(fields(824784)).toEqual([2, "S", null]);
     expect(fields(823492)).toEqual([1, "N", null]);
+  });
+
+  it("maps probable pitchers and leaves a TBD side null", () => {
+    const rows = parseSchedule(fixture("2026-09-23"));
+    const probables = (pk: number) => {
+      const row = rows.find((r) => r.gamePk === pk)!;
+      return [row.homeProbableId, row.homeProbableName, row.awayProbableId, row.awayProbableName];
+    };
+    expect(probables(824784)).toEqual([669203, "Grayson Rodriguez", 666201, "Alek Manoah"]);
+    expect(probables(823492)).toEqual([663623, "Tanner Bibee", null, null]);
   });
 });
 

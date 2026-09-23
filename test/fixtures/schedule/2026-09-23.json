@@ -99,6 +99,10 @@
               "leagueRecord": {
                 "wins": 77,
                 "losses": 80
+              },
+              "probablePitcher": {
+                "id": 666201,
+                "fullName": "Alek Manoah"
               }
             },
             "home": {
@@ -116,6 +120,10 @@
               "leagueRecord": {
                 "wins": 76,
                 "losses": 81
+              },
+              "probablePitcher": {
+                "id": 669203,
+                "fullName": "Grayson Rodriguez"
               }
             }
           },
@@ -176,6 +184,10 @@
               "leagueRecord": {
                 "wins": 90,
                 "losses": 67
+              },
+              "probablePitcher": {
+                "id": 663623,
+                "fullName": "Tanner Bibee"
               }
             }
           },
