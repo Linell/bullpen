@@ -79,28 +79,28 @@
     --sb-thumb-color: var(--border);
 }
 
-/* Dark: Pacific night. Keep in sync with the media query below. */
+/* Dark: near-black page, light ink for borders and shadows. Keep in sync with the media query below. */
 :root[data-theme="dark"] {
-    --background: hsl(223, 32%, 15%);
-    --secondary-background: hsl(222, 26%, 22%);
+    --background: hsl(222, 20%, 9%);
+    --secondary-background: hsl(222, 16%, 14%);
     --main: hsl(217, 100%, 66%);
     --ring: hsl(217, 100%, 66%);
     --foreground: hsl(40, 40%, 94%);
     --main-foreground: hsl(222, 40%, 8%);
-    --border: hsl(225, 45%, 5%);
+    --border: hsl(40, 18%, 78%);
     --overlay: hsl(225, 45%, 5% / 0.8);
     --chart-active-dot: var(--foreground);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --background: hsl(223, 32%, 15%);
-    --secondary-background: hsl(222, 26%, 22%);
+    --background: hsl(222, 20%, 9%);
+    --secondary-background: hsl(222, 16%, 14%);
     --main: hsl(217, 100%, 66%);
     --ring: hsl(217, 100%, 66%);
     --foreground: hsl(40, 40%, 94%);
     --main-foreground: hsl(222, 40%, 8%);
-    --border: hsl(225, 45%, 5%);
+    --border: hsl(40, 18%, 78%);
     --overlay: hsl(225, 45%, 5% / 0.8);
     --chart-active-dot: var(--foreground);
   }
