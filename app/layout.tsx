@@ -13,7 +13,7 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   title: "Bullpen",
-  description: "Baseball data, plainly presented.",
+  description: "Baseball data straight from the hose.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
