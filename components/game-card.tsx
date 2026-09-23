@@ -15,9 +15,7 @@ function TeamRow({ side, dimmed }: { side: GameSide; dimmed: boolean }) {
       </span>
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="truncate font-heading">{side.team.name}</span>
-        {side.team.record && (
-          <span className="text-xs opacity-70">{side.team.record}</span>
-        )}
+        {side.team.record && <span className="text-xs opacity-70">{side.team.record}</span>}
       </div>
       {side.score !== undefined && (
         <span className="text-2xl font-heading tabular-nums">{side.score}</span>
@@ -46,29 +44,17 @@ export function GameCard({ game }: { game: Game }) {
               {status.state === "live" && status.situation && (
                 <Diamond situation={status.situation} />
               )}
-              {game.doubleHeader && (
-                <Badge variant="neutral">Game {game.gameNumber}</Badge>
-              )}
-              {game.postseason && (
-                <Badge variant="neutral">{game.postseason}</Badge>
-              )}
+              {game.doubleHeader && <Badge variant="neutral">Game {game.gameNumber}</Badge>}
+              {game.postseason && <Badge variant="neutral">{game.postseason}</Badge>}
             </div>
             <span className="truncate text-xs opacity-70">{game.venue}</span>
           </div>
           <div className="flex flex-col gap-3">
-            <TeamRow
-              side={away}
-              dimmed={isFinal && (away.score ?? 0) < (home.score ?? 0)}
-            />
-            <TeamRow
-              side={home}
-              dimmed={isFinal && (home.score ?? 0) < (away.score ?? 0)}
-            />
+            <TeamRow side={away} dimmed={isFinal && (away.score ?? 0) < (home.score ?? 0)} />
+            <TeamRow side={home} dimmed={isFinal && (home.score ?? 0) < (away.score ?? 0)} />
           </div>
           {game.makeupOf && (
-            <span className="text-xs opacity-70">
-              Makeup of {formatShortDate(game.makeupOf)}
-            </span>
+            <span className="text-xs opacity-70">Makeup of {formatShortDate(game.makeupOf)}</span>
           )}
         </CardContent>
       </Card>
