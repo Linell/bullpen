@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans } from "next/font/google";
 
+import { SiteHeader } from "@/components/site-header";
 import { themeScript } from "@/components/theme-toggle";
 
 import "./globals.css";
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-full flex flex-col font-sans">
+        <SiteHeader />
         {children}
       </body>
     </html>

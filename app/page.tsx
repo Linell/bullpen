@@ -1,8 +1,6 @@
-import Link from "next/link";
+import { DateNav } from "@/components/date-nav";
 import { Scoreboard } from "@/components/scoreboard";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { buttonVariants } from "@/components/ui/button";
-import { formatOfficialDate, isOfficialDate, shiftDate, todayOfficialDate } from "@/lib/dates";
+import { formatOfficialDate, isOfficialDate, todayOfficialDate } from "@/lib/dates";
 import { getGames } from "@/lib/games";
 
 export default async function Home({ searchParams }: PageProps<"/">) {
@@ -12,39 +10,17 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const isToday = date === today;
   const games = await getGames(date);
 
-  const nav = (target: string, label: string) => (
-    <Link
-      key={label}
-      href={target === today ? "/" : `/?date=${target}`}
-      className={buttonVariants({ variant: "neutral", size: "xs" })}
-    >
-      {label}
-    </Link>
-  );
-
   return (
-    <div className="flex flex-1 flex-col">
-      <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-6">
-        <span className="rounded-base border-2 border-border bg-main px-3 py-1 text-xl font-heading text-main-foreground shadow-shadow">
-          Bullpen
-        </span>
-        <ThemeToggle />
-      </header>
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 pt-6 pb-24">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-4xl">{isToday ? "Today’s games" : "Games"}</h1>
-          <nav className="flex gap-2">
-            {nav(shiftDate(date, -1), "← Prev")}
-            {!isToday && nav(today, "Today")}
-            {nav(shiftDate(date, 1), "Next →")}
-          </nav>
-        </div>
-        <Scoreboard
-          games={games}
-          dateLabel={formatOfficialDate(date)}
-          emptyLabel={isToday ? "No games today." : "No games on this date."}
-        />
-      </main>
-    </div>
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 pt-6 pb-24">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-4xl">{isToday ? "Today’s games" : "Games"}</h1>
+        <DateNav date={date} today={today} />
+      </div>
+      <Scoreboard
+        games={games}
+        dateLabel={formatOfficialDate(date)}
+        emptyLabel={isToday ? "No games today." : "No games on this date."}
+      />
+    </main>
   );
 }
