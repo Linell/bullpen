@@ -16,14 +16,26 @@ function mockSend(id: string) {
 describe("sync-schedule", () => {
   const window = { startDate: "2026-09-21", endDate: "2026-09-22" };
   const timer = { name: "inngest/scheduled.timer", data: { cron: "* * * * *" }, ts: 1700000000000 };
-  const loaded = { ...window, games: 3, changed: 0, completedGamePks: [], updatedGamePks: [] };
+
+  function row(gamePk: number, abstractState: string, codedState: string) {
+    return { gamePk, abstractState, codedState };
+  }
+
+  function fetched(...rows: object[]) {
+    return mockStep("fetch-schedule", { ...window, rows });
+  }
+
+  function upserted(changedGamePks: number[]) {
+    return mockStep("upsert-games", { changed: changedGamePks.length, changedGamePks });
+  }
 
   it("emits game.completed with one id per game", async () => {
     const t = new InngestTestEngine({ function: syncSchedule });
     const { ctx, result } = await t.execute({
       events: [timer],
       steps: [
-        mockStep("load-schedule", { ...loaded, changed: 1, completedGamePks: [101, 102] }),
+        fetched(row(101, "Final", "F"), row(102, "Final", "F"), row(103, "Preview", "S")),
+        upserted([101]),
         mockSend("emit-game-completed"),
       ],
     });
@@ -41,7 +53,8 @@ describe("sync-schedule", () => {
     const { ctx, result } = await t.execute({
       events: [timer],
       steps: [
-        mockStep("load-schedule", { ...loaded, changed: 2, updatedGamePks: [201, 202] }),
+        fetched(row(201, "Live", "I"), row(202, "Live", "I"), row(203, "Live", "I")),
+        upserted([201, 202]),
         mockSend("emit-game-updated"),
       ],
     });
@@ -58,10 +71,10 @@ describe("sync-schedule", () => {
     const t = new InngestTestEngine({ function: syncSchedule });
     const { ctx, result } = await t.execute({
       events: [timer],
-      steps: [mockStep("load-schedule", loaded)],
+      steps: [fetched(row(301, "Live", "I"), row(302, "Preview", "S")), upserted([])],
     });
 
-    expect(result).toEqual({ ...window, games: 3, changed: 0, completed: 0, updated: 0 });
+    expect(result).toEqual({ ...window, games: 2, changed: 0, completed: 0, updated: 0 });
     expect(ctx.step.sendEvent).not.toHaveBeenCalled();
   });
 });
