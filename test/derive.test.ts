@@ -272,6 +272,21 @@ describe("derive.sql", () => {
     expect(Number(players.ids)).toBe(ids.size);
   });
 
+  it.each(played.map((f) => [f.gamePk, f]))("finds the starters of game %i", async (gamePk, feed) => {
+    const starters = await rows(
+      conn,
+      "SELECT side, pitcher_id FROM game_starters WHERE game_pk = $gamePk ORDER BY side",
+      { gamePk },
+    );
+    const box = feed.liveData.boxscore.teams;
+    expect(box.home.pitchers.length).toBeGreaterThan(1);
+    expect(box.away.pitchers.length).toBeGreaterThan(1);
+    expect(starters).toEqual([
+      { side: "home", pitcher_id: box.home.pitchers[0] },
+      { side: "away", pitcher_id: box.away.pitchers[0] },
+    ]);
+  });
+
   it("is idempotent", async () => {
     for (const feed of feeds) {
       expect((await storeFeed(conn, feed)).status).toBe("unchanged");
