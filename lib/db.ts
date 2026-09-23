@@ -2,13 +2,12 @@ import "server-only";
 import { readdir, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { DuckDBInstance, type DuckDBConnection } from "@duckdb/node-api";
+import { DuckDBInstance, type DuckDBConnection, type DuckDBValue } from "@duckdb/node-api";
 
 const SQL_DIR = path.join(process.cwd(), "sql");
 const MIGRATION_FILE = /^\d+_.*\.sql$/;
 
 let ready: Promise<DuckDBInstance> | undefined;
-let shared: Promise<DuckDBConnection> | undefined;
 
 function instance(): Promise<DuckDBInstance> {
   ready ??= (async () => {
@@ -22,16 +21,6 @@ function instance(): Promise<DuckDBInstance> {
   return ready;
 }
 
-export function db(): Promise<DuckDBConnection> {
-  shared ??= instance()
-    .then((i) => i.connect())
-    .catch((err) => {
-      shared = undefined;
-      throw err;
-    });
-  return shared;
-}
-
 export async function withConnection<T>(work: (conn: DuckDBConnection) => Promise<T>) {
   const conn = await (await instance()).connect();
   try {
@@ -39,6 +28,13 @@ export async function withConnection<T>(work: (conn: DuckDBConnection) => Promis
   } finally {
     conn.closeSync();
   }
+}
+
+export function readRows<T>(query: string, params: Record<string, DuckDBValue>): Promise<T[]> {
+  return withConnection(async (conn) => {
+    const reader = await conn.runAndReadAll(query, params);
+    return reader.getRowObjectsJS() as unknown as T[];
+  });
 }
 
 export async function openDb(url: string) {

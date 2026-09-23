@@ -28,6 +28,7 @@ export type Game = {
   startTime: string;
   venue?: string;
   status: GameStatus;
+  completed: boolean;
   away: GameSide;
   home: GameSide;
 };
@@ -104,6 +105,10 @@ export function toStatus(s: StatusFields): GameStatus {
 
 function showsScore(status: GameStatus) {
   return status.state === "live" || status.state === "final" || status.state === "suspended";
+}
+
+export function gameTitle(game: Game) {
+  return `${game.away.team.abbreviation} @ ${game.home.team.abbreviation}`;
 }
 
 export function score(status: GameStatus, value: number | null) {

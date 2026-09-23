@@ -1,9 +1,10 @@
 import "server-only";
 import { connection } from "next/server";
-import { db } from "@/lib/db";
+import { readRows } from "@/lib/db";
+import { isCompleted } from "@/lib/schedule";
 import { postseasonLabel, score, toStatus, type Game, type Team } from "@/lib/scoreboard";
 
-type Row = {
+export type GameQueryRow = {
   game_pk: number;
   official_date: string;
   game_type: string;
@@ -36,7 +37,7 @@ const GAME_COLUMNS = `
   g.home_score, g.away_score, g.inning, g.inning_half, g.venue_name, g.home_record, g.away_record,
   epoch_ms(g.start_utc)::DOUBLE AS start_ms`;
 
-const GAMES_QUERY = `
+export const GAMES_SELECT = `
   WITH t AS (
     SELECT team_id, team_name, abbreviation FROM teams
     QUALIFY row_number() OVER (PARTITION BY team_id ORDER BY season DESC) = 1
@@ -46,7 +47,9 @@ const GAMES_QUERY = `
     a.team_name AS away_name, a.abbreviation AS away_abbr
   FROM games g
   LEFT JOIN t h ON h.team_id = g.home_team_id
-  LEFT JOIN t a ON a.team_id = g.away_team_id
+  LEFT JOIN t a ON a.team_id = g.away_team_id`;
+
+const GAMES_QUERY = `${GAMES_SELECT}
   WHERE g.official_date = $date::DATE
   ORDER BY g.start_utc, g.game_number, g.game_pk`;
 
@@ -62,7 +65,7 @@ function makeupOf(rescheduledFrom: string | null, officialDate: string) {
   return rescheduledFrom && rescheduledFrom !== officialDate ? rescheduledFrom : undefined;
 }
 
-function toGame(r: Row): Game {
+export function toGame(r: GameQueryRow): Game {
   const status = toStatus({
     abstractState: r.abstract_state,
     codedState: r.coded_state,
@@ -81,6 +84,7 @@ function toGame(r: Row): Game {
     startTime: new Date(r.start_ms).toISOString(),
     venue: r.venue_name ?? undefined,
     status,
+    completed: isCompleted(r.coded_state),
     away: {
       team: team(r.away_team_id, r.away_name, r.away_abbr, r.away_record),
       score: score(status, r.away_score),
@@ -94,7 +98,6 @@ function toGame(r: Row): Game {
 
 export async function getGames(date: string): Promise<Game[]> {
   await connection();
-  const conn = await db();
-  const reader = await conn.runAndReadAll(GAMES_QUERY, { date });
-  return (reader.getRowObjectsJS() as unknown as Row[]).map(toGame);
+  const rows = await readRows<GameQueryRow>(GAMES_QUERY, { date });
+  return rows.map(toGame);
 }

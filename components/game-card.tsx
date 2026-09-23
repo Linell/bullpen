@@ -1,29 +1,10 @@
+import Link from "next/link";
+import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatGameTime, formatShortDate } from "@/lib/dates";
+import { formatShortDate } from "@/lib/dates";
 import type { Game, GameSide } from "@/lib/scoreboard";
 import { cn } from "@/lib/utils";
-
-function StatusBadge({ game }: { game: Game }) {
-  const { status } = game;
-
-  if (status.state === "live") {
-    const label = [status.note, status.inning].filter(Boolean).join(" · ");
-    return <Badge variant="neutral">{label || "In progress"}</Badge>;
-  }
-
-  if (status.state === "final") {
-    const final = status.innings === 9 ? "Final" : `Final/${status.innings}`;
-    return <Badge>{status.note ? `${final} · ${status.note}` : final}</Badge>;
-  }
-
-  if (status.state === "postponed") return <Badge variant="neutral">Postponed</Badge>;
-  if (status.state === "suspended") return <Badge variant="neutral">Suspended</Badge>;
-  if (status.state === "cancelled") return <Badge variant="neutral">Cancelled</Badge>;
-
-  const time = formatGameTime(game.startTime);
-  return <Badge variant="neutral">{status.note ? `${status.note} · ${time}` : time}</Badge>;
-}
 
 function TeamRow({ side, dimmed }: { side: GameSide; dimmed: boolean }) {
   return (
@@ -48,8 +29,14 @@ export function GameCard({ game }: { game: Game }) {
   const { away, home, status } = game;
   const isFinal = status.state === "final";
 
-  return (
-    <Card size="sm">
+  const card = (
+    <Card
+      size="sm"
+      className={cn(
+        game.completed &&
+          "h-full transition-all group-hover:translate-x-boxShadowX group-hover:translate-y-boxShadowY group-hover:shadow-none",
+      )}
+    >
       <CardContent className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -68,5 +55,13 @@ export function GameCard({ game }: { game: Game }) {
         )}
       </CardContent>
     </Card>
+  );
+
+  if (!game.completed) return card;
+
+  return (
+    <Link href={`/games/${game.gamePk}`} className="group rounded-base">
+      {card}
+    </Link>
   );
 }
