@@ -9,11 +9,15 @@ export const backfillSeason = inngest.createFunction(
   async ({ event, step }) => {
     const { season } = event.data;
 
-    const { games, changed, completedGamePks } = await step.run("load-schedule", async () => {
-      const rows = parseSchedule(await fetchSchedule(await fetchSeasonDates(season)));
-      const { changed } = await withConnection((conn) => upsertGames(conn, rows));
-      return { games: rows.length, changed, completedGamePks: findCompletedGamePks(rows) };
-    });
+    const dates = await step.run("fetch-season-dates", () => fetchSeasonDates(season));
+
+    const rows = await step.run("fetch-schedule", async () => parseSchedule(await fetchSchedule(dates)));
+
+    const { changed } = await step.run("upsert-games", () =>
+      withConnection((conn) => upsertGames(conn, rows)),
+    );
+
+    const completedGamePks = findCompletedGamePks(rows);
 
     if (completedGamePks.length > 0) {
       await step.sendEvent(
@@ -24,6 +28,6 @@ export const backfillSeason = inngest.createFunction(
       );
     }
 
-    return { season, games, changed, completed: completedGamePks.length };
+    return { season, games: rows.length, changed, completed: completedGamePks.length };
   },
 );

@@ -85,7 +85,12 @@ describe("backfill-season", () => {
     const { ctx, result } = await t.execute({
       events: [{ name: "mlb/season.backfill.requested", data: { season: 2026 }, ts: 1700000000000 }],
       steps: [
-        mockStep("load-schedule", { games: 2, changed: 2, completedGamePks: [101] }),
+        mockStep("fetch-season-dates", { startDate: "2026-03-26", endDate: "2026-10-31" }),
+        mockStep("fetch-schedule", [
+          { gamePk: 101, abstractState: "Final", codedState: "F" },
+          { gamePk: 102, abstractState: "Preview", codedState: "S" },
+        ]),
+        mockStep("upsert-games", { changed: 2, changedGamePks: [101, 102] }),
         mockSend("emit-game-completed"),
       ],
     });

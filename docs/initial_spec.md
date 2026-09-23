@@ -114,7 +114,9 @@ All functions open a short-lived database connection per step with `withConnecti
   - Returns `{ startDate, endDate, games, changed, completed, updated }`.
 - **`backfill-season`**
   - Triggered by `mlb/season.backfill.requested`.
-  - Step `load-schedule`: fetch the season's date range, then one schedule call over it. Upsert only the `games` rows that changed.
+  - Step `fetch-season-dates`: the season's date range.
+  - Step `fetch-schedule`: one schedule call over that range. Returns the parsed rows, about 1 MB for a full season, well under Inngest's 4 MB step limit.
+  - Step `upsert-games`: upsert only the `games` rows that changed.
   - Step `emit-game-completed`: one `step.sendEvent` of `mlb/game.completed` for every completed game (under the 5,000-per-send limit). The id includes `event.ts`, so re-sending the request re-checks every game.
   - Returns `{ season, games, changed, completed }`.
 - **`ingest-game-feed`**
