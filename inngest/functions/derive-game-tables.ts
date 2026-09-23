@@ -4,7 +4,12 @@ import { inngest } from "../client";
 import { gameFeedStored } from "../events";
 
 export const deriveGameTables = inngest.createFunction(
-  { id: "derive-game-tables", triggers: [gameFeedStored], concurrency: 1 },
+  {
+    id: "derive-game-tables",
+    triggers: [gameFeedStored],
+    concurrency: 1,
+    debounce: { key: "event.data.gamePk", period: "30s", timeout: "2m" },
+  },
   async ({ event, step }) => {
     const { gamePk } = event.data;
 

@@ -125,6 +125,7 @@ All functions open a short-lived database connection per step with `withConnecti
   - Returns `{ gamePk, feedTs, status }`.
 - **`derive-game-tables`**
   - Triggered by `mlb/game-feed.stored`, with concurrency 1 so derives never conflict on `players` and `teams`.
+  - Debounced per game for 30 seconds (at most 2 minutes), so a live game's frequent feed updates collapse into one derive of the latest feed instead of piling up in the queue.
   - Step `derive-game`: runs `derive.sql` for one game in a transaction. A failure leaves the previous rows in place, and Inngest retries it without refetching the feed.
   - Returns `{ gamePk, plays, pitches }`.
 - **`rebuild-game-tables`**
