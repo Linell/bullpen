@@ -44,3 +44,12 @@ export function formatShortDate(date: string) {
     day: "numeric",
   });
 }
+
+export function formatCountdown(ms: number) {
+  const minutes = Math.ceil(ms / 60_000);
+  if (minutes <= 0) return undefined;
+  const days = Math.floor(minutes / 1440);
+  const hours = Math.floor((minutes % 1440) / 60);
+  if (days > 0) return `${days}d ${hours}h`;
+  return hours > 0 ? `${hours}h ${minutes % 60}m` : `${minutes}m`;
+}
