@@ -7,49 +7,58 @@ WITH parsed AS (
       "teams": "MAP(VARCHAR, STRUCT(id INTEGER, name VARCHAR, teamName VARCHAR, abbreviation VARCHAR, locationName VARCHAR, shortName VARCHAR, teamCode VARCHAR, league STRUCT(id INTEGER, name VARCHAR), division STRUCT(id INTEGER, name VARCHAR), venue STRUCT(id INTEGER, name VARCHAR)))",
       "players": "MAP(VARCHAR, STRUCT(id INTEGER, fullName VARCHAR, firstName VARCHAR, lastName VARCHAR, boxscoreName VARCHAR, primaryNumber VARCHAR, primaryPosition STRUCT(abbreviation VARCHAR), batSide STRUCT(code VARCHAR), pitchHand STRUCT(code VARCHAR), birthDate DATE, height VARCHAR, weight INTEGER, mlbDebutDate DATE, active BOOLEAN, strikeZoneTop DOUBLE, strikeZoneBottom DOUBLE))"
     },
-    "liveData": {"plays": {"allPlays": [{
-      "about": {
-        "atBatIndex": "INTEGER", "inning": "INTEGER", "halfInning": "VARCHAR", "isComplete": "BOOLEAN",
-        "isScoringPlay": "BOOLEAN", "hasReview": "BOOLEAN", "startTime": "TIMESTAMPTZ", "endTime": "TIMESTAMPTZ"
-      },
-      "matchup": {
-        "batter": {"id": "INTEGER"}, "pitcher": {"id": "INTEGER"},
-        "batSide": {"code": "VARCHAR"}, "pitchHand": {"code": "VARCHAR"}, "splits": {"menOnBase": "VARCHAR"}
-      },
-      "result": {
-        "event": "VARCHAR", "eventType": "VARCHAR", "description": "VARCHAR", "rbi": "INTEGER",
-        "isOut": "BOOLEAN", "homeScore": "INTEGER", "awayScore": "INTEGER"
-      },
-      "count": {"balls": "INTEGER", "strikes": "INTEGER", "outs": "INTEGER"},
-      "reviewDetails": {"reviewType": "VARCHAR", "isOverturned": "BOOLEAN", "challengeTeamId": "INTEGER", "player": {"id": "INTEGER"}},
-      "playEvents": [{
-        "index": "INTEGER", "isPitch": "BOOLEAN", "playId": "VARCHAR", "pitchNumber": "INTEGER",
-        "startTime": "TIMESTAMPTZ", "endTime": "TIMESTAMPTZ",
+    "liveData": {
+      "linescore": {"innings": [{
+        "num": "INTEGER",
+        "home": {"runs": "INTEGER", "hits": "INTEGER", "errors": "INTEGER", "leftOnBase": "INTEGER"},
+        "away": {"runs": "INTEGER", "hits": "INTEGER", "errors": "INTEGER", "leftOnBase": "INTEGER"}
+      }]},
+      "decisions": {"winner": {"id": "INTEGER"}, "loser": {"id": "INTEGER"}, "save": {"id": "INTEGER"}},
+      "plays": {"allPlays": [{
+        "about": {
+          "atBatIndex": "INTEGER", "inning": "INTEGER", "halfInning": "VARCHAR", "isComplete": "BOOLEAN",
+          "isScoringPlay": "BOOLEAN", "hasReview": "BOOLEAN", "startTime": "TIMESTAMPTZ", "endTime": "TIMESTAMPTZ"
+        },
+        "matchup": {
+          "batter": {"id": "INTEGER"}, "pitcher": {"id": "INTEGER"},
+          "batSide": {"code": "VARCHAR"}, "pitchHand": {"code": "VARCHAR"}, "splits": {"menOnBase": "VARCHAR"}
+        },
+        "result": {
+          "event": "VARCHAR", "eventType": "VARCHAR", "description": "VARCHAR", "rbi": "INTEGER",
+          "isOut": "BOOLEAN", "homeScore": "INTEGER", "awayScore": "INTEGER"
+        },
         "count": {"balls": "INTEGER", "strikes": "INTEGER", "outs": "INTEGER"},
-        "details": {
-          "call": {"code": "VARCHAR", "description": "VARCHAR"}, "type": {"code": "VARCHAR", "description": "VARCHAR"},
-          "description": "VARCHAR", "isInPlay": "BOOLEAN", "isStrike": "BOOLEAN", "isBall": "BOOLEAN", "isOut": "BOOLEAN"
-        },
-        "pitchData": {
-          "startSpeed": "DOUBLE", "endSpeed": "DOUBLE", "extension": "DOUBLE", "plateTime": "DOUBLE",
-          "typeConfidence": "DOUBLE", "zone": "INTEGER", "strikeZoneTop": "DOUBLE", "strikeZoneBottom": "DOUBLE",
-          "coordinates": {
-            "pX": "DOUBLE", "pZ": "DOUBLE", "pfxX": "DOUBLE", "pfxZ": "DOUBLE",
-            "x0": "DOUBLE", "y0": "DOUBLE", "z0": "DOUBLE", "vX0": "DOUBLE", "vY0": "DOUBLE", "vZ0": "DOUBLE",
-            "aX": "DOUBLE", "aY": "DOUBLE", "aZ": "DOUBLE"
+        "reviewDetails": {"reviewType": "VARCHAR", "isOverturned": "BOOLEAN", "challengeTeamId": "INTEGER", "player": {"id": "INTEGER"}},
+        "playEvents": [{
+          "index": "INTEGER", "isPitch": "BOOLEAN", "type": "VARCHAR", "playId": "VARCHAR", "pitchNumber": "INTEGER",
+          "startTime": "TIMESTAMPTZ", "endTime": "TIMESTAMPTZ", "player": {"id": "INTEGER"},
+          "count": {"balls": "INTEGER", "strikes": "INTEGER", "outs": "INTEGER"},
+          "details": {
+            "call": {"code": "VARCHAR", "description": "VARCHAR"}, "type": {"code": "VARCHAR", "description": "VARCHAR"},
+            "description": "VARCHAR", "eventType": "VARCHAR", "isScoringPlay": "BOOLEAN",
+            "isInPlay": "BOOLEAN", "isStrike": "BOOLEAN", "isBall": "BOOLEAN", "isOut": "BOOLEAN"
           },
-          "breaks": {
-            "breakAngle": "DOUBLE", "breakLength": "DOUBLE", "breakY": "DOUBLE", "breakVertical": "DOUBLE",
-            "breakVerticalInduced": "DOUBLE", "breakHorizontal": "DOUBLE", "spinRate": "DOUBLE", "spinDirection": "DOUBLE"
-          }
-        },
-        "hitData": {
-          "launchSpeed": "DOUBLE", "launchAngle": "DOUBLE", "totalDistance": "DOUBLE", "trajectory": "VARCHAR",
-          "hardness": "VARCHAR", "location": "VARCHAR", "coordinates": {"coordX": "DOUBLE", "coordY": "DOUBLE"}
-        },
-        "reviewDetails": {"reviewType": "VARCHAR", "isOverturned": "BOOLEAN", "challengeTeamId": "INTEGER", "player": {"id": "INTEGER"}}
-      }]
-    }]}}
+          "pitchData": {
+            "startSpeed": "DOUBLE", "endSpeed": "DOUBLE", "extension": "DOUBLE", "plateTime": "DOUBLE",
+            "typeConfidence": "DOUBLE", "zone": "INTEGER", "strikeZoneTop": "DOUBLE", "strikeZoneBottom": "DOUBLE",
+            "coordinates": {
+              "pX": "DOUBLE", "pZ": "DOUBLE", "pfxX": "DOUBLE", "pfxZ": "DOUBLE",
+              "x0": "DOUBLE", "y0": "DOUBLE", "z0": "DOUBLE", "vX0": "DOUBLE", "vY0": "DOUBLE", "vZ0": "DOUBLE",
+              "aX": "DOUBLE", "aY": "DOUBLE", "aZ": "DOUBLE"
+            },
+            "breaks": {
+              "breakAngle": "DOUBLE", "breakLength": "DOUBLE", "breakY": "DOUBLE", "breakVertical": "DOUBLE",
+              "breakVerticalInduced": "DOUBLE", "breakHorizontal": "DOUBLE", "spinRate": "DOUBLE", "spinDirection": "DOUBLE"
+            }
+          },
+          "hitData": {
+            "launchSpeed": "DOUBLE", "launchAngle": "DOUBLE", "totalDistance": "DOUBLE", "trajectory": "VARCHAR",
+            "hardness": "VARCHAR", "location": "VARCHAR", "coordinates": {"coordX": "DOUBLE", "coordY": "DOUBLE"}
+          },
+          "reviewDetails": {"reviewType": "VARCHAR", "isOverturned": "BOOLEAN", "challengeTeamId": "INTEGER", "player": {"id": "INTEGER"}}
+        }]
+      }]}
+    }
   }') AS g
   FROM raw_game_feeds
   WHERE game_pk = $game_pk::INTEGER
@@ -61,6 +70,8 @@ SELECT
   coalesce(g.gameData.game.gameNumber, 1) AS game_number,
   map_values(g.gameData.teams) AS home_and_away,
   map_values(g.gameData.players) AS roster,
+  g.liveData.linescore.innings AS innings,
+  g.liveData.decisions AS decisions,
   g.liveData.plays.allPlays AS all_plays,
   len(g.liveData.plays.allPlays) > 0 AS has_plays
 FROM parsed;
@@ -69,6 +80,15 @@ CREATE OR REPLACE TEMP TABLE completed_plays AS
 SELECT game_pk, season, play.about.atBatIndex AS at_bat_index, unnest(play)
 FROM feed, unnest(all_plays) AS unnested(play)
 WHERE play.about.isComplete;
+
+DELETE FROM linescores
+WHERE game_pk = $game_pk::INTEGER;
+
+DELETE FROM game_decisions
+WHERE game_pk = $game_pk::INTEGER;
+
+DELETE FROM play_events
+WHERE game_pk = $game_pk::INTEGER;
 
 DELETE FROM pitches
 WHERE game_pk = $game_pk::INTEGER;
@@ -228,6 +248,47 @@ SELECT
   event.startTime AS start_time,
   event.endTime AS end_time
 FROM pitches_with_abs_challenge;
+
+INSERT INTO play_events BY NAME
+SELECT
+  game_pk,
+  season,
+  at_bat_index,
+  event.index AS event_index,
+  event.type AS kind,
+  event.details.eventType AS event_type,
+  event.details.call.code AS call_code,
+  event.details.description AS description,
+  event.details.isScoringPlay AS is_scoring_play,
+  event.player.id AS player_id,
+  event.startTime AS start_time
+FROM completed_plays, unnest(playEvents) AS unnested(event)
+WHERE NOT event.isPitch;
+
+INSERT INTO linescores BY NAME
+SELECT
+  game_pk,
+  season,
+  inning.num AS inning,
+  side.half AS half,
+  side.line.runs AS runs,
+  side.line.hits AS hits,
+  side.line.errors AS errors,
+  side.line.leftOnBase AS left_on_base
+FROM feed,
+  unnest(innings) AS unnested(inning),
+  unnest([{'half': 'top', 'line': inning.away}, {'half': 'bottom', 'line': inning.home}]) AS sides(side)
+WHERE side.line IS NOT NULL;
+
+INSERT INTO game_decisions BY NAME
+SELECT
+  game_pk,
+  season,
+  decisions.winner.id AS winner_id,
+  decisions.loser.id AS loser_id,
+  decisions.save.id AS save_id
+FROM feed
+WHERE decisions.winner IS NOT NULL;
 
 INSERT OR REPLACE INTO teams BY NAME
 WITH newest_team_rows AS (
