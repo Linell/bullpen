@@ -97,7 +97,8 @@ Every emitted event has a deterministic id, `<event>-<key>[-<discriminator>]`. T
 
 - Function id is `verb-object`, matching its file name.
 - Events are `mlb/<noun>.<past-tense>`, or `mlb/<noun>.<verb>.requested` when a person asks for something. Compound nouns are hyphenated, as in `game-feed`.
-- Step ids say what the step does with one of four verbs: `load-<source>` extracts and loads in one step, which keeps large payloads out of Inngest state; `derive-<thing>` transforms; `list-<source>` reads; and `emit-<event>` sends an event.
+- Step ids say what the step does with one of six verbs: `fetch-<source>` calls an API and returns the parsed, trimmed result; `upsert-<table>` writes rows; `load-<source>` fetches and writes in one step, only when the payload is too large for Inngest state; `derive-<thing>` transforms; `list-<source>` reads; and `emit-<event>` sends an event.
+- Put each I/O phase in its own step, so a retry redoes as little as possible. Keep step outputs small.
 - Functions return what they processed and counts, never arrays.
 
 ### Functions
@@ -106,7 +107,8 @@ All functions open a short-lived database connection per step with `withConnecti
 
 - **`sync-schedule`**
   - Cron, every minute, limited to baseball months and hours: `TZ=UTC * 15-23,0-7 * 2-11 *` (February–November, about 11am–4am ET). `singleton: { mode: "skip" }` skips a run while the previous one is still going, so a run stuck retrying blocks the minutes after it.
-  - Step `load-schedule`: one schedule call for yesterday and today (US Eastern), which catches late-running and resumed games. No future fetch: tomorrow's games appear once the date rolls over. Upsert only the `games` rows that changed.
+  - Step `fetch-schedule`: one schedule call for yesterday and today (US Eastern), which catches late-running and resumed games. No future fetch: tomorrow's games appear once the date rolls over. Returns the parsed rows, about 15 KB.
+  - Step `upsert-games`: upsert only the `games` rows that changed, and return their ids.
   - Step `emit-game-completed`: `mlb/game.completed` for every completed game in the window. The id `game-completed-{gamePk}` has no time in it, so consecutive runs don't send it again. A game still in the window after 24 hours is sent once more, which is harmless because ingest is idempotent.
   - Step `emit-game-updated`: `mlb/game.updated` for every live game whose `games` row changed in this run: score, inning, outs, runners and so on. Completed games are left to `mlb/game.completed`. The id includes `event.ts`, so retries of a run don't send it again.
   - Returns `{ startDate, endDate, games, changed, completed, updated }`.
