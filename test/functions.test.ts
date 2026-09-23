@@ -15,30 +15,53 @@ function mockSend(id: string) {
 
 describe("sync-schedule", () => {
   const window = { startDate: "2026-09-21", endDate: "2026-09-22" };
+  const timer = { name: "inngest/scheduled.timer", data: { cron: "* * * * *" }, ts: 1700000000000 };
+  const loaded = { ...window, games: 3, changed: 0, completedGamePks: [], updatedGamePks: [] };
 
   it("emits game.completed with one id per game", async () => {
     const t = new InngestTestEngine({ function: syncSchedule });
     const { ctx, result } = await t.execute({
+      events: [timer],
       steps: [
-        mockStep("load-schedule", { ...window, games: 3, changed: 1, completedGamePks: [101, 102] }),
+        mockStep("load-schedule", { ...loaded, changed: 1, completedGamePks: [101, 102] }),
         mockSend("emit-game-completed"),
       ],
     });
 
-    expect(result).toEqual({ ...window, games: 3, changed: 1, completed: 2 });
+    expect(result).toEqual({ ...window, games: 3, changed: 1, completed: 2, updated: 0 });
+    expect(ctx.step.sendEvent).toHaveBeenCalledTimes(1);
     expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-completed", [
       expect.objectContaining({ data: { gamePk: 101 }, id: "game-completed-101" }),
       expect.objectContaining({ data: { gamePk: 102 }, id: "game-completed-102" }),
     ]);
   });
 
-  it("sends nothing when no game is completed", async () => {
+  it("emits game.updated for each changed live game with the run time in its id", async () => {
     const t = new InngestTestEngine({ function: syncSchedule });
     const { ctx, result } = await t.execute({
-      steps: [mockStep("load-schedule", { ...window, games: 3, changed: 0, completedGamePks: [] })],
+      events: [timer],
+      steps: [
+        mockStep("load-schedule", { ...loaded, changed: 2, updatedGamePks: [201, 202] }),
+        mockSend("emit-game-updated"),
+      ],
     });
 
-    expect(result).toEqual({ ...window, games: 3, changed: 0, completed: 0 });
+    expect(result).toEqual({ ...window, games: 3, changed: 2, completed: 0, updated: 2 });
+    expect(ctx.step.sendEvent).toHaveBeenCalledTimes(1);
+    expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-updated", [
+      expect.objectContaining({ data: { gamePk: 201 }, id: "game-updated-201-1700000000000" }),
+      expect.objectContaining({ data: { gamePk: 202 }, id: "game-updated-202-1700000000000" }),
+    ]);
+  });
+
+  it("sends nothing when nothing changed", async () => {
+    const t = new InngestTestEngine({ function: syncSchedule });
+    const { ctx, result } = await t.execute({
+      events: [timer],
+      steps: [mockStep("load-schedule", loaded)],
+    });
+
+    expect(result).toEqual({ ...window, games: 3, changed: 0, completed: 0, updated: 0 });
     expect(ctx.step.sendEvent).not.toHaveBeenCalled();
   });
 });

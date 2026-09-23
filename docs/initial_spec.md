@@ -10,7 +10,7 @@
 
 Five Inngest functions and five typed events feed a MotherDuck database. Raw game JSON is the source of truth, and analytics tables are derived from it in SQL.
 
-- **`sync-schedule`** runs every minute during baseball months and hours. One schedule request returns every game's status and score. It updates `games` and emits `mlb/game.completed` for each completed game.
+- **`sync-schedule`** runs every minute during baseball months and hours. One schedule request returns every game's status and score. It updates `games`, emits `mlb/game.completed` for each completed game and `mlb/game.updated` for each live game that changed.
 - **`backfill-season`** does the same for a whole season when a person asks for it.
 - **`ingest-game-feed`** fetches a completed or live game's feed, stores the raw JSON if it is newer, and emits `mlb/game-feed.stored`.
 - **`derive-game-tables`** runs `derive.sql` to rebuild that game's rows.
@@ -52,6 +52,7 @@ Rollback: fix `derive.sql` and send `mlb/game-tables.rebuild.requested` to rebui
   - Postponed games show `abstractGameState: Final` with `codedGameState: D`. A game is completed when `codedGameState` is `F` or `O`, or `Q`/`R` for a forfeit.
   - Forfeited games are ingested like any other. Official Baseball Rule 9.03(e) keeps the stats of a forfeited regulation game, so the tables store the plays as they happened. Analytics can filter on `coded_state IN ('Q', 'R')`. The scoreboard shows the API's score with a "Forfeit" note.
   - Suspended games span dates. Key everything by `gamePk`.
+  - A game suspended mid-play (`codedGameState: U`, `abstractGameState: Final`) is neither live nor completed, so its last plays aren't ingested until it resumes and finishes.
   - Filter by `gameType`: `R` is regular season, `S` spring, `F`/`D`/`L`/`W` postseason.
 
 ## Implementation
@@ -85,11 +86,12 @@ Every emitted event has a deterministic id, `<event>-<key>[-<discriminator>]`. T
 | Emitted by | Event | Id |
 | --- | --- | --- |
 | `sync-schedule` | `mlb/game.completed` | `game-completed-{gamePk}` |
+| `sync-schedule` | `mlb/game.updated` | `game-updated-{gamePk}-{event.ts}` |
 | `backfill-season` | `mlb/game.completed` | `game-completed-{gamePk}-{event.ts}` |
 | `ingest-game-feed` | `mlb/game-feed.stored` | `game-feed-stored-{gamePk}-{feedTs}` |
 | `rebuild-game-tables` | `mlb/game-feed.stored` | `game-feed-stored-{gamePk}-{event.ts}` |
 
-`event.ts` is when the person sent the request, so it is stable across retries of that run but new for each request.
+`event.ts` is when the person sent the request, or the scheduled minute for a cron run, so it is stable across retries of that run but new for each request or run.
 
 ### Naming
 
@@ -106,7 +108,8 @@ All functions open a short-lived database connection per step with `withConnecti
   - Cron, every minute, limited to baseball months and hours: `TZ=UTC * 15-23,0-7 * 2-11 *` (February–November, about 11am–4am ET). `singleton: { mode: "skip" }` skips a run while the previous one is still going, so a run stuck retrying blocks the minutes after it.
   - Step `load-schedule`: one schedule call for yesterday and today (US Eastern), which catches late-running and resumed games. No future fetch: tomorrow's games appear once the date rolls over. Upsert only the `games` rows that changed.
   - Step `emit-game-completed`: `mlb/game.completed` for every completed game in the window. The id `game-completed-{gamePk}` has no time in it, so consecutive runs don't send it again. A game still in the window after 24 hours is sent once more, which is harmless because ingest is idempotent.
-  - Returns `{ startDate, endDate, games, changed, completed }`.
+  - Step `emit-game-updated`: `mlb/game.updated` for every live game whose `games` row changed in this run: score, inning, outs, runners and so on. Completed games are left to `mlb/game.completed`. The id includes `event.ts`, so retries of a run don't send it again.
+  - Returns `{ startDate, endDate, games, changed, completed, updated }`.
 - **`backfill-season`**
   - Triggered by `mlb/season.backfill.requested`.
   - Step `load-schedule`: fetch the season's date range, then one schedule call over it. Upsert only the `games` rows that changed.
@@ -140,7 +143,7 @@ All live in `.env.local`, which is gitignored.
 
 - **`derive.sql`**: run it on saved feed fixtures, including a doubleheader, a postponed game, a suspended game and an extra-innings game. Row counts and final scores should match the box score. Re-deriving leaves the row counts unchanged, a failed derive keeps the previous rows, and an older feed never replaces a newer one.
 - **Schedule**: parsing, which rows count as changed, and which games count as completed, including a forfeit and a postponed game.
-- **Functions**: `@inngest/test` runs each function that sends events, with its steps mocked, and checks the events and their ids. `sync-schedule` sends nothing when no game is completed, `ingest-game-feed` emits only for a stored feed and runs on `mlb/game.updated`, and `rebuild-game-tables` splits its events into batches of 5,000.
+- **Functions**: `@inngest/test` runs each function that sends events, with its steps mocked, and checks the events and their ids. `sync-schedule` emits `mlb/game.updated` only for changed live games and not at all when nothing changed, `ingest-game-feed` emits only for a stored feed and runs on `mlb/game.updated`, and `rebuild-game-tables` splits its events into batches of 5,000.
 
 ## Alternatives
 

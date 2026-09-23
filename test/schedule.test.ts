@@ -4,7 +4,7 @@ import type { DuckDBConnection } from "@duckdb/node-api";
 import { beforeEach, describe, expect, it } from "vitest";
 import { openDb } from "@/lib/db";
 import type { ScheduleResponse } from "@/lib/mlb";
-import { changedGames, findCompletedGamePks, isCompleted, parseSchedule, upsertGames } from "@/lib/schedule";
+import { changedGames, findCompletedGamePks, findLiveGamePks, isCompleted, parseSchedule, upsertGames } from "@/lib/schedule";
 
 function fixture(name: string): ScheduleResponse {
   const file = path.join(import.meta.dirname, "fixtures/schedule", `${name}.json`);
@@ -135,6 +135,29 @@ describe("findCompletedGamePks", () => {
   });
 });
 
+describe("findLiveGamePks", () => {
+  it("includes only live games", () => {
+    const [row] = parseSchedule(fixture("2026-09-21"));
+    const live = { ...row, gamePk: 1, abstractState: "Live", codedState: "I" };
+    const scheduled = { ...row, gamePk: 2, abstractState: "Preview", codedState: "S" };
+    expect(findLiveGamePks([row, live, scheduled])).toEqual([1]);
+  });
+
+  it("includes warmup, challenges and suspensions only while abstract is Live", () => {
+    const [row] = parseSchedule(fixture("2026-09-21"));
+    const states = [
+      ["Live", "P"],
+      ["Live", "M"],
+      ["Live", "T"],
+      ["Live", "U"],
+      ["Final", "T"],
+      ["Final", "U"],
+    ];
+    const rows = states.map(([abstractState, codedState], i) => ({ ...row, gamePk: i + 1, abstractState, codedState }));
+    expect(findLiveGamePks(rows)).toEqual([1, 2, 3, 4]);
+  });
+});
+
 describe("changedGames", () => {
   it("flags a score change", () => {
     const [row] = parseSchedule(fixture("2026-09-21"));
@@ -161,12 +184,26 @@ describe("upsertGames", () => {
     await conn.run("DELETE FROM games");
   });
 
+  it("reports a live game whose situation changed", async () => {
+    const [row] = parseSchedule(fixture("2026-09-21"));
+    const live = { ...row, abstractState: "Live", codedState: "I", outs: 1 };
+    await upsertGames(conn, [live]);
+    expect(await upsertGames(conn, [{ ...live, outs: 2, onFirst: true }])).toEqual({
+      changed: 1,
+      changedGamePks: [row.gamePk],
+    });
+  });
+
   it("writes only rows that changed", async () => {
     const rows = parseSchedule(fixture("2026-09-21"));
-    expect(await upsertGames(conn, rows)).toEqual({ changed: rows.length });
-    expect(await upsertGames(conn, rows)).toEqual({ changed: 0 });
-    const [row] = rows;
-    expect(await upsertGames(conn, [{ ...row, homeScore: (row.homeScore ?? 0) + 1 }])).toEqual({ changed: 1 });
+    expect(await upsertGames(conn, rows)).toEqual({
+      changed: rows.length,
+      changedGamePks: rows.map((r) => r.gamePk),
+    });
+    expect(await upsertGames(conn, rows)).toEqual({ changed: 0, changedGamePks: [] });
+    const [row, other] = rows;
+    const scored = { ...row, homeScore: (row.homeScore ?? 0) + 1 };
+    expect(await upsertGames(conn, [scored, other])).toEqual({ changed: 1, changedGamePks: [row.gamePk] });
   });
 
   it("round-trips every column", async () => {
@@ -187,8 +224,11 @@ describe("upsertGames", () => {
 
   it("round-trips doubleheader and makeup fields", async () => {
     const rows = parseSchedule(fixture("2026-09-23"));
-    expect(await upsertGames(conn, rows)).toEqual({ changed: rows.length });
-    expect(await upsertGames(conn, rows)).toEqual({ changed: 0 });
+    expect(await upsertGames(conn, rows)).toEqual({
+      changed: rows.length,
+      changedGamePks: rows.map((r) => r.gamePk),
+    });
+    expect(await upsertGames(conn, rows)).toEqual({ changed: 0, changedGamePks: [] });
   });
 
   it("writes rows that differ outside the status fields", async () => {

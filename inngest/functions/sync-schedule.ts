@@ -2,9 +2,9 @@ import { cron } from "inngest";
 import { shiftDate, todayOfficialDate } from "@/lib/dates";
 import { withConnection } from "@/lib/db";
 import { fetchSchedule } from "@/lib/mlb";
-import { findCompletedGamePks, parseSchedule, upsertGames } from "@/lib/schedule";
+import { findCompletedGamePks, findLiveGamePks, parseSchedule, upsertGames } from "@/lib/schedule";
 import { inngest } from "../client";
-import { gameCompleted } from "../events";
+import { gameCompleted, gameUpdated } from "../events";
 
 export const syncSchedule = inngest.createFunction(
   {
@@ -12,15 +12,22 @@ export const syncSchedule = inngest.createFunction(
     triggers: [cron("TZ=UTC * 15-23,0-7 * 2-11 *")],
     singleton: { mode: "skip" },
   },
-  async ({ step }) => {
-    const { startDate, endDate, games, changed, completedGamePks } = await step.run(
+  async ({ event, step }) => {
+    const { startDate, endDate, games, changed, completedGamePks, updatedGamePks } = await step.run(
       "load-schedule",
       async () => {
         const endDate = todayOfficialDate();
         const startDate = shiftDate(endDate, -1);
         const rows = parseSchedule(await fetchSchedule({ startDate, endDate }));
-        const { changed } = await withConnection((conn) => upsertGames(conn, rows));
-        return { startDate, endDate, games: rows.length, changed, completedGamePks: findCompletedGamePks(rows) };
+        const { changed, changedGamePks } = await withConnection((conn) => upsertGames(conn, rows));
+        return {
+          startDate,
+          endDate,
+          games: rows.length,
+          changed,
+          completedGamePks: findCompletedGamePks(rows),
+          updatedGamePks: findLiveGamePks(rows).filter((gamePk) => changedGamePks.includes(gamePk)),
+        };
       },
     );
 
@@ -31,6 +38,22 @@ export const syncSchedule = inngest.createFunction(
       );
     }
 
-    return { startDate, endDate, games, changed, completed: completedGamePks.length };
+    if (updatedGamePks.length > 0) {
+      await step.sendEvent(
+        "emit-game-updated",
+        updatedGamePks.map((gamePk) =>
+          gameUpdated.create({ gamePk }, { id: `game-updated-${gamePk}-${event.ts}` }),
+        ),
+      );
+    }
+
+    return {
+      startDate,
+      endDate,
+      games,
+      changed,
+      completed: completedGamePks.length,
+      updated: updatedGamePks.length,
+    };
   },
 );

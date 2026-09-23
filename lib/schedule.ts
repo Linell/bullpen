@@ -67,6 +67,12 @@ export function findCompletedGamePks(rows: GameRow[]): number[] {
   return rows.filter((row) => isCompleted(row.codedState)).map((row) => row.gamePk);
 }
 
+export function findLiveGamePks(rows: GameRow[]): number[] {
+  return rows
+    .filter((row) => row.abstractState === "Live" && !isCompleted(row.codedState))
+    .map((row) => row.gamePk);
+}
+
 function record(side: ScheduleGame["teams"]["home"]): string | null {
   const r = side.leagueRecord;
   return r ? `${r.wins}-${r.losses}` : null;
@@ -160,12 +166,12 @@ async function writeGames(conn: DuckDBConnection, rows: GameRow[]) {
 }
 
 export async function upsertGames(conn: DuckDBConnection, rows: GameRow[]) {
-  if (rows.length === 0) return { changed: 0 };
+  if (rows.length === 0) return { changed: 0, changedGamePks: [] };
   const prev = await readGames(
     conn,
     rows.map((r) => r.gamePk),
   );
   const changed = changedGames(prev, rows);
   if (changed.length > 0) await writeGames(conn, changed);
-  return { changed: changed.length };
+  return { changed: changed.length, changedGamePks: changed.map((row) => row.gamePk) };
 }

@@ -29,13 +29,14 @@ function TeamRow({ side, dimmed }: { side: GameSide; dimmed: boolean }) {
 export function GameCard({ game }: { game: Game }) {
   const { away, home, status } = game;
   const isFinal = status.state === "final";
+  const isLinked = game.completed || status.state === "live";
 
   const card = (
     <Card
       size="sm"
       className={cn(
         status.state === "live" && "shadow-live",
-        game.completed &&
+        isLinked &&
           "h-full transition-all group-hover:translate-x-boxShadowX group-hover:translate-y-boxShadowY group-hover:shadow-none",
       )}
     >
@@ -62,7 +63,7 @@ export function GameCard({ game }: { game: Game }) {
     </Card>
   );
 
-  if (!game.completed) return card;
+  if (!isLinked) return card;
 
   return (
     <Link href={`/games/${game.gamePk}`} className="group rounded-base">
