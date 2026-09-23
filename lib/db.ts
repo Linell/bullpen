@@ -31,8 +31,13 @@ export function db(): Promise<DuckDBConnection> {
   return shared;
 }
 
-export async function connect(): Promise<DuckDBConnection> {
-  return (await instance()).connect();
+export async function withConnection<T>(work: (conn: DuckDBConnection) => Promise<T>) {
+  const conn = await (await instance()).connect();
+  try {
+    return await work(conn);
+  } finally {
+    conn.closeSync();
+  }
 }
 
 export async function openDb(url: string) {

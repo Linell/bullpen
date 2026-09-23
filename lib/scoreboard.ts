@@ -1,5 +1,3 @@
-import type { ScoreUpdate } from "@/lib/inngest/realtime";
-
 export type Team = {
   name: string;
   abbreviation: string;
@@ -30,13 +28,15 @@ export type Game = {
   status: GameStatus;
   away: GameSide;
   home: GameSide;
-  updatedAt: number;
 };
 
-export type StatusFields = Pick<
-  ScoreUpdate,
-  "abstractState" | "codedState" | "detailedState" | "inning" | "inningHalf"
->;
+type StatusFields = {
+  abstractState: string;
+  codedState: string;
+  detailedState: string;
+  inning: number | null;
+  inningHalf: string | null;
+};
 
 const POSTSEASON: Record<string, string> = {
   F: "Wild Card",
@@ -100,39 +100,10 @@ export function toStatus(s: StatusFields): GameStatus {
   return { state: "scheduled" };
 }
 
-export function showsScore(status: GameStatus) {
+function showsScore(status: GameStatus) {
   return status.state === "live" || status.state === "final" || status.state === "suspended";
 }
 
 export function score(status: GameStatus, value: number | null) {
   return showsScore(status) && value != null ? value : undefined;
-}
-
-export function applyUpdate(game: Game, u: ScoreUpdate, updatedAt: number): Game {
-  const status = toStatus(u);
-  return {
-    ...game,
-    status,
-    away: { ...game.away, score: score(status, u.awayScore) },
-    home: { ...game.home, score: score(status, u.homeScore) },
-    updatedAt,
-  };
-}
-
-export type ScoreMessage = { topic?: string; data: unknown; createdAt?: Date | string };
-
-export function mergeUpdates(games: Game[], messages: ScoreMessage[], date: string): Game[] {
-  if (messages.length === 0) return games;
-  const byPk = new Map(games.map((g) => [g.gamePk, g]));
-  for (const message of messages) {
-    if (message.topic !== "games" || !Array.isArray(message.data)) continue;
-    const at = message.createdAt ? new Date(message.createdAt).getTime() : Date.now();
-    for (const u of message.data as ScoreUpdate[]) {
-      if (u.officialDate !== date) continue;
-      const game = byPk.get(u.gamePk);
-      if (!game || at < game.updatedAt) continue;
-      byPk.set(u.gamePk, applyUpdate(game, u, at));
-    }
-  }
-  return games.map((g) => byPk.get(g.gamePk) ?? g);
 }

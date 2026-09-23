@@ -4,7 +4,7 @@ import { gunzipSync } from "node:zlib";
 import type { DuckDBConnection } from "@duckdb/node-api";
 import { beforeAll, describe, expect, it } from "vitest";
 import { openDb } from "@/lib/db";
-import { ingestFeed, rebuildDerived } from "@/lib/feeds";
+import { deriveGame, rawFeedGamePks, storeFeed } from "@/lib/feeds";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Feed = any;
@@ -44,14 +44,14 @@ describe("derive.sql", () => {
   beforeAll(async () => {
     conn = await openDb(":memory:");
     for (const feed of feeds) {
-      const stored = await ingestFeed(conn, feed);
-      if (stored.status !== "stored") throw new Error(`${feed.gamePk} was not stored`);
-      firstRun.set(feed.gamePk, { plays: stored.plays, pitches: stored.pitches });
+      const { status } = await storeFeed(conn, feed);
+      if (status !== "stored") throw new Error(`${feed.gamePk} was not stored`);
+      firstRun.set(feed.gamePk, await deriveGame(conn, feed.gamePk));
     }
   });
 
   it("has the fixtures it needs", () => {
-    expect(feeds.map((f) => f.gamePk).sort()).toEqual([823394, 824460, 824785, 824787, 824912]);
+    expect(feeds.map((f) => f.gamePk).sort((a, b) => a - b)).toEqual([823394, 824460, 824785, 824787, 824912]);
     const byPk = new Map(feeds.map((f) => [f.gamePk, f]));
     expect(byPk.get(824460).gameData.game.doubleHeader).toBe("Y");
     expect(byPk.get(824912).gameData.datetime.resumedFromDate).toBeDefined();
@@ -147,48 +147,31 @@ describe("derive.sql", () => {
 
   it("is idempotent", async () => {
     for (const feed of feeds) {
-      expect((await ingestFeed(conn, feed)).status).toBe("unchanged");
-      expect(await rebuildDerived(conn, feed.gamePk)).toEqual(firstRun.get(feed.gamePk));
+      expect((await storeFeed(conn, feed)).status).toBe("unchanged");
+      expect(await deriveGame(conn, feed.gamePk)).toEqual(firstRun.get(feed.gamePk));
     }
     const changed = withTimeStamp(feeds[0], "99999999_000000");
-    expect(await ingestFeed(conn, changed)).toMatchObject({
-      status: "stored",
-      ...firstRun.get(changed.gamePk),
-    });
+    expect((await storeFeed(conn, changed)).status).toBe("stored");
+    expect(await deriveGame(conn, changed.gamePk)).toEqual(firstRun.get(changed.gamePk));
   });
 
-  it("keeps the old raw feed when deriving fails, so a retry derives the new one", async () => {
+  it("keeps the previous derived rows when deriving fails", async () => {
     const [feed] = played;
-    const retry = withTimeStamp(feed, "99999999_000001");
-    const underivable = structuredClone(retry);
+    const underivable = withTimeStamp(structuredClone(feed), "99999999_000001");
     underivable.liveData.plays.allPlays[0].about.halfInning = "sideways";
 
-    await expect(ingestFeed(conn, underivable)).rejects.toThrow(/sideways/);
-    const [raw] = await rows(conn, "SELECT feed_ts FROM raw_game_feeds WHERE game_pk = $gamePk", {
+    await storeFeed(conn, underivable);
+    await expect(deriveGame(conn, feed.gamePk)).rejects.toThrow(/sideways/);
+    const [plays] = await rows(conn, "SELECT count(*) AS n FROM plays WHERE game_pk = $gamePk", {
       gamePk: feed.gamePk,
     });
-    expect(raw.feed_ts).not.toBe("99999999_000001");
-    expect(await ingestFeed(conn, retry)).toMatchObject({
-      status: "stored",
-      ...firstRun.get(feed.gamePk),
-    });
+    expect(Number(plays.n)).toBe(firstRun.get(feed.gamePk)!.plays);
+
+    await storeFeed(conn, withTimeStamp(feed, "99999999_000002"));
+    expect(await deriveGame(conn, feed.gamePk)).toEqual(firstRun.get(feed.gamePk));
   });
 
-  it("rebuilds everything when gamePk is null", async () => {
-    const before = await rows(
-      conn,
-      "SELECT game_pk, count(*) AS n FROM pitches GROUP BY ALL ORDER BY game_pk",
-    );
-    const total = [...firstRun.values()].reduce(
-      (sum, c) => ({
-        plays: sum.plays + c.plays,
-        pitches: sum.pitches + c.pitches,
-      }),
-      { plays: 0, pitches: 0 },
-    );
-    expect(await rebuildDerived(conn, null)).toEqual(total);
-    expect(
-      await rows(conn, "SELECT game_pk, count(*) AS n FROM pitches GROUP BY ALL ORDER BY game_pk"),
-    ).toEqual(before);
+  it("lists every stored feed", async () => {
+    expect(await rawFeedGamePks(conn)).toEqual(feeds.map((f) => f.gamePk).sort((a, b) => a - b));
   });
 });

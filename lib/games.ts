@@ -1,7 +1,6 @@
 import "server-only";
 import { connection } from "next/server";
 import { db } from "@/lib/db";
-import { todayOfficialDate } from "@/lib/format";
 import { postseasonLabel, score, toStatus, type Game, type Team } from "@/lib/scoreboard";
 
 type Row = {
@@ -19,7 +18,6 @@ type Row = {
   inning: number | null;
   inning_half: string | null;
   start_ms: number;
-  updated_ms: number;
   venue_name: string | null;
   home_record: string | null;
   away_record: string | null;
@@ -33,7 +31,7 @@ const GAME_COLUMNS = `
   g.game_pk, strftime(g.official_date, '%Y-%m-%d') AS official_date, g.game_type, g.game_number,
   g.abstract_state, g.coded_state, g.detailed_state, g.home_team_id, g.away_team_id,
   g.home_score, g.away_score, g.inning, g.inning_half, g.venue_name, g.home_record, g.away_record,
-  epoch_ms(g.start_utc)::DOUBLE AS start_ms, epoch_ms(g.updated_at)::DOUBLE AS updated_ms`;
+  epoch_ms(g.start_utc)::DOUBLE AS start_ms`;
 
 const GAMES_QUERY = `
   WITH t AS (
@@ -82,13 +80,12 @@ function toGame(r: Row): Game {
       team: team(r.home_team_id, r.home_name, r.home_abbr, r.home_record),
       score: score(status, r.home_score),
     },
-    updatedAt: r.updated_ms,
   };
 }
 
-export async function getGames(date?: string): Promise<Game[]> {
+export async function getGames(date: string): Promise<Game[]> {
   await connection();
   const conn = await db();
-  const reader = await conn.runAndReadAll(GAMES_QUERY, { date: date ?? todayOfficialDate() });
+  const reader = await conn.runAndReadAll(GAMES_QUERY, { date });
   return (reader.getRowObjectsJS() as unknown as Row[]).map(toGame);
 }

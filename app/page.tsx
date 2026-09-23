@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Scoreboard } from "@/components/scoreboard";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
-import { formatOfficialDate, isOfficialDate, shiftDate, todayOfficialDate } from "@/lib/format";
+import { formatOfficialDate, isOfficialDate, shiftDate, todayOfficialDate } from "@/lib/dates";
 import { getGames } from "@/lib/games";
 
 export default async function Home({ searchParams }: PageProps<"/">) {
@@ -40,10 +40,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           </nav>
         </div>
         <Scoreboard
-          key={date}
-          date={date}
           games={games}
-          live={date === today || date === shiftDate(today, -1)}
           dateLabel={formatOfficialDate(date)}
           emptyLabel={isToday ? "No games today." : "No games on this date."}
         />

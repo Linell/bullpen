@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatGameTime } from "@/lib/format";
+import { formatGameTime } from "@/lib/dates";
 import type { Game, GameSide } from "@/lib/scoreboard";
 import { cn } from "@/lib/utils";
 

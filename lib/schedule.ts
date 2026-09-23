@@ -1,5 +1,4 @@
 import type { DuckDBConnection, DuckDBValue } from "@duckdb/node-api";
-import { scoreUpdate } from "@/lib/inngest/realtime";
 import type { ScheduleGame, ScheduleResponse } from "@/lib/mlb";
 
 export type GameRow = {
@@ -44,12 +43,16 @@ const COLUMNS = [
   ["awayRecord", "away_record", "VARCHAR"],
 ] as const satisfies readonly (readonly [keyof GameRow, string, string])[];
 
-const SCOREBOARD_FIELDS = scoreUpdate.keyof().options satisfies readonly (keyof GameRow)[];
-
 const INSERT_CHUNK = 500;
 
-export function wasPlayed(codedState: string): boolean {
-  return codedState === "F" || codedState === "O";
+const COMPLETED_STATES = ["F", "O"];
+
+export function isCompleted(codedState: string): boolean {
+  return COMPLETED_STATES.includes(codedState);
+}
+
+export function findCompletedGamePks(rows: GameRow[]): number[] {
+  return rows.filter((row) => isCompleted(row.codedState)).map((row) => row.gamePk);
 }
 
 function record(side: ScheduleGame["teams"]["home"]): string | null {
@@ -94,17 +97,11 @@ export function parseSchedule(json: ScheduleResponse): GameRow[] {
   return [...best.values()].map((v) => v.row);
 }
 
-export function diffGames(prev: Map<number, GameRow>, next: GameRow[]) {
-  const scoreChanges: GameRow[] = [];
-  const newlyFinal: GameRow[] = [];
-  const dirty: GameRow[] = [];
-  for (const row of next) {
+export function changedGames(prev: Map<number, GameRow>, next: GameRow[]): GameRow[] {
+  return next.filter((row) => {
     const old = prev.get(row.gamePk);
-    if (!old || SCOREBOARD_FIELDS.some((k) => old[k] !== row[k])) scoreChanges.push(row);
-    if (!old || COLUMNS.some(([k]) => old[k] !== row[k])) dirty.push(row);
-    if (wasPlayed(row.codedState) && !(old && wasPlayed(old.codedState))) newlyFinal.push(row);
-  }
-  return { scoreChanges, newlyFinal, dirty };
+    return !old || COLUMNS.some(([k]) => old[k] !== row[k]);
+  });
 }
 
 async function readGames(conn: DuckDBConnection, pks: number[]): Promise<Map<number, GameRow>> {
@@ -144,16 +141,13 @@ async function writeGames(conn: DuckDBConnection, rows: GameRow[]) {
   }
 }
 
-export async function upsertGames(
-  conn: DuckDBConnection,
-  rows: GameRow[],
-): Promise<{ scoreChanges: GameRow[]; newlyFinal: GameRow[] }> {
-  if (rows.length === 0) return { scoreChanges: [], newlyFinal: [] };
+export async function upsertGames(conn: DuckDBConnection, rows: GameRow[]) {
+  if (rows.length === 0) return { changed: 0 };
   const prev = await readGames(
     conn,
     rows.map((r) => r.gamePk),
   );
-  const { scoreChanges, newlyFinal, dirty } = diffGames(prev, rows);
-  if (dirty.length > 0) await writeGames(conn, dirty);
-  return { scoreChanges, newlyFinal };
+  const changed = changedGames(prev, rows);
+  if (changed.length > 0) await writeGames(conn, changed);
+  return { changed: changed.length };
 }

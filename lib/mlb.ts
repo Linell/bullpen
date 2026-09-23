@@ -1,6 +1,6 @@
 import { RetryAfterError } from "inngest";
 
-const DEFAULT_GAME_TYPES = ["R", "F", "D", "L", "W"];
+const GAME_TYPES = ["R", "F", "D", "L", "W"];
 
 const BASE_URL = "https://statsapi.mlb.com";
 const HEADERS = {
@@ -62,17 +62,15 @@ async function get<T>(path: string, params: Record<string, string> = {}): Promis
 export function fetchSchedule({
   startDate,
   endDate,
-  gameTypes = DEFAULT_GAME_TYPES,
 }: {
   startDate: string;
   endDate: string;
-  gameTypes?: readonly string[];
 }): Promise<ScheduleResponse> {
   return get<ScheduleResponse>("/api/v1/schedule", {
     sportId: "1",
     startDate,
     endDate,
-    gameType: gameTypes.join(","),
+    gameType: GAME_TYPES.join(","),
     hydrate: "linescore,team",
     fields: SCHEDULE_FIELDS,
   });
