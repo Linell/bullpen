@@ -7,7 +7,7 @@ export function StatusBadge({ game }: { game: Game }) {
 
   if (status.state === "live") {
     const label = [status.note, status.inning].filter(Boolean).join(" · ");
-    return <Badge variant="neutral">{label || "In progress"}</Badge>;
+    return <Badge variant="solid">{label || "In progress"}</Badge>;
   }
 
   if (status.state === "final") {

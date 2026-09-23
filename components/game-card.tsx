@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Diamond } from "@/components/diamond";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,6 +34,7 @@ export function GameCard({ game }: { game: Game }) {
     <Card
       size="sm"
       className={cn(
+        status.state === "live" && "shadow-live",
         game.completed &&
           "h-full transition-all group-hover:translate-x-boxShadowX group-hover:translate-y-boxShadowY group-hover:shadow-none",
       )}
@@ -41,6 +43,9 @@ export function GameCard({ game }: { game: Game }) {
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <StatusBadge game={game} />
+            {status.state === "live" && status.situation && (
+              <Diamond situation={status.situation} />
+            )}
             {game.doubleHeader && <Badge variant="neutral">Game {game.gameNumber}</Badge>}
             {game.postseason && <Badge variant="neutral">{game.postseason}</Badge>}
           </div>
