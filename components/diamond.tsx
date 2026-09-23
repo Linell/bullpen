@@ -7,16 +7,29 @@ const BASES = [
   { x: 3, y: 9 },
 ];
 
+const SIZES = {
+  sm: { root: "gap-1.5", svg: "h-4.5 w-6", outs: "gap-0.5", out: "size-1.5 border" },
+  lg: { root: "gap-3", svg: "h-9 w-12", outs: "gap-1", out: "size-3 border-2" },
+};
+
 function summary({ outs, bases }: Situation) {
   const names = ["first", "second", "third"].filter((_, i) => bases[i]);
   const runners = names.length > 0 ? `Runners on ${names.join(", ")}` : "Bases empty";
   return `${runners}, ${outs} ${outs === 1 ? "out" : "outs"}`;
 }
 
-export function Diamond({ situation }: { situation: Situation }) {
+export function Diamond({
+  situation,
+  size = "sm",
+}: {
+  situation: Situation;
+  size?: keyof typeof SIZES;
+}) {
+  const classes = SIZES[size];
+
   return (
-    <span className="flex items-center gap-1.5" role="img" aria-label={summary(situation)}>
-      <svg viewBox="0 0 24 18" className="h-4.5 w-6" aria-hidden>
+    <span className={cn("flex items-center", classes.root)} role="img" aria-label={summary(situation)}>
+      <svg viewBox="0 0 24 18" className={classes.svg} aria-hidden>
         {BASES.map(({ x, y }, i) => (
           <rect
             key={i}
@@ -32,12 +45,13 @@ export function Diamond({ situation }: { situation: Situation }) {
           />
         ))}
       </svg>
-      <span className="flex gap-0.5" aria-hidden>
+      <span className={cn("flex", classes.outs)} aria-hidden>
         {[0, 1, 2].map((i) => (
           <span
             key={i}
             className={cn(
-              "size-1.5 rounded-full border border-foreground",
+              "rounded-full border-foreground",
+              classes.out,
               i < situation.outs && "bg-foreground",
             )}
           />

@@ -1,3 +1,4 @@
+import { Diamond } from "@/components/diamond";
 import { StatusBadge } from "@/components/status-badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatOfficialDate } from "@/lib/dates";
@@ -38,7 +39,12 @@ export function GameHeader({ game, decisions }: { game: Game; decisions?: Decisi
   return (
     <Card>
       <CardContent className="flex flex-col items-center gap-4">
-        <StatusBadge game={game} />
+        <div className="flex items-center gap-4">
+          <StatusBadge game={game} />
+          {game.status.state === "live" && game.status.situation && (
+            <Diamond situation={game.status.situation} size="lg" />
+          )}
+        </div>
         <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4">
           <TeamScore side={game.away} />
           <span className="text-xl font-heading opacity-70">@</span>
