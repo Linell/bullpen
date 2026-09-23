@@ -45,7 +45,7 @@ const COLUMNS = [
 
 const INSERT_CHUNK = 500;
 
-const COMPLETED_STATES = ["F", "O"];
+const COMPLETED_STATES = ["F", "O", "Q", "R"];
 
 export function isCompleted(codedState: string): boolean {
   return COMPLETED_STATES.includes(codedState);

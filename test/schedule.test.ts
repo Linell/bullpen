@@ -77,8 +77,10 @@ describe("parseSchedule", () => {
 });
 
 describe("isCompleted", () => {
-  it("is true only for final and game over states", () => {
-    expect(["F", "O", "D", "S", "I", "P"].map(isCompleted)).toEqual([
+  it("is true for final, game over and forfeit states", () => {
+    expect(["F", "O", "Q", "R", "D", "S", "I", "P"].map(isCompleted)).toEqual([
+      true,
+      true,
       true,
       true,
       false,
@@ -95,6 +97,12 @@ describe("findCompletedGamePks", () => {
     const postponed = rows.find((r) => r.gamePk === 824785)!;
     expect(postponed).toMatchObject({ abstractState: "Final", codedState: "D" });
     expect(findCompletedGamePks(rows)).toEqual([823543]);
+  });
+
+  it("includes a forfeit", () => {
+    const [row] = parseSchedule(fixture("2026-09-21"));
+    const forfeit = { ...row, codedState: "Q", detailedState: "Completed Early: Forfeit" };
+    expect(findCompletedGamePks([forfeit])).toEqual([row.gamePk]);
   });
 });
 

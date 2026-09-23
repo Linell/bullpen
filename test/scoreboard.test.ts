@@ -12,6 +12,9 @@ describe("toStatus", () => {
       note: "Delayed",
     });
     expect(toStatus({ ...base, abstractState: "Final", codedState: "F", inning: 10 })).toEqual({ state: "final", innings: 10 });
+    expect(
+      toStatus({ ...base, abstractState: "Final", codedState: "Q", detailedState: "Completed Early: Forfeit" }),
+    ).toEqual({ state: "final", innings: 6, note: "Forfeit" });
     expect(toStatus({ ...base, abstractState: "Final", codedState: "D" })).toEqual({ state: "postponed" });
     expect(toStatus({ ...base, codedState: "U" })).toEqual({ state: "suspended" });
     expect(toStatus({ ...base, abstractState: "Preview", codedState: "T" })).toEqual({ state: "scheduled" });
