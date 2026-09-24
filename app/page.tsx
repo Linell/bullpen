@@ -1,9 +1,21 @@
+import { Suspense } from "react";
 import { DateNav } from "@/components/date-nav";
 import { Scoreboard } from "@/components/scoreboard";
+import { Card, CardContent } from "@/components/ui/card";
 import { formatOfficialDate, isOfficialDate, todayOfficialDate } from "@/lib/dates";
 import { getGames } from "@/lib/games";
 
-export default async function Home({ searchParams }: PageProps<"/">) {
+export default function Home({ searchParams }: PageProps<"/">) {
+  return (
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 pt-6 pb-24">
+      <Suspense fallback={<GamesFallback />}>
+        <Games searchParams={searchParams} />
+      </Suspense>
+    </main>
+  );
+}
+
+async function Games({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
   const { date: param } = await searchParams;
   const today = todayOfficialDate();
   const date = isOfficialDate(param) ? param : today;
@@ -11,7 +23,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const games = await getGames(date);
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 pt-6 pb-24">
+    <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-4xl">{isToday ? "Today" : `${formatOfficialDate(date)}`}</h1>
         <DateNav date={date} today={today} />
@@ -20,6 +32,14 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         games={games}
         emptyLabel={isToday ? "No games today." : "No games on this date."}
       />
-    </main>
+    </>
+  );
+}
+
+function GamesFallback() {
+  return (
+    <Card>
+      <CardContent>Loading games…</CardContent>
+    </Card>
   );
 }

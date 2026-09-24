@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { GameHeader } from "@/components/game-header";
 import { Matchup } from "@/components/matchup";
@@ -11,7 +12,9 @@ import { gameTitle } from "@/lib/scoreboard";
 
 const GAME_PK_RE = /^\d{1,9}$/;
 
-async function loadGame({ params }: PageProps<"/games/[gamePk]">) {
+type GameParams = Pick<PageProps<"/games/[gamePk]">, "params">;
+
+async function loadGame({ params }: GameParams) {
   const { gamePk } = await params;
   if (!GAME_PK_RE.test(gamePk)) notFound();
 
@@ -25,9 +28,19 @@ export async function generateMetadata(props: PageProps<"/games/[gamePk]">): Pro
   return { title: gameTitle(game) };
 }
 
-export default async function GamePage(props: PageProps<"/games/[gamePk]">) {
+export default function GamePage({ params }: PageProps<"/games/[gamePk]">) {
+  return (
+    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 pt-6 pb-24">
+      <Suspense fallback={<GameFallback />}>
+        <GameContent params={params} />
+      </Suspense>
+    </main>
+  );
+}
+
+async function GameContent({ params }: GameParams) {
   const { game, decisions, linescore, halfInnings, awayForm, homeForm, headToHead, starters } =
-    await loadGame(props);
+    await loadGame({ params });
   const { away, home } = game;
   const isLive = game.status.state === "live";
   const isScheduled = game.status.state === "scheduled";
@@ -44,7 +57,7 @@ export default async function GamePage(props: PageProps<"/games/[gamePk]">) {
   );
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 pt-6 pb-24">
+    <>
       <h1 className="sr-only">{gameTitle(game)}</h1>
       <GameHeader game={game} decisions={decisions} />
       {isScheduled && (
@@ -67,6 +80,14 @@ export default async function GamePage(props: PageProps<"/games/[gamePk]">) {
         </Card>
       ) : null}
       {hasStarted && matchup}
-    </main>
+    </>
+  );
+}
+
+function GameFallback() {
+  return (
+    <Card>
+      <CardContent>Loading game…</CardContent>
+    </Card>
   );
 }
