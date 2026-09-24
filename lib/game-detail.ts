@@ -1,7 +1,7 @@
 import "server-only";
-import { connection } from "next/server";
-import { cache } from "react";
+import { cacheLife, cacheTag } from "next/cache";
 import { readRows } from "@/lib/db";
+import { GAMES_TAG, gameTag, teamTag } from "@/lib/cache-tags";
 import { GAMES_SELECT, toGame, type GameQueryRow } from "@/lib/games";
 import {
   seriesRecord,
@@ -170,8 +170,8 @@ function toDecisions(row: GameWithDecisionsRow): Decisions | undefined {
   return { winner: row.winner, loser: row.loser ?? undefined, save: row.save ?? undefined };
 }
 
-export const getGameDetail = cache(async (gamePk: number): Promise<GameDetail | undefined> => {
-  await connection();
+export async function getGameDetail(gamePk: number): Promise<GameDetail | undefined> {
+  "use cache: remote";
   const params = { gamePk };
   const [[row], linescore, plays, steps, form, meetings, starters] = await Promise.all([
     readRows<GameWithDecisionsRow>(GAME_QUERY, params),
@@ -182,9 +182,16 @@ export const getGameDetail = cache(async (gamePk: number): Promise<GameDetail | 
     readRows<GameQueryRow>(HEAD_TO_HEAD_QUERY, params),
     readRows<StarterRow>(STARTERS_QUERY, params),
   ]);
-  if (!row) return undefined;
+  if (!row) {
+    cacheLife("minutes");
+    return undefined;
+  }
 
   const game = toGame(row);
+  cacheTag(gameTag(gamePk), teamTag(row.home_team_id), teamTag(row.away_team_id), GAMES_TAG);
+  if (game.completed) cacheLife("max");
+  else cacheLife("minutes");
+
   const headToHead = meetings.map((r) => toResult(toGame(r), r.home_team_id === row.away_team_id));
   return {
     game,
@@ -196,4 +203,4 @@ export const getGameDetail = cache(async (gamePk: number): Promise<GameDetail | 
     headToHead: { record: seriesRecord(headToHead), results: headToHead },
     starters: { away: toStarter(starters, "away"), home: toStarter(starters, "home") },
   };
-});
+}
