@@ -7,7 +7,17 @@ import { formatShortDate } from "@/lib/dates";
 import type { Game, GameSide } from "@/lib/scoreboard";
 import { cn } from "@/lib/utils";
 
-function TeamRow({ side, dimmed }: { side: GameSide; dimmed: boolean }) {
+function TeamRow({
+  side,
+  dimmed,
+  showProbable,
+}: {
+  side: GameSide;
+  dimmed: boolean;
+  showProbable: boolean;
+}) {
+  const details = [side.team.record, showProbable && (side.probable ?? "TBD")].filter(Boolean);
+
   return (
     <div className={cn("flex items-center gap-3", dimmed && "opacity-60")}>
       <span className="flex h-9 w-12 items-center justify-center rounded-base border-2 border-border bg-background text-sm font-heading">
@@ -15,7 +25,9 @@ function TeamRow({ side, dimmed }: { side: GameSide; dimmed: boolean }) {
       </span>
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="truncate font-heading">{side.team.name}</span>
-        {side.team.record && <span className="text-xs opacity-70">{side.team.record}</span>}
+        {details.length > 0 && (
+          <span className="truncate text-xs opacity-70">{details.join(" · ")}</span>
+        )}
       </div>
       {side.score !== undefined && (
         <span className="text-2xl font-heading tabular-nums">{side.score}</span>
@@ -27,6 +39,7 @@ function TeamRow({ side, dimmed }: { side: GameSide; dimmed: boolean }) {
 export function GameCard({ game }: { game: Game }) {
   const { away, home, status } = game;
   const isFinal = status.state === "final";
+  const isScheduled = status.state === "scheduled";
 
   return (
     <Link href={`/games/${game.gamePk}`} className="group rounded-base">
@@ -50,8 +63,16 @@ export function GameCard({ game }: { game: Game }) {
             <span className="truncate text-xs opacity-70">{game.venue}</span>
           </div>
           <div className="flex flex-col gap-3">
-            <TeamRow side={away} dimmed={isFinal && (away.score ?? 0) < (home.score ?? 0)} />
-            <TeamRow side={home} dimmed={isFinal && (home.score ?? 0) < (away.score ?? 0)} />
+            <TeamRow
+              side={away}
+              dimmed={isFinal && (away.score ?? 0) < (home.score ?? 0)}
+              showProbable={isScheduled}
+            />
+            <TeamRow
+              side={home}
+              dimmed={isFinal && (home.score ?? 0) < (away.score ?? 0)}
+              showProbable={isScheduled}
+            />
           </div>
           {game.makeupOf && (
             <span className="text-xs opacity-70">Makeup of {formatShortDate(game.makeupOf)}</span>

@@ -21,6 +21,15 @@ export type Decisions = {
   save?: string;
 };
 
+export type Starter = {
+  name?: string;
+  hand?: string;
+  wins: number;
+  losses: number;
+  starts: number;
+  strikeouts: number;
+};
+
 export type GameDetail = {
   game: Game;
   decisions?: Decisions;
@@ -29,6 +38,7 @@ export type GameDetail = {
   awayForm: Form;
   homeForm: Form;
   headToHead: { record: SeriesRecord; results: TeamResult[] };
+  starters: { away: Starter; home: Starter };
 };
 
 type GameWithDecisionsRow = GameQueryRow & {
@@ -97,6 +107,55 @@ const HEAD_TO_HEAD_QUERY = `${GAMES_SELECT}
     AND greatest(g.home_team_id, g.away_team_id) = greatest(cur.home_team_id, cur.away_team_id)
   ORDER BY g.start_utc DESC`;
 
+const STARTERS_QUERY = `
+  WITH cur AS (SELECT * FROM games WHERE game_pk = $gamePk::INTEGER),
+  probables AS (
+    SELECT 'away' AS side, away_probable_id AS probable_id, away_probable_name AS probable_name FROM cur
+    UNION ALL
+    SELECT 'home', home_probable_id, home_probable_name FROM cur
+  ),
+  sides AS (
+    SELECT pr.*, coalesce(st.pitcher_id, pr.probable_id) AS pitcher_id
+    FROM probables pr
+    LEFT JOIN game_starters st ON st.game_pk = $gamePk::INTEGER AND st.side::VARCHAR = pr.side
+  ),
+  prior AS (
+    SELECT g.game_pk FROM games g, cur
+    WHERE g.season = cur.season AND g.start_utc < cur.start_utc
+  )
+  SELECT sides.side,
+    coalesce(p.boxscore_name, p.full_name, CASE WHEN sides.pitcher_id = sides.probable_id THEN sides.probable_name END) AS name,
+    p.pitch_hand::VARCHAR AS hand,
+    (SELECT count(*) FROM game_decisions d JOIN prior USING (game_pk) WHERE d.winner_id = sides.pitcher_id)::INTEGER AS wins,
+    (SELECT count(*) FROM game_decisions d JOIN prior USING (game_pk) WHERE d.loser_id = sides.pitcher_id)::INTEGER AS losses,
+    (SELECT count(*) FROM game_starters st JOIN prior USING (game_pk) WHERE st.pitcher_id = sides.pitcher_id)::INTEGER AS starts,
+    (SELECT count(*) FROM plays pl JOIN prior USING (game_pk)
+      WHERE pl.pitcher_id = sides.pitcher_id AND pl.event_type LIKE 'strikeout%')::INTEGER AS strikeouts
+  FROM sides
+  LEFT JOIN players p ON p.player_id = sides.pitcher_id`;
+
+type StarterRow = {
+  side: "home" | "away";
+  name: string | null;
+  hand: string | null;
+  wins: number;
+  losses: number;
+  starts: number;
+  strikeouts: number;
+};
+
+function toStarter(rows: StarterRow[], side: StarterRow["side"]): Starter {
+  const row = rows.find((r) => r.side === side);
+  return {
+    name: row?.name ?? undefined,
+    hand: row?.hand ?? undefined,
+    wins: row?.wins ?? 0,
+    losses: row?.losses ?? 0,
+    starts: row?.starts ?? 0,
+    strikeouts: row?.strikeouts ?? 0,
+  };
+}
+
 function toForm(rows: FormRow[], teamId: number): Form {
   const results = rows
     .filter((r) => r.team_id === teamId)
@@ -112,13 +171,14 @@ function toDecisions(row: GameWithDecisionsRow): Decisions | undefined {
 export const getGameDetail = cache(async (gamePk: number): Promise<GameDetail | undefined> => {
   await connection();
   const params = { gamePk };
-  const [[row], linescore, plays, steps, form, meetings] = await Promise.all([
+  const [[row], linescore, plays, steps, form, meetings, starters] = await Promise.all([
     readRows<GameWithDecisionsRow>(GAME_QUERY, params),
     readRows<LinescoreRow>(LINESCORE_QUERY, params),
     readRows<PlayRow>(PLAYS_QUERY, params),
     readRows<StepRow>(STEPS_QUERY, params),
     readRows<FormRow>(FORM_QUERY, params),
     readRows<GameQueryRow>(HEAD_TO_HEAD_QUERY, params),
+    readRows<StarterRow>(STARTERS_QUERY, params),
   ]);
   if (!row) return undefined;
 
@@ -132,5 +192,6 @@ export const getGameDetail = cache(async (gamePk: number): Promise<GameDetail | 
     awayForm: toForm(form, row.away_team_id),
     homeForm: toForm(form, row.home_team_id),
     headToHead: { record: seriesRecord(headToHead), results: headToHead },
+    starters: { away: toStarter(starters, "away"), home: toStarter(starters, "home") },
   };
 });

@@ -20,6 +20,7 @@ export type GameStatus =
 export type GameSide = {
   team: Team;
   score?: number;
+  probable?: string;
 };
 
 export type Game = {

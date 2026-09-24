@@ -4,6 +4,7 @@ import { GameHeader } from "@/components/game-header";
 import { Matchup } from "@/components/matchup";
 import { LinescoreTable } from "@/components/linescore-table";
 import { PlayByPlay } from "@/components/play-by-play";
+import { Starters } from "@/components/starters";
 import { Card, CardContent } from "@/components/ui/card";
 import { getGameDetail } from "@/lib/game-detail";
 import { gameTitle } from "@/lib/scoreboard";
@@ -25,10 +26,11 @@ export async function generateMetadata(props: PageProps<"/games/[gamePk]">): Pro
 }
 
 export default async function GamePage(props: PageProps<"/games/[gamePk]">) {
-  const { game, decisions, linescore, halfInnings, awayForm, homeForm, headToHead } =
+  const { game, decisions, linescore, halfInnings, awayForm, homeForm, headToHead, starters } =
     await loadGame(props);
   const { away, home } = game;
   const isLive = game.status.state === "live";
+  const isScheduled = game.status.state === "scheduled";
   const hasStarted = isLive || game.status.state === "final";
 
   const matchup = (
@@ -45,8 +47,14 @@ export default async function GamePage(props: PageProps<"/games/[gamePk]">) {
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 pt-6 pb-24">
       <h1 className="sr-only">{gameTitle(game)}</h1>
       <GameHeader game={game} decisions={decisions} />
+      {isScheduled && (
+        <Starters title="Probable starters" away={away.team} home={home.team} starters={starters} />
+      )}
       {!hasStarted && matchup}
       {linescore && <LinescoreTable linescore={linescore} away={away.team} home={home.team} />}
+      {hasStarted && (
+        <Starters title="Starters" away={away.team} home={home.team} starters={starters} />
+      )}
       {halfInnings.length > 0 ? (
         <PlayByPlay halfInnings={halfInnings} away={away.team} home={home.team} />
       ) : hasStarted ? (
