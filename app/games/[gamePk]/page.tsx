@@ -8,9 +8,8 @@ import { PlayByPlay } from "@/components/play-by-play";
 import { Starters } from "@/components/starters";
 import { Card, CardContent } from "@/components/ui/card";
 import { getGameDetail } from "@/lib/game-detail";
+import { GAME_PK_RE } from "@/lib/game-pk";
 import { gameTitle } from "@/lib/scoreboard";
-
-const GAME_PK_RE = /^\d{1,9}$/;
 
 type GameParams = Pick<PageProps<"/games/[gamePk]">, "params">;
 
