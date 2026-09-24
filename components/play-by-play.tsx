@@ -1,4 +1,5 @@
-import { ChevronDown } from "lucide-react";
+import { ArrowLeftRight, ChevronDown } from "lucide-react";
+import { Fragment } from "react";
 import { StrikeZone, RESULT_FILL } from "@/components/strike-zone";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,6 +7,7 @@ import {
   halfInningLabel,
   type HalfInning,
   type Pitch,
+  type PitchingChange,
   type PlateAppearance,
   type Step,
 } from "@/lib/play-by-play";
@@ -56,6 +58,17 @@ function Summary({ pa, away, home }: { pa: PlateAppearance; away: Team; home: Te
         </Badge>
       )}
     </div>
+  );
+}
+
+function PitchingChangeItem({ change }: { change: PitchingChange }) {
+  return (
+    <li className="flex items-center gap-2 border-t-2 border-border py-1.5 text-xs opacity-70 first:border-t-0">
+      <ArrowLeftRight className="size-3.5 shrink-0" aria-hidden />
+      <span>
+        {change.incoming} replaces {change.outgoing}
+      </span>
+    </li>
   );
 }
 
@@ -112,7 +125,10 @@ export function PlayByPlay({
             </h2>
             <ol>
               {h.plateAppearances.map((pa) => (
-                <PlateAppearanceItem key={pa.atBatIndex} pa={pa} away={away} home={home} />
+                <Fragment key={pa.atBatIndex}>
+                  {pa.pitchingChange && <PitchingChangeItem change={pa.pitchingChange} />}
+                  <PlateAppearanceItem pa={pa} away={away} home={home} />
+                </Fragment>
               ))}
             </ol>
           </CardContent>

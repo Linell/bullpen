@@ -37,13 +37,15 @@ function event(at_bat_index: number, step_index: number, kind: PlayEventKind, ev
   return { at_bat_index, step_index, kind, event_type, description: `${kind} ${event_type}` };
 }
 
-function play(at_bat_index: number, inning: number, half: "top" | "bottom"): PlayRow {
+function play(at_bat_index: number, inning: number, half: "top" | "bottom", pitcher_id = 1): PlayRow {
   return {
     at_bat_index,
     inning,
     half,
     batter_name: "Batter",
-    pitcher_name: "Pitcher",
+    pitcher_id,
+    pitcher_name: `Pitcher${pitcher_id}, P`,
+    pitcher_last_name: `Pitcher${pitcher_id}`,
     description: "Batter grounds out.",
     is_scoring_play: false,
     away_score_after: 0,
@@ -100,6 +102,20 @@ describe("toHalfInnings", () => {
     ]);
     expect(halves[0].plateAppearances[0].score).toBeUndefined();
     expect(halves[0].plateAppearances[1]).toMatchObject({ score: { away: 1, home: 0 }, steps: [{ kind: "pitch" }] });
+  });
+
+  it("marks pitching changes per half, including at the start of a half-inning", () => {
+    const halves = toHalfInnings(
+      [play(0, 1, "top", 1), play(1, 1, "bottom", 2), play(2, 1, "bottom", 3), play(3, 2, "top", 4), play(4, 2, "bottom", 3)],
+      [],
+    );
+    expect(halves.flatMap((h) => h.plateAppearances.map((pa) => pa.pitchingChange))).toEqual([
+      undefined,
+      undefined,
+      { incoming: "Pitcher3", outgoing: "Pitcher2" },
+      { incoming: "Pitcher4", outgoing: "Pitcher1" },
+      undefined,
+    ]);
   });
 });
 

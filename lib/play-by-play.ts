@@ -5,7 +5,9 @@ export type PlayRow = {
   inning: number;
   half: Half;
   batter_name: string;
+  pitcher_id: number;
   pitcher_name: string;
+  pitcher_last_name: string;
   description: string | null;
   is_scoring_play: boolean | null;
   away_score_after: number | null;
@@ -70,10 +72,16 @@ export type PlayEvent = {
 
 export type Step = Pitch | PlayEvent;
 
+export type PitchingChange = {
+  incoming: string;
+  outgoing: string;
+};
+
 export type PlateAppearance = {
   atBatIndex: number;
   batter: string;
   pitcher: string;
+  pitchingChange?: PitchingChange;
   description: string | null;
   score?: { away: number; home: number };
   steps: Step[];
@@ -86,7 +94,6 @@ export type HalfInning = {
 };
 
 const SHOWN_EVENT_TYPES = new Set([
-  "pitching_substitution",
   "offensive_substitution",
   "defensive_substitution",
   "defensive_switch",
@@ -168,12 +175,18 @@ function groupBy<T>(rows: T[], key: (row: T) => number) {
   return groups;
 }
 
-function toPlateAppearance(play: PlayRow, steps: StepRow[]): PlateAppearance {
+function toPitchingChange(play: PlayRow, previous: PlayRow | undefined): PitchingChange | undefined {
+  if (!previous || previous.pitcher_id === play.pitcher_id) return undefined;
+  return { incoming: play.pitcher_last_name, outgoing: previous.pitcher_last_name };
+}
+
+function toPlateAppearance(play: PlayRow, previous: PlayRow | undefined, steps: StepRow[]): PlateAppearance {
   const { away_score_after: away, home_score_after: home } = play;
   return {
     atBatIndex: play.at_bat_index,
     batter: play.batter_name,
     pitcher: play.pitcher_name,
+    pitchingChange: toPitchingChange(play, previous),
     description: play.description,
     score: play.is_scoring_play && away != null && home != null ? { away, home } : undefined,
     steps: toSteps(steps),
@@ -182,9 +195,12 @@ function toPlateAppearance(play: PlayRow, steps: StepRow[]): PlateAppearance {
 
 export function toHalfInnings(plays: PlayRow[], steps: StepRow[]): HalfInning[] {
   const stepsByAtBat = groupBy(steps, (s) => s.at_bat_index);
+  const previousPlayByHalf = new Map<Half, PlayRow>();
   const halves: HalfInning[] = [];
   for (const play of plays) {
-    const pa = toPlateAppearance(play, stepsByAtBat.get(play.at_bat_index) ?? []);
+    const previous = previousPlayByHalf.get(play.half);
+    const pa = toPlateAppearance(play, previous, stepsByAtBat.get(play.at_bat_index) ?? []);
+    previousPlayByHalf.set(play.half, play);
     const last = halves.at(-1);
     if (last?.inning === play.inning && last.half === play.half) last.plateAppearances.push(pa);
     else halves.push({ inning: play.inning, half: play.half, plateAppearances: [pa] });

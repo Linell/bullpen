@@ -65,7 +65,9 @@ const LINESCORE_QUERY = `
 const PLAYS_QUERY = `
   SELECT p.at_bat_index, p.inning, p.half::VARCHAR AS half,
     coalesce(b.boxscore_name, b.full_name, 'Player ' || p.batter_id::VARCHAR) AS batter_name,
+    p.pitcher_id,
     coalesce(m.boxscore_name, m.full_name, 'Player ' || p.pitcher_id::VARCHAR) AS pitcher_name,
+    coalesce(m.last_name, m.full_name, 'Player ' || p.pitcher_id::VARCHAR) AS pitcher_last_name,
     p.description, p.is_scoring_play, p.away_score_after, p.home_score_after
   FROM plays p
   LEFT JOIN players b ON b.player_id = p.batter_id
