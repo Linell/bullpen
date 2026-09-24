@@ -1,9 +1,13 @@
 import { InngestTestEngine } from "@inngest/test";
-import { describe, expect, it } from "vitest";
+import { revalidateTag } from "next/cache";
+import { describe, expect, it, vi } from "vitest";
 import { backfillSeason } from "@/inngest/functions/backfill-season";
 import { ingestGameFeed } from "@/inngest/functions/ingest-game-feed";
+import { invalidateGameCache } from "@/inngest/functions/invalidate-game-cache";
 import { rebuildGameTables } from "@/inngest/functions/rebuild-game-tables";
 import { syncSchedule } from "@/inngest/functions/sync-schedule";
+
+vi.mock("next/cache", () => ({ revalidateTag: vi.fn() }));
 
 function mockStep(id: string, output: unknown) {
   return { id, handler: () => output };
@@ -194,5 +198,25 @@ describe("rebuild-game-tables", () => {
     expect(ctx.step.sendEvent).toHaveBeenLastCalledWith("emit-game-feed-stored-2", [
       expect.objectContaining({ data: { gamePk: 5001 }, id: "game-feed-stored-5001-1700000000000" }),
     ]);
+  });
+});
+
+describe("invalidate-game-cache", () => {
+  it("dedupes gamePks across the batch and revalidates each game's tags", async () => {
+    vi.mocked(revalidateTag).mockClear();
+    const tags = ["game:101", "day:2026-09-24", "team:110", "team:141"];
+    const t = new InngestTestEngine({ function: invalidateGameCache });
+    const { result } = await t.execute({
+      events: [
+        { name: "mlb/game.updated", data: { gamePk: 101 } },
+        { name: "mlb/game.completed", data: { gamePk: 101 } },
+        { name: "mlb/game-tables.derived", data: { gamePk: 101 } },
+      ],
+      steps: [mockStep("load-game-tags", tags)],
+    });
+
+    expect(result).toEqual({ gamePks: 1, tags: 4 });
+    expect(revalidateTag).toHaveBeenCalledTimes(4);
+    for (const tag of tags) expect(revalidateTag).toHaveBeenCalledWith(tag, { expire: 0 });
   });
 });
