@@ -7,7 +7,7 @@ export const invalidateGameCache = inngest.createFunction(
   {
     id: "invalidate-game-cache",
     triggers: [gameUpdated, gameCompleted, gameProbablesChanged, gameTablesDerived],
-    batchEvents: { maxSize: 100, timeout: "5s" },
+    batchEvents: { maxSize: 5, timeout: "5s" },
   },
   async ({ events, step }) => {
     const gamePks = [...new Set(events.map((event) => event.data.gamePk))];
