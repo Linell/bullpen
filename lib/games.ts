@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { readRows } from "@/lib/db";
-import { dayTag, GAMES_TAG } from "@/lib/cache-tags";
+import { dayTag, gameTag, GAMES_TAG } from "@/lib/cache-tags";
 import { isCompleted } from "@/lib/schedule";
 import { postseasonLabel, score, toStatus, type Game, type Team } from "@/lib/scoreboard";
 
@@ -108,6 +108,19 @@ export function toGame(r: GameQueryRow): Game {
       probable: r.home_probable_name ?? undefined,
     },
   };
+}
+
+export async function gameExists(gamePk: number): Promise<boolean> {
+  "use cache: remote";
+  const rows = await readRows<{ found: number }>(
+    "SELECT 1 AS found FROM games WHERE game_pk = $gamePk LIMIT 1",
+    { gamePk },
+  );
+  const exists = rows.length > 0;
+  cacheTag(gameTag(gamePk));
+  if (exists) cacheLife("max");
+  else cacheLife("minutes");
+  return exists;
 }
 
 export async function getGames(date: string): Promise<Game[]> {
