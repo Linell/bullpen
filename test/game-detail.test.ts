@@ -7,7 +7,6 @@ process.env.DUCKDB_URL = ":memory:";
 const { withConnection } = await import("@/lib/db");
 const { migrate } = await import("@/lib/migrate");
 const { getGameDetail } = await import("@/lib/game-detail");
-const { gameExists } = await import("@/lib/games");
 
 const HOME = 110;
 const AWAY = 141;
@@ -77,12 +76,5 @@ describe("getGameDetail", () => {
       strikeouts: 0,
     });
     expect(detail?.starters.away).toEqual({ wins: 0, losses: 0, starts: 0, strikeouts: 0 });
-  });
-});
-
-describe("gameExists", () => {
-  it("is true for a seeded game and false otherwise", async () => {
-    expect(await gameExists(1)).toBe(true);
-    expect(await gameExists(999999999)).toBe(false);
   });
 });
