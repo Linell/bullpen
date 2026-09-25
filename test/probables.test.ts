@@ -1,6 +1,7 @@
 import type { DuckDBConnection } from "@duckdb/node-api";
 import { beforeEach, describe, expect, it } from "vitest";
 import { openDb } from "@/lib/db";
+import { migrate } from "@/lib/migrate";
 import { recordProbables } from "@/lib/probables";
 
 const GAME = 900001;
@@ -38,6 +39,7 @@ describe("recordProbables", () => {
   let conn: DuckDBConnection;
   beforeEach(async () => {
     conn = await openDb(":memory:");
+    await migrate(conn);
     await conn.run("DELETE FROM games");
     await conn.run("DELETE FROM probable_pitchers");
   });

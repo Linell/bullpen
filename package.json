@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
+    "db:migrate": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local scripts/migrate.ts",
     "inngest": "npx --ignore-scripts=false inngest-cli@latest dev -u http://localhost:3000/api/inngest"
   },
   "dependencies": {

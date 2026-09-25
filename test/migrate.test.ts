@@ -3,17 +3,18 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { openDb } from "@/lib/db";
+import { migrate } from "@/lib/migrate";
 
-describe("openDb", () => {
+describe("migrate", () => {
   it("applies each migration once", async () => {
     const url = path.join(await mkdtemp(path.join(os.tmpdir(), "bullpen-")), "test.duckdb");
-    const first = await openDb(url);
-    const applied = await first.runAndReadAll("SELECT file, applied_at FROM schema_migrations");
-    first.closeSync();
+    const conn = await openDb(url);
+    await migrate(conn);
+    const applied = await conn.runAndReadAll("SELECT file, applied_at FROM schema_migrations");
 
-    const second = await openDb(url);
-    const reapplied = await second.runAndReadAll("SELECT file, applied_at FROM schema_migrations");
-    second.closeSync();
+    await migrate(conn);
+    const reapplied = await conn.runAndReadAll("SELECT file, applied_at FROM schema_migrations");
+    conn.closeSync();
 
     expect(applied.getRowObjectsJS().map((row) => row.file)).toContain("007_team_views.sql");
     expect(reapplied.getRowObjectsJS()).toEqual(applied.getRowObjectsJS());

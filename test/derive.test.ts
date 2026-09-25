@@ -4,6 +4,7 @@ import { gunzipSync } from "node:zlib";
 import type { DuckDBConnection } from "@duckdb/node-api";
 import { beforeAll, describe, expect, it } from "vitest";
 import { openDb } from "@/lib/db";
+import { migrate } from "@/lib/migrate";
 import { deriveGame, rawFeedGamePks, storeFeed } from "@/lib/feeds";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -54,6 +55,7 @@ describe("derive.sql", () => {
 
   beforeAll(async () => {
     conn = await openDb(":memory:");
+    await migrate(conn);
     for (const feed of feeds) {
       const { status } = await storeFeed(conn, feed);
       if (status !== "stored") throw new Error(`${feed.gamePk} was not stored`);

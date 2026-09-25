@@ -7,6 +7,7 @@ vi.setSystemTime(new Date("2026-09-25T12:00:00Z"));
 process.env.DUCKDB_URL = ":memory:";
 
 const { withConnection } = await import("@/lib/db");
+const { migrate } = await import("@/lib/migrate");
 const { getTeamSeasons, getTeamSummary } = await import("@/lib/team-summary");
 
 const NYY = 147;
@@ -44,6 +45,7 @@ beforeAll(async () => {
     { gamePk: 6, date: "2025-09-20", home: NYY, away: BAL, score: [0, 1] },
   ];
   await withConnection(async (conn) => {
+    await migrate(conn);
     await conn.run(`INSERT INTO games (game_pk, season, official_date, game_type, game_number,
         abstract_state, coded_state, detailed_state, home_team_id, away_team_id, home_score,
         away_score, start_utc, updated_at)

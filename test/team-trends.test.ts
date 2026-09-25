@@ -5,6 +5,7 @@ vi.mock("next/cache", () => ({ cacheTag: () => {}, cacheLife: () => {} }));
 process.env.DUCKDB_URL = ":memory:";
 
 const { withConnection } = await import("@/lib/db");
+const { migrate } = await import("@/lib/migrate");
 const { getTeamTrends } = await import("@/lib/team-trends");
 
 const HOME = 110;
@@ -86,6 +87,7 @@ beforeAll(async () => {
     })),
   ];
   await withConnection(async (conn) => {
+    await migrate(conn);
     await conn.run(`INSERT INTO games (game_pk, season, official_date, game_type, game_number, abstract_state,
         coded_state, detailed_state, home_team_id, away_team_id, home_score, away_score, inning, start_utc, updated_at)
       VALUES ${games.map(gameRow).join(",")}`);

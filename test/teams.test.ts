@@ -3,6 +3,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 process.env.DUCKDB_URL = ":memory:";
 
 const { readRows, withConnection } = await import("@/lib/db");
+const { migrate } = await import("@/lib/migrate");
 const { gameCacheTags, teamStatsTag } = await import("@/lib/cache-tags");
 
 const HOME = 110;
@@ -12,6 +13,7 @@ const SCHEDULED = 2;
 
 beforeAll(async () => {
   await withConnection(async (conn) => {
+    await migrate(conn);
     await conn.run(`INSERT INTO games (game_pk, season, official_date, game_type, game_number,
         abstract_state, coded_state, detailed_state, home_team_id, away_team_id, start_utc, updated_at)
       VALUES (${FINAL}, 2026, '2026-09-20', 'R', 1, 'Final', 'F', 'Final', ${HOME}, ${AWAY}, '2026-09-20T23:05:00Z', now()),

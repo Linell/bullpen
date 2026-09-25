@@ -3,6 +3,7 @@ import path from "node:path";
 import type { DuckDBConnection } from "@duckdb/node-api";
 import { beforeEach, describe, expect, it } from "vitest";
 import { openDb } from "@/lib/db";
+import { migrate } from "@/lib/migrate";
 import type { ScheduleResponse } from "@/lib/mlb";
 import { changedGames, findCompletedGamePks, findLiveGamePks, isCompleted, parseSchedule, upsertGames } from "@/lib/schedule";
 
@@ -195,6 +196,7 @@ describe("upsertGames", () => {
   let conn: DuckDBConnection;
   beforeEach(async () => {
     conn = await openDb(":memory:");
+    await migrate(conn);
     await conn.run("DELETE FROM games");
   });
 

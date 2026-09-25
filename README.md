@@ -36,7 +36,7 @@ An [Inngest](https://www.inngest.com) example: an event-driven ETL pipeline that
 | `app/api/inngest/route.ts` | The endpoint Inngest calls to run functions |
 | `app/page.tsx`, `components/` | The scoreboard page, which reads `games` on each request |
 | `lib/` | MLB API client, DuckDB access, schedule and feed loading. Plain TypeScript, except that `lib/mlb.ts` throws Inngest's `RetryAfterError` when MLB rate limits us |
-| `sql/` | Schema migrations and `derive.sql` |
+| `sql/`, `scripts/migrate.ts` | Schema migrations, `derive.sql`, and the script that applies migrations |
 | `test/` | Vitest tests, including function tests with `@inngest/test` |
 | `docs/` | The design spec |
 
@@ -45,6 +45,7 @@ An [Inngest](https://www.inngest.com) example: an event-driven ETL pipeline that
 ```bash
 pnpm install
 cp .env.example .env.local
+pnpm db:migrate
 ```
 
 Then run these in two terminals:
@@ -55,6 +56,8 @@ pnpm inngest    # Inngest dev server on :8288
 ```
 
 `DUCKDB_URL` can be a local file path or a MotherDuck database like `md:bullpen_dev`. For MotherDuck, also set `MOTHERDUCK_TOKEN`.
+
+`pnpm db:migrate` applies any new `sql/NNN_*.sql` migrations to `DUCKDB_URL`. The app never migrates on its own, so run it after adding a migration and before deploying code that needs it, with `DUCKDB_URL` and `MOTHERDUCK_TOKEN` set to the production database.
 
 Open http://localhost:8288 to watch runs. `sync-schedule` re-sends `mlb/game.completed` for every completed game each minute, so the **Events** tab fills with duplicates that Inngest drops by id. That's expected. To load a season, send this event from the dev server's **Send event** button:
 
