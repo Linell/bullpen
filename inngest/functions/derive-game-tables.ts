@@ -7,7 +7,8 @@ export const deriveGameTables = inngest.createFunction(
   {
     id: "derive-game-tables",
     triggers: [gameFeedStored],
-    concurrency: 1,
+    concurrency: [{ limit: 3 }, { key: "event.data.reason", limit: 2 }],
+    priority: { run: "event.data.reason == 'backfill' ? 0 : 600" },
     debounce: { key: "event.data.gamePk", period: "30s", timeout: "2m" },
   },
   async ({ event, step }) => {

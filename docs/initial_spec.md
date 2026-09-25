@@ -130,7 +130,8 @@ All functions open a short-lived database connection per step with `withConnecti
   - Inngest retries handle MLB errors, and a 429 with `Retry-After` becomes a `RetryAfterError`.
   - Returns `{ gamePk, feedTs, status }`.
 - **`derive-game-tables`**
-  - Triggered by `mlb/game-feed.stored`, with concurrency 1 so derives never conflict on `players` and `teams`.
+  - Triggered by `mlb/game-feed.stored`. Concurrency is `[{ limit: 3 }, { key: "event.data.reason", limit: 2 }]`: at most three derives at once, and at most two per reason, so a backfill or rebuild always leaves a slot for live games. `priority: { run: "event.data.reason == 'backfill' ? 0 : 600" }` starts live derives ahead of queued backfill ones.
+  - The Hobby plan allows 5 concurrent steps across the account. `ingest-game-feed` (2) plus `derive-game-tables` (3) fill it, so during a backfill `sync-schedule` and `invalidate-game-cache` steps may wait a moment for a slot. They queue rather than fail.
   - Debounced per game for 30 seconds (at most 2 minutes), so a live game's frequent feed updates collapse into one derive of the latest feed instead of piling up in the queue.
   - Step `derive-game`: runs `derive.sql` for one game in a transaction. A failure leaves the previous rows in place, and Inngest retries it without refetching the feed.
   - Returns `{ gamePk, plays, pitches }`.
