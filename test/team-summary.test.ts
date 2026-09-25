@@ -31,8 +31,10 @@ function gameRow({ gamePk, date, home, away, score }: Seed) {
     ${score?.[0] ?? "NULL"}, ${score?.[1] ?? "NULL"}, '${date}T23:05:00Z', now())`;
 }
 
-function teamRow(id: number, name: string, abbr: string, league: string, divisionId: number, division: string) {
-  return `(${id}, 2026, '${name}', '${abbr}', '${league}', ${divisionId}, '${division}', 1, '2026-09-20', 1)`;
+type TeamSeed = [season: number, id: number, name: string, abbr: string, league: string, divisionId: number, division: string];
+
+function teamRow([season, id, name, abbr, league, divisionId, division]: TeamSeed) {
+  return `(${id}, ${season}, '${name}', '${abbr}', '${league}', ${divisionId}, '${division}', 1, '${season}-09-20', 1)`;
 }
 
 beforeAll(async () => {
@@ -43,6 +45,16 @@ beforeAll(async () => {
     { gamePk: 4, date: "2026-09-23", home: NYY, away: NYM, score: [3, 2] },
     { gamePk: 5, date: "2026-09-27", home: NYY, away: BAL },
     { gamePk: 6, date: "2025-09-20", home: NYY, away: BAL, score: [0, 1] },
+    { gamePk: 8, date: "2027-03-26", home: BAL, away: NYM },
+  ];
+  const teams: TeamSeed[] = [
+    [2026, NYY, "New York Yankees", "NYY", "American League", AL_EAST, "AL East"],
+    [2026, BAL, "Baltimore Orioles", "BAL", "American League", AL_EAST, "AL East"],
+    [2026, TOR, "Toronto Blue Jays", "TOR", "American League", AL_EAST, "AL East"],
+    [2026, NYM, "New York Mets", "NYM", "National League", NL_EAST, "NL East"],
+    [2025, NYY, "New York Highlanders", "NYH", "American League", AL_EAST, "AL East"],
+    [2025, BAL, "Baltimore Orioles", "BAL", "American League", AL_EAST, "AL East"],
+    [2025, NYM, "New York Mets", "NYM", "American League", AL_EAST, "AL East"],
   ];
   await withConnection(async (conn) => {
     await migrate(conn);
@@ -52,12 +64,7 @@ beforeAll(async () => {
       VALUES ${games.map(gameRow).join(",")}`);
     await conn.run(`INSERT INTO teams (team_id, season, name, abbreviation, league_name, division_id,
         division_name, source_game_pk, source_date, source_game_number)
-      VALUES ${[
-        teamRow(NYY, "New York Yankees", "NYY", "American League", AL_EAST, "AL East"),
-        teamRow(BAL, "Baltimore Orioles", "BAL", "American League", AL_EAST, "AL East"),
-        teamRow(TOR, "Toronto Blue Jays", "TOR", "American League", AL_EAST, "AL East"),
-        teamRow(NYM, "New York Mets", "NYM", "National League", NL_EAST, "NL East"),
-      ].join(",")}`);
+      VALUES ${teams.map(teamRow).join(",")}`);
   });
 });
 
@@ -113,6 +120,21 @@ describe("getTeamSummary", () => {
 
     expect(summary?.record).toMatchObject({ wins: 0, losses: 1, streak: "L1" });
     expect(summary?.upcomingGames).toEqual([]);
+  });
+
+  it("uses the team and division as they were that season", async () => {
+    const summary = await getTeamSummary(NYY, 2025);
+
+    expect(summary?.team.name).toBe("New York Highlanders");
+    expect(summary?.recentGames.map((g) => g.home.team.abbreviation)).toEqual(["NYH"]);
+    expect(summary?.standings.map((r) => r.team.abbreviation)).toEqual(["BAL", "NYM", "NYH"]);
+  });
+
+  it("falls back to the latest earlier season before a team has played", async () => {
+    const summary = await getTeamSummary(BAL, 2027);
+
+    expect(summary?.team.name).toBe("Baltimore Orioles");
+    expect(summary?.upcomingGames.map((g) => g.away.team.abbreviation)).toEqual(["NYM"]);
   });
 
   it("is undefined for an unknown team", async () => {

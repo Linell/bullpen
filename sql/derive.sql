@@ -313,11 +313,11 @@ WITH newest_team_rows AS (
   FROM feed, unnest(home_and_away) AS unnested(team)
   WHERE has_plays AND team.id IS NOT NULL
   QUALIFY row_number() OVER (
-    PARTITION BY team_id ORDER BY source_date DESC, source_game_number DESC, source_game_pk DESC
+    PARTITION BY team_id, season ORDER BY source_date DESC, source_game_number DESC, source_game_pk DESC
   ) = 1
 )
 SELECT newest.* FROM newest_team_rows newest
-LEFT JOIN teams stored USING (team_id)
+LEFT JOIN teams stored USING (team_id, season)
 WHERE stored.team_id IS NULL
   OR (newest.source_date, newest.source_game_number, newest.source_game_pk)
      >= (stored.source_date, stored.source_game_number, stored.source_game_pk);

@@ -48,16 +48,12 @@ const GAME_COLUMNS = `
   epoch_ms(g.start_utc)::DOUBLE AS start_ms`;
 
 export const GAMES_SELECT = `
-  WITH t AS (
-    SELECT team_id, team_name, abbreviation FROM teams
-    QUALIFY row_number() OVER (PARTITION BY team_id ORDER BY season DESC) = 1
-  )
   SELECT ${GAME_COLUMNS},
     h.team_name AS home_name, h.abbreviation AS home_abbr,
     a.team_name AS away_name, a.abbreviation AS away_abbr
   FROM games g
-  LEFT JOIN t h ON h.team_id = g.home_team_id
-  LEFT JOIN t a ON a.team_id = g.away_team_id`;
+  ASOF LEFT JOIN teams h ON h.team_id = g.home_team_id AND g.season >= h.season
+  ASOF LEFT JOIN teams a ON a.team_id = g.away_team_id AND g.season >= a.season`;
 
 const GAMES_QUERY = `${GAMES_SELECT}
   WHERE g.official_date = $date::DATE

@@ -66,9 +66,17 @@ const SEASONS_QUERY = `
   WHERE $teamId::INTEGER IN (home_team_id, away_team_id)
   ORDER BY season DESC`;
 
+const SEASON_TEAMS = `
+  season_teams AS (
+    SELECT * FROM teams
+    WHERE season <= $season::INTEGER
+    QUALIFY row_number() OVER (PARTITION BY team_id ORDER BY season DESC) = 1
+  )`;
+
 const TEAM_QUERY = `
+  WITH ${SEASON_TEAMS}
   SELECT team_id, name, abbreviation, league_name, division_name
-  FROM teams
+  FROM season_teams
   WHERE team_id = $teamId::INTEGER`;
 
 const COMPLETED_QUERY = `${GAMES_SELECT}
@@ -81,9 +89,10 @@ const UPCOMING_QUERY = `${GAMES_SELECT}
   LIMIT ${GAME_LIMIT}`;
 
 const STANDINGS_QUERY = `
-  WITH members AS (
-    SELECT team_id, name, abbreviation, league_name, division_name FROM teams
-    WHERE division_id = (SELECT division_id FROM teams WHERE team_id = $teamId::INTEGER)
+  WITH ${SEASON_TEAMS},
+  members AS (
+    SELECT team_id, name, abbreviation, league_name, division_name FROM season_teams
+    WHERE division_id = (SELECT division_id FROM season_teams WHERE team_id = $teamId::INTEGER)
   ),
   results AS (
     SELECT unnest([home_team_id, away_team_id]) AS team_id,
@@ -171,7 +180,7 @@ export async function getTeamSummary(teamId: number, season: number): Promise<Te
 
   const params = { teamId, season };
   const [[team], completed, upcoming, standings] = await Promise.all([
-    readRows<TeamRow>(TEAM_QUERY, { teamId }),
+    readRows<TeamRow>(TEAM_QUERY, params),
     readRows<GameQueryRow>(COMPLETED_QUERY, params),
     past ? Promise.resolve([]) : readRows<GameQueryRow>(UPCOMING_QUERY, params),
     readRows<StandingsQueryRow>(STANDINGS_QUERY, params),

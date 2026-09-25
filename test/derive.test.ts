@@ -245,7 +245,7 @@ describe("derive.sql", () => {
     expect(Number(fromPostponed.n)).toBe(0);
   });
 
-  it("keeps the newest row per team and player", async () => {
+  it("keeps the newest row per team each season and per player", async () => {
     const teams = await rows(conn, "SELECT * FROM teams ORDER BY team_id");
     const newest = new Map<number, string>();
     for (const f of played) {
@@ -330,5 +330,35 @@ describe("derive.sql", () => {
 
   it("lists every stored feed", async () => {
     expect(await rawFeedGamePks(conn)).toEqual(feeds.map((f) => f.gamePk).sort((a, b) => a - b));
+  });
+});
+
+describe("derive.sql across seasons", () => {
+  it("keeps a row per team for each season and one per player", async () => {
+    const conn = await openDb(":memory:");
+    await migrate(conn);
+    const [feed] = played;
+    const lastSeason = structuredClone(feed);
+    lastSeason.gamePk = 1;
+    lastSeason.gameData.game.season = String(feed.gameData.game.season - 1);
+    lastSeason.gameData.teams.home.name = "Last Season Name";
+    lastSeason.gameData.datetime.officialDate = "2025-09-20";
+    for (const f of [feed, lastSeason]) {
+      await storeFeed(conn, f);
+      await deriveGame(conn, f.gamePk);
+    }
+
+    const homeId = feed.gameData.teams.home.id;
+    const teams = await rows(conn, "SELECT season, name FROM teams WHERE team_id = $homeId ORDER BY season", {
+      homeId,
+    });
+    expect(teams).toEqual([
+      { season: 2025, name: "Last Season Name" },
+      { season: 2026, name: feed.gameData.teams.home.name },
+    ]);
+
+    const sources = await rows(conn, "SELECT DISTINCT source_game_pk FROM players");
+    expect(sources).toEqual([{ source_game_pk: feed.gamePk }]);
+    conn.closeSync();
   });
 });
