@@ -65,6 +65,12 @@ Open http://localhost:8288 to watch runs. `sync-schedule` re-sends `mlb/game.com
 { "name": "mlb/season.backfill.requested", "data": { "season": 2026 } }
 ```
 
+To load only a slice, add `startDate` and/or `endDate` (YYYY-MM-DD, same year); the range is clamped to the season's dates:
+
+```json
+{ "name": "mlb/season.backfill.requested", "data": { "season": 2026, "startDate": "2026-06-01", "endDate": "2026-06-07" } }
+```
+
 After changing `sql/derive.sql`, rebuild the derived tables from the stored feeds:
 
 ```json

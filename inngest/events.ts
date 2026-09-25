@@ -3,8 +3,21 @@ import { z } from "zod";
 
 const gamePk = z.number().int().positive();
 
+const inYear = (date: string | undefined, year: number) => !date || date.startsWith(`${year}-`);
+
 export const seasonBackfillRequested = eventType("mlb/season.backfill.requested", {
-  schema: z.object({ season: z.number().int().min(1876) }),
+  schema: z
+    .object({
+      season: z.number().int().min(1876),
+      startDate: z.iso.date().optional(),
+      endDate: z.iso.date().optional(),
+    })
+    .refine(({ startDate, endDate }) => !startDate || !endDate || startDate <= endDate, {
+      message: "startDate must be on or before endDate",
+    })
+    .refine(({ season, startDate, endDate }) => inYear(startDate, season) && inYear(endDate, season), {
+      message: "startDate and endDate must be in the season's year",
+    }),
 });
 
 export const gameCompleted = eventType("mlb/game.completed", {

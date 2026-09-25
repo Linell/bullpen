@@ -1,3 +1,5 @@
+import { NonRetriableError } from "inngest";
+import { clampDateRange } from "@/lib/dates";
 import { withConnection } from "@/lib/db";
 import { fetchSchedule, fetchSeasonDates } from "@/lib/mlb";
 import { recordProbables } from "@/lib/probables";
@@ -10,7 +12,11 @@ export const backfillSeason = inngest.createFunction(
   async ({ event, step }) => {
     const { season } = event.data;
 
-    const dates = await step.run("fetch-season-dates", () => fetchSeasonDates(season));
+    const seasonDates = await step.run("fetch-season-dates", () => fetchSeasonDates(season));
+    const dates = clampDateRange(event.data, seasonDates);
+    if (dates.startDate > dates.endDate) {
+      throw new NonRetriableError(`No ${season} season dates between ${event.data.startDate} and ${event.data.endDate}`);
+    }
 
     const rows = await step.run("fetch-schedule", async () => parseSchedule(await fetchSchedule(dates)));
 
@@ -45,6 +51,7 @@ export const backfillSeason = inngest.createFunction(
 
     return {
       season,
+      ...dates,
       games: rows.length,
       changed,
       completed: completedGamePks.length,

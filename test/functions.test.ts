@@ -6,6 +6,7 @@ import { ingestGameFeed } from "@/inngest/functions/ingest-game-feed";
 import { invalidateGameCache } from "@/inngest/functions/invalidate-game-cache";
 import { rebuildGameTables } from "@/inngest/functions/rebuild-game-tables";
 import { syncSchedule } from "@/inngest/functions/sync-schedule";
+import { seasonBackfillRequested } from "@/inngest/events";
 
 vi.mock("next/cache", () => ({ revalidateTag: vi.fn() }));
 
@@ -109,12 +110,18 @@ describe("sync-schedule", () => {
 });
 
 describe("backfill-season", () => {
+  const seasonDates = { startDate: "2026-03-26", endDate: "2026-10-31" };
+
+  function requested(data: object) {
+    return { name: "mlb/season.backfill.requested", data: { season: 2026, ...data }, ts: 1700000000000 };
+  }
+
   it("includes the request time in each event id", async () => {
     const t = new InngestTestEngine({ function: backfillSeason });
     const { ctx, result } = await t.execute({
       events: [{ name: "mlb/season.backfill.requested", data: { season: 2026 }, ts: 1700000000000 }],
       steps: [
-        mockStep("fetch-season-dates", { startDate: "2026-03-26", endDate: "2026-10-31" }),
+        mockStep("fetch-season-dates", seasonDates),
         mockStep("fetch-schedule", [
           { gamePk: 101, abstractState: "Final", codedState: "F" },
           { gamePk: 102, abstractState: "Preview", codedState: "S" },
@@ -126,13 +133,46 @@ describe("backfill-season", () => {
       ],
     });
 
-    expect(result).toEqual({ season: 2026, games: 2, changed: 2, completed: 1, probablesChanged: 1 });
+    expect(result).toEqual({ season: 2026, ...seasonDates, games: 2, changed: 2, completed: 1, probablesChanged: 1 });
     expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-completed", [
       expect.objectContaining({ data: { gamePk: 101 }, id: "game-completed-101-1700000000000" }),
     ]);
     expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-probables-changed", [
       expect.objectContaining({ data: { gamePk: 102 }, id: "game-probables-changed-102-1700000000000" }),
     ]);
+  });
+
+  it("clamps a requested slice to the season's dates", async () => {
+    const t = new InngestTestEngine({ function: backfillSeason });
+    const { result } = await t.execute({
+      events: [requested({ startDate: "2026-03-01", endDate: "2026-04-15" })],
+      steps: [
+        mockStep("fetch-season-dates", seasonDates),
+        mockStep("fetch-schedule", []),
+        mockStep("upsert-games", { changed: 0, changedGamePks: [] }),
+        mockStep("record-probables", []),
+      ],
+    });
+
+    expect(result).toMatchObject({ startDate: "2026-03-26", endDate: "2026-04-15", games: 0 });
+  });
+
+  it("fails without retrying when the slice is outside the season", async () => {
+    const t = new InngestTestEngine({ function: backfillSeason });
+    const { error } = await t.execute({
+      events: [requested({ startDate: "2026-11-01" })],
+      steps: [mockStep("fetch-season-dates", seasonDates)],
+    });
+
+    expect(error).toMatchObject({ name: "NonRetriableError" });
+  });
+
+  it("rejects a slice that ends before it starts or leaves the season's year", async () => {
+    const validate = (data: object) => seasonBackfillRequested.create({ season: 2026, ...data }).validate();
+
+    await expect(validate({ startDate: "2026-06-07", endDate: "2026-06-01" })).rejects.toThrow();
+    await expect(validate({ endDate: "2027-01-01" })).rejects.toThrow();
+    await expect(validate({ startDate: "2026-06-01", endDate: "2026-06-07" })).resolves.toBeUndefined();
   });
 });
 

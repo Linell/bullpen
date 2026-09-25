@@ -28,6 +28,16 @@ export function shiftDate(date: string, days: number) {
   return d.toISOString().slice(0, 10);
 }
 
+export function clampDateRange(
+  requested: { startDate?: string; endDate?: string },
+  bounds: { startDate: string; endDate: string },
+) {
+  return {
+    startDate: requested.startDate && requested.startDate > bounds.startDate ? requested.startDate : bounds.startDate,
+    endDate: requested.endDate && requested.endDate < bounds.endDate ? requested.endDate : bounds.endDate,
+  };
+}
+
 export function formatOfficialDate(date: string) {
   return new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", {
     timeZone: "UTC",
