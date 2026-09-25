@@ -15,7 +15,7 @@ describe("openDb", () => {
     const reapplied = await second.runAndReadAll("SELECT file, applied_at FROM schema_migrations");
     second.closeSync();
 
-    expect(applied.getRowObjectsJS().map((row) => row.file)).toContain("006_probables.sql");
+    expect(applied.getRowObjectsJS().map((row) => row.file)).toContain("007_team_views.sql");
     expect(reapplied.getRowObjectsJS()).toEqual(applied.getRowObjectsJS());
   });
 });
