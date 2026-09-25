@@ -3,6 +3,8 @@ import { z } from "zod";
 
 const gamePk = z.number().int().positive();
 
+const feedReason = z.enum(["live", "backfill"]);
+
 const inYear = (date: string | undefined, year: number) => !date || date.startsWith(`${year}-`);
 
 export const seasonBackfillRequested = eventType("mlb/season.backfill.requested", {
@@ -21,7 +23,7 @@ export const seasonBackfillRequested = eventType("mlb/season.backfill.requested"
 });
 
 export const gameCompleted = eventType("mlb/game.completed", {
-  schema: z.object({ gamePk }),
+  schema: z.object({ gamePk, reason: feedReason.optional() }),
 });
 
 export const gameUpdated = eventType("mlb/game.updated", {
@@ -29,7 +31,7 @@ export const gameUpdated = eventType("mlb/game.updated", {
 });
 
 export const gameFeedStored = eventType("mlb/game-feed.stored", {
-  schema: z.object({ gamePk }),
+  schema: z.object({ gamePk, reason: feedReason.optional() }),
 });
 
 export const gameTablesRebuildRequested = eventType("mlb/game-tables.rebuild.requested", {

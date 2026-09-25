@@ -79,9 +79,9 @@ All events are defined with `eventType` and a Zod schema, so they are validated 
 
 - `mlb/season.backfill.requested` `{ season: number }`: sent by a person.
 - `mlb/game-tables.rebuild.requested` `{}`: sent by a person.
-- `mlb/game.completed` `{ gamePk: number }`
+- `mlb/game.completed` `{ gamePk: number, reason?: "live" | "backfill" }`: `backfill-season` sets `reason: "backfill"`; `sync-schedule` leaves it out, which means live.
 - `mlb/game.updated` `{ gamePk: number }`: a live game changed.
-- `mlb/game-feed.stored` `{ gamePk: number }`
+- `mlb/game-feed.stored` `{ gamePk: number, reason?: "live" | "backfill" }`: `ingest-game-feed` passes on the completion's reason (`live` for `mlb/game.updated`), and `rebuild-game-tables` sets `backfill`.
 
 Events carry ids only. Feeds exceed the free tier's 256 KB event limit.
 
@@ -152,7 +152,7 @@ All live in `.env.local`, which is gitignored.
 
 - **`derive.sql`**: run it on saved feed fixtures, including a doubleheader, a postponed game, a suspended game and an extra-innings game. Row counts and final scores should match the box score. Re-deriving leaves the row counts unchanged, a failed derive keeps the previous rows, and an older feed never replaces a newer one. Deriving every game at once on separate connections gives the same rows as deriving them one at a time, and an older game derived last never replaces a newer bio or team.
 - **Schedule**: parsing, which rows count as changed, and which games count as completed, including a forfeit and a postponed game.
-- **Functions**: `@inngest/test` runs each function that sends events, with its steps mocked, and checks the events and their ids. `sync-schedule` emits `mlb/game.updated` only for changed live games and not at all when nothing changed, `ingest-game-feed` emits only for a stored feed and runs on `mlb/game.updated`, and `rebuild-game-tables` splits its events into batches of 5,000.
+- **Functions**: `@inngest/test` runs each function that sends events, with its steps mocked, and checks the events and their ids. `sync-schedule` emits `mlb/game.updated` only for changed live games and not at all when nothing changed, `ingest-game-feed` emits only for a stored feed, runs on `mlb/game.updated` and passes on the reason, and `rebuild-game-tables` splits its events into batches of 5,000.
 
 ## Alternatives
 

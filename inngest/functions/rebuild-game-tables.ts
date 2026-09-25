@@ -16,7 +16,7 @@ export const rebuildGameTables = inngest.createFunction(
       await step.sendEvent(
         `emit-game-feed-stored-${batchNumber}`,
         batch.map((gamePk) =>
-          gameFeedStored.create({ gamePk }, { id: `game-feed-stored-${gamePk}-${event.ts}` }),
+          gameFeedStored.create({ gamePk, reason: "backfill" }, { id: `game-feed-stored-${gamePk}-${event.ts}` }),
         ),
       );
     }

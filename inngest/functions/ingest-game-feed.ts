@@ -8,6 +8,7 @@ export const ingestGameFeed = inngest.createFunction(
   { id: "ingest-game-feed", triggers: [gameCompleted, gameUpdated], concurrency: 2 },
   async ({ event, step }) => {
     const { gamePk } = event.data;
+    const reason = event.name === gameCompleted.name ? (event.data.reason ?? "live") : "live";
 
     const { feedTs, status } = await step.run("load-game-feed", async () => {
       const feed = await fetchFeed(gamePk);
@@ -17,7 +18,7 @@ export const ingestGameFeed = inngest.createFunction(
     if (status === "stored") {
       await step.sendEvent(
         "emit-game-feed-stored",
-        gameFeedStored.create({ gamePk }, { id: `game-feed-stored-${gamePk}-${feedTs}` }),
+        gameFeedStored.create({ gamePk, reason }, { id: `game-feed-stored-${gamePk}-${feedTs}` }),
       );
     }
 

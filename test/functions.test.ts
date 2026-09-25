@@ -135,7 +135,7 @@ describe("backfill-season", () => {
 
     expect(result).toEqual({ season: 2026, ...seasonDates, games: 2, rescheduled: 0, changed: 2, completed: 1, probablesChanged: 1 });
     expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-completed", [
-      expect.objectContaining({ data: { gamePk: 101 }, id: "game-completed-101-1700000000000" }),
+      expect.objectContaining({ data: { gamePk: 101, reason: "backfill" }, id: "game-completed-101-1700000000000" }),
     ]);
     expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-probables-changed", [
       expect.objectContaining({ data: { gamePk: 102 }, id: "game-probables-changed-102-1700000000000" }),
@@ -161,8 +161,8 @@ describe("backfill-season", () => {
 
     expect(result).toMatchObject({ games: 2, rescheduled: 1, completed: 2 });
     expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-completed", [
-      expect.objectContaining({ data: { gamePk: 101 } }),
-      expect.objectContaining({ data: { gamePk: 102 } }),
+      expect.objectContaining({ data: { gamePk: 101, reason: "backfill" } }),
+      expect.objectContaining({ data: { gamePk: 102, reason: "backfill" } }),
     ]);
   });
 
@@ -213,7 +213,20 @@ describe("ingest-game-feed", () => {
     expect(result).toEqual(stored);
     expect(ctx.step.sendEvent).toHaveBeenCalledWith(
       "emit-game-feed-stored",
-      expect.objectContaining({ data: { gamePk: 101 }, id: "game-feed-stored-101-20260921_230000" }),
+      expect.objectContaining({ data: { gamePk: 101, reason: "live" }, id: "game-feed-stored-101-20260921_230000" }),
+    );
+  });
+
+  it("tags the feed as a backfill when the completion came from a backfill", async () => {
+    const t = new InngestTestEngine({ function: ingestGameFeed });
+    const { ctx } = await t.execute({
+      events: [{ name: "mlb/game.completed", data: { gamePk: 101, reason: "backfill" } }],
+      steps: [mockStep("load-game-feed", stored), mockSend("emit-game-feed-stored")],
+    });
+
+    expect(ctx.step.sendEvent).toHaveBeenCalledWith(
+      "emit-game-feed-stored",
+      expect.objectContaining({ data: { gamePk: 101, reason: "backfill" } }),
     );
   });
 
@@ -239,7 +252,7 @@ describe("ingest-game-feed", () => {
     expect(result).toEqual(stored);
     expect(ctx.step.sendEvent).toHaveBeenCalledWith(
       "emit-game-feed-stored",
-      expect.objectContaining({ data: { gamePk: 101 }, id: "game-feed-stored-101-20260921_230000" }),
+      expect.objectContaining({ data: { gamePk: 101, reason: "live" }, id: "game-feed-stored-101-20260921_230000" }),
     );
   });
 });
@@ -260,7 +273,7 @@ describe("rebuild-game-tables", () => {
     expect(result).toEqual({ feeds: 5001 });
     expect(ctx.step.sendEvent).toHaveBeenCalledTimes(2);
     expect(ctx.step.sendEvent).toHaveBeenLastCalledWith("emit-game-feed-stored-2", [
-      expect.objectContaining({ data: { gamePk: 5001 }, id: "game-feed-stored-5001-1700000000000" }),
+      expect.objectContaining({ data: { gamePk: 5001, reason: "backfill" }, id: "game-feed-stored-5001-1700000000000" }),
     ]);
   });
 });

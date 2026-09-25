@@ -44,7 +44,10 @@ export const backfillSeason = inngest.createFunction(
       await step.sendEvent(
         "emit-game-completed",
         completedGamePks.map((gamePk) =>
-          gameCompleted.create({ gamePk }, { id: `game-completed-${gamePk}-${event.ts}` }),
+          gameCompleted.create(
+            { gamePk, reason: "backfill" },
+            { id: `game-completed-${gamePk}-${event.ts}` },
+          ),
         ),
       );
     }
