@@ -45,6 +45,7 @@ beforeAll(async () => {
     { gamePk: 4, date: "2026-09-23", home: NYY, away: NYM, score: [3, 2] },
     { gamePk: 5, date: "2026-09-27", home: NYY, away: BAL },
     { gamePk: 6, date: "2025-09-20", home: NYY, away: BAL, score: [0, 1] },
+    { gamePk: 7, date: "2025-09-21", home: TOR, away: NYM },
     { gamePk: 8, date: "2027-03-26", home: BAL, away: NYM },
   ];
   const teams: TeamSeed[] = [
@@ -69,8 +70,16 @@ beforeAll(async () => {
 });
 
 describe("getTeamSeasons", () => {
-  it("lists seasons with games, newest first", async () => {
+  it("lists seasons with derived team rows, newest first", async () => {
     expect(await getTeamSeasons(NYY)).toEqual([2026, 2025]);
+  });
+
+  it("skips past seasons with games but no derived team row", async () => {
+    expect(await getTeamSeasons(TOR)).toEqual([2026]);
+  });
+
+  it("includes the latest season with games before its first derived game", async () => {
+    expect(await getTeamSeasons(BAL)).toEqual([2027, 2026, 2025]);
   });
 
   it("is empty for an unknown team", async () => {

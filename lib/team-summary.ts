@@ -62,8 +62,13 @@ const COMPLETED_FILTER = `g.coded_state IN ('F', 'O', 'Q', 'R')`;
 const TEAM_GAME_FILTER = `g.season = $season::INTEGER AND $teamId::INTEGER IN (g.home_team_id, g.away_team_id)`;
 
 const SEASONS_QUERY = `
-  SELECT DISTINCT season FROM games
-  WHERE $teamId::INTEGER IN (home_team_id, away_team_id)
+  SELECT season FROM teams
+  WHERE team_id = $teamId::INTEGER
+  UNION
+  (SELECT season FROM games
+   WHERE $teamId::INTEGER IN (home_team_id, away_team_id)
+   ORDER BY season DESC
+   LIMIT 1)
   ORDER BY season DESC`;
 
 const SEASON_TEAMS = `
