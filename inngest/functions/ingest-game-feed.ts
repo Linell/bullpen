@@ -4,11 +4,17 @@ import { fetchFeed } from "@/lib/mlb";
 import { inngest } from "../client";
 import { gameCompleted, gameFeedStored, gameUpdated } from "../events";
 
+const lane = "event.name == 'mlb/game.updated' || event.data.reason == 'live' ? 'live' : 'backfill'";
+
 export const ingestGameFeed = inngest.createFunction(
-  { id: "ingest-game-feed", triggers: [gameCompleted, gameUpdated], concurrency: 2 },
+  {
+    id: "ingest-game-feed",
+    triggers: [gameCompleted, gameUpdated],
+    concurrency: [{ limit: 2 }, { key: lane, limit: 1 }],
+  },
   async ({ event, step }) => {
     const { gamePk } = event.data;
-    const reason = event.name === gameCompleted.name ? (event.data.reason ?? "live") : "live";
+    const reason = event.name === gameCompleted.name ? (event.data.reason ?? "backfill") : "live";
 
     const { feedTs, status } = await step.run("load-game-feed", async () => {
       const feed = await fetchFeed(gamePk);

@@ -36,7 +36,7 @@ export const syncSchedule = inngest.createFunction(
     if (completedGamePks.length > 0) {
       await step.sendEvent(
         "emit-game-completed",
-        completedGamePks.map((gamePk) => gameCompleted.create({ gamePk }, { id: `game-completed-${gamePk}` })),
+        completedGamePks.map((gamePk) => gameCompleted.create({ gamePk, reason: "live" }, { id: `game-completed-${gamePk}` })),
       );
     }
 

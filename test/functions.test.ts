@@ -53,8 +53,8 @@ describe("sync-schedule", () => {
     expect(result).toEqual({ ...window, games: 3, changed: 1, completed: 2, updated: 0, probablesChanged: 0 });
     expect(ctx.step.sendEvent).toHaveBeenCalledTimes(1);
     expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-completed", [
-      expect.objectContaining({ data: { gamePk: 101 }, id: "game-completed-101" }),
-      expect.objectContaining({ data: { gamePk: 102 }, id: "game-completed-102" }),
+      expect.objectContaining({ data: { gamePk: 101, reason: "live" }, id: "game-completed-101" }),
+      expect.objectContaining({ data: { gamePk: 102, reason: "live" }, id: "game-completed-102" }),
     ]);
   });
 
@@ -206,7 +206,7 @@ describe("ingest-game-feed", () => {
   it("emits game-feed.stored when the feed is stored", async () => {
     const t = new InngestTestEngine({ function: ingestGameFeed });
     const { ctx, result } = await t.execute({
-      events: [{ name: "mlb/game.completed", data: { gamePk: 101 } }],
+      events: [{ name: "mlb/game.completed", data: { gamePk: 101, reason: "live" } }],
       steps: [mockStep("load-game-feed", stored), mockSend("emit-game-feed-stored")],
     });
 
@@ -221,6 +221,19 @@ describe("ingest-game-feed", () => {
     const t = new InngestTestEngine({ function: ingestGameFeed });
     const { ctx } = await t.execute({
       events: [{ name: "mlb/game.completed", data: { gamePk: 101, reason: "backfill" } }],
+      steps: [mockStep("load-game-feed", stored), mockSend("emit-game-feed-stored")],
+    });
+
+    expect(ctx.step.sendEvent).toHaveBeenCalledWith(
+      "emit-game-feed-stored",
+      expect.objectContaining({ data: { gamePk: 101, reason: "backfill" } }),
+    );
+  });
+
+  it("tags the feed as a backfill when the completion has no reason", async () => {
+    const t = new InngestTestEngine({ function: ingestGameFeed });
+    const { ctx } = await t.execute({
+      events: [{ name: "mlb/game.completed", data: { gamePk: 101 } }],
       steps: [mockStep("load-game-feed", stored), mockSend("emit-game-feed-stored")],
     });
 
