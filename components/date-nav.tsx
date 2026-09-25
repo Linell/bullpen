@@ -2,21 +2,22 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { shiftDate } from "@/lib/dates";
 
-export function DateNav({ date, today }: { date: string; today: string }) {
-  const link = (target: string, label: string) => (
-    <Link
-      href={target === today ? "/" : `/?date=${target}`}
-      className={buttonVariants({ variant: "neutral", size: "xs" })}
-    >
-      {label}
-    </Link>
-  );
+const linkClass = buttonVariants({ variant: "neutral", size: "xs" });
 
+export function DateNav({ date, isToday }: { date: string; isToday: boolean }) {
   return (
     <nav className="flex gap-2">
-      {link(shiftDate(date, -1), "← Prev")}
-      {date !== today && link(today, "Today")}
-      {link(shiftDate(date, 1), "Next →")}
+      <Link href={`/scores/${shiftDate(date, -1)}`} prefetch className={linkClass}>
+        ← Prev
+      </Link>
+      {!isToday && (
+        <Link href="/" className={linkClass}>
+          Today
+        </Link>
+      )}
+      <Link href={`/scores/${shiftDate(date, 1)}`} prefetch className={linkClass}>
+        Next →
+      </Link>
     </nav>
   );
 }
