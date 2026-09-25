@@ -5,7 +5,16 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { openDb } from "@/lib/db";
 import { migrate } from "@/lib/migrate";
 import type { ScheduleResponse } from "@/lib/mlb";
-import { changedGames, findCompletedGamePks, findLiveGamePks, isCompleted, parseSchedule, upsertGames } from "@/lib/schedule";
+import {
+  changedGames,
+  findCompletedGamePks,
+  findLiveGamePks,
+  findRescheduledGamePks,
+  isCompleted,
+  parseSchedule,
+  replaceGames,
+  upsertGames,
+} from "@/lib/schedule";
 
 function fixture(name: string): ScheduleResponse {
   const file = path.join(import.meta.dirname, "fixtures/schedule", `${name}.json`);
@@ -117,6 +126,23 @@ describe("parseSchedule", () => {
     };
     expect(probables(824784)).toEqual([669203, "Grayson Rodriguez", 666201, "Alek Manoah"]);
     expect(probables(823492)).toEqual([663623, "Tanner Bibee", null, null]);
+  });
+});
+
+describe("findRescheduledGamePks", () => {
+  it("picks postponed and suspended games", () => {
+    const base = parseSchedule(fixture("2026-09-21"))[0];
+    const rows = ["D", "T", "U", "F", "S"].map((codedState, i) => ({ ...base, gamePk: i, codedState }));
+    expect(findRescheduledGamePks(rows)).toEqual([0, 1, 2]);
+  });
+});
+
+describe("replaceGames", () => {
+  it("swaps in replacement rows by gamePk and keeps the rest", () => {
+    const [a, b] = parseSchedule(fixture("2026-09-21"));
+    const postponed = { ...a, codedState: "D" };
+    const final = { ...a, codedState: "F" };
+    expect(replaceGames([postponed, b], [final])).toEqual([final, b]);
   });
 });
 

@@ -75,6 +75,17 @@ export function findCompletedGamePks(rows: GameRow[]): number[] {
   return rows.filter((row) => isCompleted(row.codedState)).map((row) => row.gamePk);
 }
 
+const RESCHEDULED_STATES = ["D", "T", "U"];
+
+export function findRescheduledGamePks(rows: GameRow[]): number[] {
+  return rows.filter((row) => RESCHEDULED_STATES.includes(row.codedState)).map((row) => row.gamePk);
+}
+
+export function replaceGames(rows: GameRow[], replacements: GameRow[]): GameRow[] {
+  const byGamePk = new Map(replacements.map((row) => [row.gamePk, row]));
+  return rows.map((row) => byGamePk.get(row.gamePk) ?? row);
+}
+
 export function findLiveGamePks(rows: GameRow[]): number[] {
   return rows
     .filter((row) => row.abstractState === "Live" && !isCompleted(row.codedState))

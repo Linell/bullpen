@@ -133,12 +133,36 @@ describe("backfill-season", () => {
       ],
     });
 
-    expect(result).toEqual({ season: 2026, ...seasonDates, games: 2, changed: 2, completed: 1, probablesChanged: 1 });
+    expect(result).toEqual({ season: 2026, ...seasonDates, games: 2, rescheduled: 0, changed: 2, completed: 1, probablesChanged: 1 });
     expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-completed", [
       expect.objectContaining({ data: { gamePk: 101 }, id: "game-completed-101-1700000000000" }),
     ]);
     expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-probables-changed", [
       expect.objectContaining({ data: { gamePk: 102 }, id: "game-probables-changed-102-1700000000000" }),
+    ]);
+  });
+
+  it("re-fetches postponed games so completed makeups are ingested", async () => {
+    const t = new InngestTestEngine({ function: backfillSeason });
+    const { ctx, result } = await t.execute({
+      events: [requested({ startDate: "2026-07-23", endDate: "2026-08-05" })],
+      steps: [
+        mockStep("fetch-season-dates", seasonDates),
+        mockStep("fetch-schedule", [
+          { gamePk: 101, abstractState: "Final", codedState: "D" },
+          { gamePk: 102, abstractState: "Final", codedState: "F" },
+        ]),
+        mockStep("fetch-rescheduled-games", [{ gamePk: 101, abstractState: "Final", codedState: "F" }]),
+        mockStep("upsert-games", { changed: 2, changedGamePks: [101, 102] }),
+        mockStep("record-probables", []),
+        mockSend("emit-game-completed"),
+      ],
+    });
+
+    expect(result).toMatchObject({ games: 2, rescheduled: 1, completed: 2 });
+    expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-completed", [
+      expect.objectContaining({ data: { gamePk: 101 } }),
+      expect.objectContaining({ data: { gamePk: 102 } }),
     ]);
   });
 

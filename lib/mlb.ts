@@ -81,6 +81,15 @@ export function fetchSchedule({
   });
 }
 
+export function fetchScheduleGames(gamePks: number[]): Promise<ScheduleResponse> {
+  return get<ScheduleResponse>("/api/v1/schedule", {
+    sportId: "1",
+    gamePks: gamePks.join(","),
+    hydrate: "linescore,team,probablePitcher",
+    fields: SCHEDULE_FIELDS,
+  });
+}
+
 type SeasonResponse = {
   seasons: {
     regularSeasonStartDate: string;
