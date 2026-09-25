@@ -1,3 +1,4 @@
+import { Abbr } from "@/components/ui/abbr";
 import { Card, CardContent } from "@/components/ui/card";
 import { RunDiffChart } from "@/components/team/run-diff-chart";
 import { formatPercent } from "@/lib/format";
@@ -53,7 +54,7 @@ function InningRunsTable({ innings }: { innings: InningRuns[] }) {
                 </th>
                 {innings.map(({ inning }) => (
                   <th key={inning} scope="col" className={cell}>
-                    {inning === "extras" ? "X" : inning}
+                    {inning === "extras" ? <Abbr term="X" /> : inning}
                   </th>
                 ))}
               </tr>
@@ -93,7 +94,9 @@ function AbsChallengesCard({ abs }: { abs: AbsChallenges }) {
   return (
     <Card size="sm">
       <CardContent className="flex flex-col gap-3">
-        <h2 className="text-lg">ABS challenges</h2>
+        <h2 className="text-lg">
+          <Abbr term="ABS" /> challenges
+        </h2>
         <table className="w-full text-sm">
           <thead>
             <tr className="text-xs opacity-70">

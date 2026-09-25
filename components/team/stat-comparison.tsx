@@ -1,8 +1,10 @@
+import { Abbr } from "@/components/ui/abbr";
 import { Card, CardContent } from "@/components/ui/card";
+import type { GlossaryTerm } from "@/lib/glossary";
 import { cn } from "@/lib/utils";
 
 export type ComparedStat<Stats> = {
-  label: string;
+  label: GlossaryTerm;
   value: (stats: Stats) => number | null;
   format: (value: number | null) => string;
   better: "higher" | "lower";
@@ -30,7 +32,9 @@ function StatTile<Stats>({ stat, team, league }: { stat: ComparedStat<Stats>; te
 
   return (
     <div className="flex flex-col gap-0.5 rounded-base border-2 border-border bg-background px-2.5 py-2">
-      <span className="text-xs opacity-70">{stat.label}</span>
+      <span className="text-xs opacity-70">
+        <Abbr term={stat.label} />
+      </span>
       <span className="flex items-baseline gap-1 font-heading text-lg tabular-nums">
         {teamText}
         {mark.symbol && (
@@ -39,7 +43,7 @@ function StatTile<Stats>({ stat, team, league }: { stat: ComparedStat<Stats>; te
           </span>
         )}
       </span>
-      <span className="text-xs tabular-nums opacity-70">Lg {leagueText}</span>
+      <span className="text-xs tabular-nums opacity-70"><Abbr term="Lg" /> {leagueText}</span>
     </div>
   );
 }

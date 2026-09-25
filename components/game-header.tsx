@@ -2,10 +2,12 @@ import { Countdown } from "@/components/countdown";
 import { Diamond } from "@/components/diamond";
 import { StatusBadge } from "@/components/status-badge";
 import { TeamLink } from "@/components/team/team-link";
+import { Abbr } from "@/components/ui/abbr";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatOfficialDate, formatShortDate } from "@/lib/dates";
 import type { Decisions } from "@/lib/game-detail";
+import type { GlossaryTerm } from "@/lib/glossary";
 import type { Game, GameSide } from "@/lib/scoreboard";
 
 function TeamScore({ side }: { side: GameSide }) {
@@ -23,7 +25,7 @@ function TeamScore({ side }: { side: GameSide }) {
 }
 
 function DecisionsLine({ decisions }: { decisions: Decisions }) {
-  const entries: [string, string | undefined][] = [
+  const entries: [GlossaryTerm, string | undefined][] = [
     ["W", decisions.winner],
     ["L", decisions.loser],
     ["S", decisions.save],
@@ -35,7 +37,10 @@ function DecisionsLine({ decisions }: { decisions: Decisions }) {
         ([label, name]) =>
           name && (
             <span key={label}>
-              <span className="font-heading">{label}:</span> {name}
+              <span className="font-heading">
+                <Abbr term={label} />:
+              </span>{" "}
+              {name}
             </span>
           ),
       )}

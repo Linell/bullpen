@@ -1,3 +1,4 @@
+import { Abbr } from "@/components/ui/abbr";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Starter } from "@/lib/game-detail";
 import type { Team } from "@/lib/scoreboard";
@@ -10,10 +11,16 @@ function StarterRow({ team, starter }: { team: Team; starter: Starter }) {
         <div className="flex min-w-0 flex-col">
           <span className="truncate">
             {starter.name}
-            {starter.hand && <span className="opacity-70"> · {starter.hand}HP</span>}
+            {starter.hand && (
+              <span className="opacity-70">
+                {" "}
+                · <Abbr term={starter.hand === "L" ? "LHP" : "RHP"} />
+              </span>
+            )}
           </span>
           <span className="text-sm tabular-nums opacity-70">
-            {starter.wins}–{starter.losses} · {starter.starts} GS · {starter.strikeouts} K
+            {starter.wins}–{starter.losses} · {starter.starts} <Abbr term="GS" /> · {starter.strikeouts}{" "}
+            <Abbr term="K" />
           </span>
         </div>
       ) : (

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Abbr } from "@/components/ui/abbr";
 import { StatComparison, type ComparedStat } from "@/components/team/stat-comparison";
 import { StatTable, type StatColumn } from "@/components/team/stat-table";
 import { formatAverage, formatCount, formatDecimal, formatInnings, formatPercent } from "@/lib/format";
@@ -39,7 +40,7 @@ const pitchingComparison: ComparedStat<PitchingStats>[] = [
   { label: "FB velo", value: (s) => s.fastballVelocity, format: formatDecimal, better: "higher" },
 ];
 
-type Split = { label: string; stats: BattingStats };
+type Split = { key: string; label: ReactNode; stats: BattingStats };
 
 const splitColumns: StatColumn<Split>[] = [
   { label: "PA", value: (r) => formatCount(r.stats.plateAppearances) },
@@ -99,12 +100,12 @@ export function TeamStatsSection({ stats }: { stats: TeamStats }) {
   const { batting, battingSplits, pitching, pitchMix, leaders } = stats;
 
   const splits: Split[] = [
-    { label: "vs LHP", stats: battingSplits.vsLeft },
-    { label: "vs RHP", stats: battingSplits.vsRight },
-    { label: "Home", stats: battingSplits.home },
-    { label: "Away", stats: battingSplits.away },
-    { label: "RISP", stats: battingSplits.risp },
-    { label: "Bases empty", stats: battingSplits.basesEmpty },
+    { key: "vsLeft", label: <>vs <Abbr term="LHP" /></>, stats: battingSplits.vsLeft },
+    { key: "vsRight", label: <>vs <Abbr term="RHP" /></>, stats: battingSplits.vsRight },
+    { key: "home", label: "Home", stats: battingSplits.home },
+    { key: "away", label: "Away", stats: battingSplits.away },
+    { key: "risp", label: <Abbr term="RISP" />, stats: battingSplits.risp },
+    { key: "basesEmpty", label: "Bases empty", stats: battingSplits.basesEmpty },
   ];
 
   const staff: Staff[] = [
@@ -120,7 +121,7 @@ export function TeamStatsSection({ stats }: { stats: TeamStats }) {
           title="Splits"
           rowLabel="Split"
           rows={splits}
-          rowKey={(r) => r.label}
+          rowKey={(r) => r.key}
           rowName={(r) => r.label}
           columns={splitColumns}
         />

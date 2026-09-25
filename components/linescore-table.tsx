@@ -1,3 +1,4 @@
+import { Abbr } from "@/components/ui/abbr";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Linescore, LinescoreLine } from "@/lib/linescore";
 import type { Team } from "@/lib/scoreboard";
@@ -46,9 +47,15 @@ export function LinescoreTable({
                   {inning}
                 </th>
               ))}
-              <th scope="col" className={cn(cell, "border-l-2 border-border")}>R</th>
-              <th scope="col" className={cell}>H</th>
-              <th scope="col" className={cell}>E</th>
+              <th scope="col" className={cn(cell, "border-l-2 border-border")}>
+                <Abbr term="R" />
+              </th>
+              <th scope="col" className={cell}>
+                <Abbr term="H" />
+              </th>
+              <th scope="col" className={cell}>
+                <Abbr term="E" />
+              </th>
             </tr>
           </thead>
           <tbody>

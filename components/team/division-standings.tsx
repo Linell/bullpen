@@ -1,4 +1,5 @@
 import { TeamLink } from "@/components/team/team-link";
+import { Abbr } from "@/components/ui/abbr";
 import { Card, CardContent } from "@/components/ui/card";
 import type { StandingsRow } from "@/lib/team-summary";
 import { cn } from "@/lib/utils";
@@ -32,10 +33,18 @@ export function DivisionStandings({
           <thead>
             <tr className="text-xs opacity-70">
               <th scope="col" className="px-2 py-1.5 text-left">Team</th>
-              <th scope="col" className={cell}>W</th>
-              <th scope="col" className={cell}>L</th>
-              <th scope="col" className={cell}>Pct</th>
-              <th scope="col" className={cell}>GB</th>
+              <th scope="col" className={cell}>
+                <Abbr term="W" />
+              </th>
+              <th scope="col" className={cell}>
+                <Abbr term="L" />
+              </th>
+              <th scope="col" className={cell}>
+                <Abbr term="Pct" />
+              </th>
+              <th scope="col" className={cell}>
+                <Abbr term="GB" />
+              </th>
             </tr>
           </thead>
           <tbody>

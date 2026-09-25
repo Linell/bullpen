@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
+import { Abbr } from "@/components/ui/abbr";
 import { Card, CardContent } from "@/components/ui/card";
+import type { GlossaryTerm } from "@/lib/glossary";
 import { cn } from "@/lib/utils";
 
 export type StatColumn<Row> = {
-  label: string;
+  label: GlossaryTerm;
   value: (row: Row) => ReactNode;
 };
 
@@ -43,7 +45,7 @@ export function StatTable<Row>({
                   </th>
                   {columns.map((column) => (
                     <th key={column.label} scope="col" className={cell}>
-                      {column.label}
+                      <Abbr term={column.label} />
                     </th>
                   ))}
                 </tr>

@@ -1,6 +1,7 @@
 import { ArrowLeftRight, ChevronDown } from "lucide-react";
 import { Fragment } from "react";
 import { StrikeZone, RESULT_FILL } from "@/components/strike-zone";
+import { Abbr } from "@/components/ui/abbr";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -34,7 +35,9 @@ function PitchItem({ pitch }: { pitch: Pitch }) {
         <span>{pitch.type ?? "Unknown pitch"}</span>
         {pitch.speed != null && <span className="tabular-nums opacity-70">{pitch.speed.toFixed(1)} mph</span>}
         <span className="opacity-70">{pitch.call}</span>
-        {pitch.abs && <Badge variant="neutral">ABS {pitch.abs}</Badge>}
+        {pitch.abs && <Badge variant="neutral">
+            <Abbr term="ABS" /> {pitch.abs}
+          </Badge>}
       </div>
     </li>
   );
