@@ -15,7 +15,7 @@ export const invalidateGameCache = inngest.createFunction(
     const tags = await step.run("load-game-tags", () => gameCacheTags(gamePks));
 
     await step.run("revalidate-tags", () => {
-      for (const tag of tags) revalidateTag(tag, { expire: 0 });
+      for (const tag of tags) revalidateTag(tag, "max");
     });
 
     return { gamePks: gamePks.length, tags: tags.length };

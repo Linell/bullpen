@@ -217,6 +217,6 @@ describe("invalidate-game-cache", () => {
 
     expect(result).toEqual({ gamePks: 1, tags: 4 });
     expect(revalidateTag).toHaveBeenCalledTimes(4);
-    for (const tag of tags) expect(revalidateTag).toHaveBeenCalledWith(tag, { expire: 0 });
+    for (const tag of tags) expect(revalidateTag).toHaveBeenCalledWith(tag, "max");
   });
 });
