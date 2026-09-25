@@ -66,6 +66,7 @@ TypeScript writes two tables. SQL derives the rest. Every table except `players`
 - **`plays`** (SQL): one row per completed play, keyed by `(game_pk, at_bat_index)`.
 - **`pitches`** (SQL): keyed by `(game_pk, at_bat_index, pitch_index)`, because `playId` can be null.
 - **`players`** (SQL): the latest bio per player, taken from `gameData`.
+- **`game_players`** (SQL): one row per player in each game's boxscore, keyed by `(game_pk, player_id, side)`, with the team, jersey number, position and batting order he had that day. `side` is in the key because a suspended game resumed after a trade can list a player for both teams.
 - **`teams`** (SQL): the latest row per team and season, taken from `gameData`.
 
 Derived tables are real tables, not views, because a view would re-parse the JSON on every query. `sql/derive.sql` parses a game's feed once with `json_transform` into a temp table, then deletes and re-inserts that game's rows. Players and teams come only from feeds that have plays.

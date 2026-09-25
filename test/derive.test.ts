@@ -40,7 +40,8 @@ async function gamePageCounts(conn: DuckDBConnection) {
     `SELECT
        (SELECT count(*) FROM linescores) AS linescores,
        (SELECT count(*) FROM game_decisions) AS game_decisions,
-       (SELECT count(*) FROM play_events) AS play_events`,
+       (SELECT count(*) FROM play_events) AS play_events,
+       (SELECT count(*) FROM game_players) AS game_players`,
   );
 }
 
@@ -235,11 +236,39 @@ describe("derive.sql", () => {
     expect(Number(bad.n)).toBe(0);
   });
 
+  it.each(played.map((f) => [f.gamePk, f]))("records each boxscore player of game %i", async (gamePk, feed) => {
+    const stored = await rows(
+      conn,
+      `SELECT player_id, team_id, side, jersey_number, position, all_positions, batting_order, is_substitute, played
+       FROM game_players WHERE game_pk = $gamePk ORDER BY side, player_id`,
+      { gamePk },
+    );
+    const box = feed.liveData.boxscore.teams;
+    const fromFeed = (["home", "away"] as const).flatMap((side) =>
+      Object.values(box[side].players)
+        .map((p: Feed) => ({
+          player_id: p.person.id,
+          team_id: box[side].team.id,
+          side,
+          jersey_number: p.jerseyNumber ?? null,
+          position: p.position?.abbreviation ?? null,
+          all_positions: p.allPositions?.map((pos: Feed) => pos.abbreviation) ?? null,
+          batting_order: p.battingOrder ? Number(p.battingOrder) : null,
+          is_substitute: p.gameStatus?.isSubstitute ?? null,
+          played: p.allPositions !== undefined,
+        }))
+        .sort((a, b) => a.player_id - b.player_id),
+    );
+    expect(stored).toEqual(fromFeed);
+    expect(stored.filter((p) => p.played).length).toBeGreaterThanOrEqual(18);
+  });
+
   it("takes teams and players only from games that were played", async () => {
     const [fromPostponed] = await rows(
       conn,
       `SELECT (SELECT count(*) FROM teams WHERE source_game_pk = $gamePk)
-            + (SELECT count(*) FROM players WHERE source_game_pk = $gamePk) AS n`,
+            + (SELECT count(*) FROM players WHERE source_game_pk = $gamePk)
+            + (SELECT count(*) FROM game_players WHERE game_pk = $gamePk) AS n`,
       { gamePk: POSTPONED },
     );
     expect(Number(fromPostponed.n)).toBe(0);
@@ -359,6 +388,31 @@ describe("derive.sql across seasons", () => {
 
     const sources = await rows(conn, "SELECT DISTINCT source_game_pk FROM players");
     expect(sources).toEqual([{ source_game_pk: feed.gamePk }]);
+    conn.closeSync();
+  });
+});
+
+describe("derive.sql for a game resumed after a trade", () => {
+  it("records a player who appears for both sides", async () => {
+    const conn = await openDb(":memory:");
+    await migrate(conn);
+    const feed = structuredClone(played[0]);
+    const { home, away } = feed.liveData.boxscore.teams;
+    const [key, player] = Object.entries<Feed>(home.players)[0];
+    away.players[key] = { ...player, jerseyNumber: "99" };
+    await storeFeed(conn, feed);
+    await deriveGame(conn, feed.gamePk);
+
+    const stored = await rows(
+      conn,
+      `SELECT side::VARCHAR AS side, team_id, jersey_number FROM game_players
+       WHERE game_pk = $gamePk AND player_id = $playerId ORDER BY side`,
+      { gamePk: feed.gamePk, playerId: player.person.id },
+    );
+    expect(stored).toEqual([
+      { side: "away", team_id: away.team.id, jersey_number: "99" },
+      { side: "home", team_id: home.team.id, jersey_number: player.jerseyNumber },
+    ]);
     conn.closeSync();
   });
 });

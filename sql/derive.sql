@@ -8,6 +8,7 @@ WITH parsed AS (
       "players": "MAP(VARCHAR, STRUCT(id INTEGER, fullName VARCHAR, firstName VARCHAR, lastName VARCHAR, boxscoreName VARCHAR, batSide STRUCT(code VARCHAR), pitchHand STRUCT(code VARCHAR), birthDate DATE, height VARCHAR, weight INTEGER, mlbDebutDate DATE, active BOOLEAN, strikeZoneTop DOUBLE, strikeZoneBottom DOUBLE))"
     },
     "liveData": {
+      "boxscore": {"teams": "MAP(VARCHAR, STRUCT(team STRUCT(id INTEGER), players MAP(VARCHAR, STRUCT(person STRUCT(id INTEGER), jerseyNumber VARCHAR, position STRUCT(abbreviation VARCHAR), battingOrder INTEGER, gameStatus STRUCT(isSubstitute BOOLEAN), allPositions STRUCT(abbreviation VARCHAR)[]))))"},
       "linescore": {"innings": [{
         "num": "INTEGER",
         "home": {"runs": "INTEGER", "hits": "INTEGER", "errors": "INTEGER", "leftOnBase": "INTEGER"},
@@ -70,6 +71,7 @@ SELECT
   coalesce(g.gameData.game.gameNumber, 1) AS game_number,
   map_values(g.gameData.teams) AS home_and_away,
   map_values(g.gameData.players) AS roster,
+  g.liveData.boxscore.teams AS boxscore_teams,
   g.liveData.linescore.innings AS innings,
   g.liveData.decisions AS decisions,
   g.liveData.plays.allPlays AS all_plays,
@@ -94,6 +96,9 @@ DELETE FROM pitches
 WHERE game_pk = $game_pk::INTEGER;
 
 DELETE FROM plays
+WHERE game_pk = $game_pk::INTEGER;
+
+DELETE FROM game_players
 WHERE game_pk = $game_pk::INTEGER;
 
 INSERT INTO plays BY NAME
@@ -289,6 +294,24 @@ SELECT
   decisions.save.id AS save_id
 FROM feed
 WHERE decisions.winner IS NOT NULL;
+
+INSERT INTO game_players BY NAME
+SELECT
+  game_pk,
+  season,
+  player.person.id AS player_id,
+  box.value.team.id AS team_id,
+  box.key AS side,
+  player.jerseyNumber AS jersey_number,
+  player.position.abbreviation AS position,
+  list_transform(player.allPositions, lambda p: p.abbreviation) AS all_positions,
+  player.battingOrder AS batting_order,
+  player.gameStatus.isSubstitute AS is_substitute,
+  player.allPositions IS NOT NULL AS played
+FROM feed,
+  unnest(map_entries(boxscore_teams)) AS sides(box),
+  unnest(map_values(box.value.players)) AS unnested(player)
+WHERE has_plays;
 
 INSERT OR REPLACE INTO teams BY NAME
 WITH newest_team_rows AS (

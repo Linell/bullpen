@@ -56,20 +56,20 @@ Every player name on the site becomes a `PlayerLink`, matching the existing `Tea
 ## Risks
 
 - **Percentiles need a full league pool.** With only part of a season loaded, the ranks are misleading. Mitigation: show percentiles only for seasons that are fully backfilled.
-- **Players have no per-season history.** `players` holds one row per player and the newest feed wins. Past seasons would show the current number and position, and the current team has to be inferred from the latest game. Mitigation: key `players` (and `teams`) by `(id, season)` before the backfill.
+- **Players have no per-season bio.** `players` holds one row per player and the newest feed wins, because feeds only carry each player's current bio. Mitigation: take number, position and team from `game_players`, which records what each player had in each game, and keep only the bio in `players`.
 - **Query cost.** Each section is an aggregate over `plays` and `pitches`. Mitigation: cache per player and season with a tag, the same way team stats are cached, and invalidate it from `mlb/game-tables.derived`.
 - **Clutter creep.** Every section wants to start open. Mitigation: only the role-specific section starts open, and the rest must earn a spot through usage.
 
 ## Release
 
-1. Key `players` and `teams` by `(id, season)`, then rebuild the derived tables from stored feeds.
+1. Rebuild the derived tables from stored feeds, so every game has `game_players` rows.
 2. Backfill prior seasons (see the backfill plan).
 3. Ship the page behind its route, without adding links yet, and check it against Baseball Savant for a few hitters, pitchers and Ohtani.
 4. Add `PlayerLink` everywhere names appear.
 
 ## Blocked by
 
-- The `(id, season)` model change. Hard blocker for the season route.
+- `game_players` rows for every stored game. Hard blocker for the header and the season route.
 - The season backfill. Hard blocker for percentiles and the Year by year section; the rest of the page can ship with 2026 only.
 - A decision on percentile qualifiers (see Implementation).
 
@@ -125,7 +125,7 @@ New work:
 - **Barrels**: computed from launch speed and angle.
 - **Rolling form**: a window over games, like the run differential chart.
 - **Percentiles**: `percent_rank()` over qualified players in the season.
-- **Current team**: the batting or fielding team of the player's latest game in `team_plays` / `team_pitches`, until `players` carries a team.
+- **Number, position and team**: from the player's latest `game_players` row in the season.
 
 ### Percentile qualifiers
 
