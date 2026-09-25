@@ -9,12 +9,10 @@ import { TeamSchedule } from "@/components/team/team-schedule";
 import { TeamStatsSection } from "@/components/team/team-stats-section";
 import { TeamTrendsSection } from "@/components/team/team-trends-section";
 import { Card, CardContent } from "@/components/ui/card";
+import { SEASON_RE, TEAM_ID_RE } from "@/lib/team-id";
 import { getTeamStats } from "@/lib/team-stats";
 import { getTeamSeasons, getTeamSummary, type TeamSummary } from "@/lib/team-summary";
 import { getTeamTrends } from "@/lib/team-trends";
-
-const TEAM_ID_RE = /^\d{1,9}$/;
-const SEASON_RE = /^\d{4}$/;
 
 export type LoadedTeam = {
   summary: TeamSummary;
