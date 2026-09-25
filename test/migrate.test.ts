@@ -16,7 +16,7 @@ describe("migrate", () => {
     const reapplied = await conn.runAndReadAll("SELECT file, applied_at FROM schema_migrations");
     conn.closeSync();
 
-    expect(applied.getRowObjectsJS().map((row) => row.file)).toContain("008_teams_by_season.sql");
+    expect(applied.getRowObjectsJS().map((row) => row.file)).toContain("009_drop_unused_player_columns.sql");
     expect(reapplied.getRowObjectsJS()).toEqual(applied.getRowObjectsJS());
   });
 });

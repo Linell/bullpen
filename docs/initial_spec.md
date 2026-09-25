@@ -59,13 +59,13 @@ Rollback: fix `derive.sql` and send `mlb/game-tables.rebuild.requested` to rebui
 
 ### Schema
 
-TypeScript writes two tables. SQL derives the rest. Every table has `season`. DDL lives in ordered files under `sql/`.
+TypeScript writes two tables. SQL derives the rest. Every table except `players` has `season`. DDL lives in ordered files under `sql/`.
 
 - **`raw_game_feeds`** (TS): `game_pk` PK, `season`, `feed_ts`, `fetched_at`, `json JSON`. Holds the latest feed per game, replaced only by a newer `feed_ts`.
 - **`games`** (TS): `game_pk` PK, `season`, `official_date`, `game_type`, `game_number`, `abstract_state`, `coded_state`, `detailed_state`, `home_team_id`, `away_team_id`, `home_score`, `away_score`, `inning`, `inning_half`, `start_utc`, `venue_name`, `home_record`, `away_record`, `updated_at`.
 - **`plays`** (SQL): one row per completed play, keyed by `(game_pk, at_bat_index)`.
 - **`pitches`** (SQL): keyed by `(game_pk, at_bat_index, pitch_index)`, because `playId` can be null.
-- **`players`** (SQL): the latest row per player, taken from `gameData`.
+- **`players`** (SQL): the latest bio per player, taken from `gameData`.
 - **`teams`** (SQL): the latest row per team and season, taken from `gameData`.
 
 Derived tables are real tables, not views, because a view would re-parse the JSON on every query. `sql/derive.sql` parses a game's feed once with `json_transform` into a temp table, then deletes and re-inserts that game's rows. Players and teams come only from feeds that have plays.

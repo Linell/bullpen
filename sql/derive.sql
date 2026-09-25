@@ -5,7 +5,7 @@ WITH parsed AS (
       "datetime": {"officialDate": "DATE"},
       "game": {"gameNumber": "INTEGER"},
       "teams": "MAP(VARCHAR, STRUCT(id INTEGER, name VARCHAR, teamName VARCHAR, abbreviation VARCHAR, locationName VARCHAR, shortName VARCHAR, teamCode VARCHAR, league STRUCT(id INTEGER, name VARCHAR), division STRUCT(id INTEGER, name VARCHAR), venue STRUCT(id INTEGER, name VARCHAR)))",
-      "players": "MAP(VARCHAR, STRUCT(id INTEGER, fullName VARCHAR, firstName VARCHAR, lastName VARCHAR, boxscoreName VARCHAR, primaryNumber VARCHAR, primaryPosition STRUCT(abbreviation VARCHAR), batSide STRUCT(code VARCHAR), pitchHand STRUCT(code VARCHAR), birthDate DATE, height VARCHAR, weight INTEGER, mlbDebutDate DATE, active BOOLEAN, strikeZoneTop DOUBLE, strikeZoneBottom DOUBLE))"
+      "players": "MAP(VARCHAR, STRUCT(id INTEGER, fullName VARCHAR, firstName VARCHAR, lastName VARCHAR, boxscoreName VARCHAR, batSide STRUCT(code VARCHAR), pitchHand STRUCT(code VARCHAR), birthDate DATE, height VARCHAR, weight INTEGER, mlbDebutDate DATE, active BOOLEAN, strikeZoneTop DOUBLE, strikeZoneBottom DOUBLE))"
     },
     "liveData": {
       "linescore": {"innings": [{
@@ -326,13 +326,10 @@ INSERT OR REPLACE INTO players BY NAME
 WITH newest_player_rows AS (
   SELECT
     player.id AS player_id,
-    season,
     player.fullName AS full_name,
     player.firstName AS first_name,
     player.lastName AS last_name,
     player.boxscoreName AS boxscore_name,
-    player.primaryNumber AS primary_number,
-    player.primaryPosition.abbreviation AS primary_position,
     player.batSide.code AS bat_side,
     player.pitchHand.code AS pitch_hand,
     player.birthDate AS birth_date,

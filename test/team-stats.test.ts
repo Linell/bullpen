@@ -81,8 +81,8 @@ beforeAll(async () => {
     await conn.run(`INSERT INTO pitches (game_pk, season, at_bat_index, pitch_index, inning, half, batter_id,
         pitcher_id, balls_before, strikes_before, outs_before, zone, call_code, pitch_type, start_speed, abs_challenged)
       VALUES ${pitches.map(pitchRow).join(",")}`);
-    await conn.run(`INSERT INTO players (player_id, season, full_name, source_game_pk, source_date, source_game_number)
-      VALUES (${STARTER}, 2026, 'Sam Starter', 1, '2026-09-20', 1), (10, 2026, 'Lead Off', 1, '2026-09-20', 1)`);
+    await conn.run(`INSERT INTO players (player_id, full_name, source_game_pk, source_date, source_game_number)
+      VALUES (${STARTER}, 'Sam Starter', 1, '2026-09-20', 1), (10, 'Lead Off', 1, '2026-09-20', 1)`);
   });
 });
 
