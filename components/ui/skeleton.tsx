@@ -1,11 +1,21 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { Card, CardContent } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
 
-export function Skeleton({ className }: { className?: string }) {
-  return <div aria-hidden className={cn("animate-pulse rounded-base bg-foreground/10", className)} />;
+function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="skeleton"
+      aria-hidden
+      className={cn(
+        "animate-pulse rounded-base bg-secondary-background border-2 border-border",
+        className,
+      )}
+      {...props}
+    />
+  )
 }
 
-export function CardSkeleton({ className }: { className?: string }) {
+function CardSkeleton({ className }: { className?: string }) {
   return (
     <Card size="sm">
       <CardContent className="flex flex-col gap-3">
@@ -13,5 +23,7 @@ export function CardSkeleton({ className }: { className?: string }) {
         <Skeleton className={cn("h-32", className)} />
       </CardContent>
     </Card>
-  );
+  )
 }
+
+export { Skeleton, CardSkeleton }

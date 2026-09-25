@@ -1,10 +1,12 @@
 import { TeamLink } from "@/components/team/team-link";
 import { Abbr } from "@/components/ui/abbr";
 import { Card, CardContent } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { StandingsRow } from "@/lib/team-summary";
 import { cn } from "@/lib/utils";
 
-const cell = "px-2 py-1.5 text-right tabular-nums";
+const cell = "h-auto px-2 py-1.5 text-right tabular-nums";
+const teamCell = "h-auto px-2 py-1.5";
 
 function formatPct(pct: number) {
   return pct.toFixed(3).replace(/^0/, "");
@@ -27,43 +29,40 @@ export function DivisionStandings({
 
   return (
     <Card size="sm">
-      <CardContent className="flex flex-col gap-3 overflow-x-auto">
+      <CardContent className="flex flex-col gap-3">
         <h2 className="text-lg">{title}</h2>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-xs opacity-70">
-              <th scope="col" className="px-2 py-1.5 text-left">Team</th>
-              <th scope="col" className={cell}>
+        <Table>
+          <TableHeader>
+            <TableRow className="text-xs">
+              <TableHead scope="col" className={teamCell}>Team</TableHead>
+              <TableHead scope="col" className={cell}>
                 <Abbr term="W" />
-              </th>
-              <th scope="col" className={cell}>
+              </TableHead>
+              <TableHead scope="col" className={cell}>
                 <Abbr term="L" />
-              </th>
-              <th scope="col" className={cell}>
+              </TableHead>
+              <TableHead scope="col" className={cell}>
                 <Abbr term="Pct" />
-              </th>
-              <th scope="col" className={cell}>
+              </TableHead>
+              <TableHead scope="col" className={cell}>
                 <Abbr term="GB" />
-              </th>
-            </tr>
-          </thead>
-          <tbody>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {standings.map((row) => (
-              <tr
-                key={row.team.id}
-                className={cn("border-t-2 border-border", row.team.id === teamId && "bg-main/20")}
-              >
-                <th scope="row" className="px-2 py-1.5 text-left font-heading">
+              <TableRow key={row.team.id} data-state={row.team.id === teamId ? "selected" : undefined}>
+                <TableHead scope="row" className={cn(teamCell, row.team.id === teamId && "text-main-foreground")}>
                   <TeamLink teamId={row.team.id}>{row.team.name}</TeamLink>
-                </th>
-                <td className={cell}>{row.wins}</td>
-                <td className={cell}>{row.losses}</td>
-                <td className={cell}>{formatPct(row.pct)}</td>
-                <td className={cell}>{formatGamesBack(row.gamesBack)}</td>
-              </tr>
+                </TableHead>
+                <TableCell className={cell}>{row.wins}</TableCell>
+                <TableCell className={cell}>{row.losses}</TableCell>
+                <TableCell className={cell}>{formatPct(row.pct)}</TableCell>
+                <TableCell className={cell}>{formatGamesBack(row.gamesBack)}</TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );

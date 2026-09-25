@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Abbr } from "@/components/ui/abbr";
 import { Card, CardContent } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { GlossaryTerm } from "@/lib/glossary";
 import { cn } from "@/lib/utils";
 
@@ -9,8 +10,8 @@ export type StatColumn<Row> = {
   value: (row: Row) => ReactNode;
 };
 
-const cell = "px-2 py-1.5 text-right tabular-nums whitespace-nowrap";
-const labelCell = "sticky left-0 bg-secondary-background px-2 py-1.5 text-left whitespace-nowrap";
+const cell = "h-auto px-2 py-1.5 text-right tabular-nums whitespace-nowrap";
+const labelCell = "sticky left-0 h-auto bg-background px-2 py-1.5 whitespace-nowrap";
 
 export function StatTable<Row>({
   title,
@@ -36,36 +37,34 @@ export function StatTable<Row>({
         {rows.length === 0 ? (
           <p className="text-sm opacity-70">No data yet.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-xs opacity-70">
-                  <th scope="col" className={labelCell}>
-                    {rowLabel}
-                  </th>
-                  {columns.map((column) => (
-                    <th key={column.label} scope="col" className={cell}>
-                      <Abbr term={column.label} />
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={rowKey(row)} className="border-t-2 border-border">
-                    <th scope="row" className={cn(labelCell, "font-heading")}>
-                      {rowName(row)}
-                    </th>
-                    {columns.map((column) => (
-                      <td key={column.label} className={cell}>
-                        {column.value(row)}
-                      </td>
-                    ))}
-                  </tr>
+          <Table>
+            <TableHeader>
+              <TableRow className="text-xs">
+                <TableHead scope="col" className={labelCell}>
+                  {rowLabel}
+                </TableHead>
+                {columns.map((column) => (
+                  <TableHead key={column.label} scope="col" className={cell}>
+                    <Abbr term={column.label} />
+                  </TableHead>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((row) => (
+                <TableRow key={rowKey(row)}>
+                  <TableHead scope="row" className={labelCell}>
+                    {rowName(row)}
+                  </TableHead>
+                  {columns.map((column) => (
+                    <TableCell key={column.label} className={cell}>
+                      {column.value(row)}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </CardContent>
     </Card>

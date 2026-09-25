@@ -1,13 +1,14 @@
 import { Abbr } from "@/components/ui/abbr";
 import { Card, CardContent } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RunDiffChart } from "@/components/team/run-diff-chart";
 import { formatPercent } from "@/lib/format";
 import type { WinLoss } from "@/lib/team-summary";
 import type { AbsChallenges, InningRuns, RelieverWorkload, SituationalRecords, TeamTrends } from "@/lib/team-trends";
 import { cn } from "@/lib/utils";
 
-const cell = "px-2 py-1.5 text-center tabular-nums";
-const rowHeader = "sticky left-0 bg-secondary-background px-2 py-1.5 text-left font-heading";
+const cell = "h-auto px-2 py-1.5 text-center tabular-nums";
+const rowHeader = "sticky left-0 h-auto bg-background px-2 py-1.5";
 
 function record({ wins, losses }: WinLoss) {
   return `${wins}-${losses}`;
@@ -45,44 +46,42 @@ function InningRunsTable({ innings }: { innings: InningRuns[] }) {
     <Card size="sm">
       <CardContent className="flex flex-col gap-3">
         <h2 className="text-lg">Runs by inning</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-xs opacity-70">
-                <th scope="col" className={rowHeader}>
-                  <span className="sr-only">Runs</span>
-                </th>
-                {innings.map(({ inning }) => (
-                  <th key={inning} scope="col" className={cell}>
-                    {inning === "extras" ? <Abbr term="X" /> : inning}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-t-2 border-border">
-                <th scope="row" className={rowHeader}>
-                  Scored
-                </th>
-                {innings.map(({ inning, scored, allowed }) => (
-                  <td key={inning} className={cn(cell, scored > allowed && "font-heading")}>
-                    {scored}
-                  </td>
-                ))}
-              </tr>
-              <tr className="border-t-2 border-border">
-                <th scope="row" className={rowHeader}>
-                  Allowed
-                </th>
-                {innings.map(({ inning, scored, allowed }) => (
-                  <td key={inning} className={cn(cell, allowed > scored && "font-heading")}>
-                    {allowed}
-                  </td>
-                ))}
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <Table>
+          <TableHeader>
+            <TableRow className="text-xs">
+              <TableHead scope="col" className={rowHeader}>
+                <span className="sr-only">Runs</span>
+              </TableHead>
+              {innings.map(({ inning }) => (
+                <TableHead key={inning} scope="col" className={cell}>
+                  {inning === "extras" ? <Abbr term="X" /> : inning}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableHead scope="row" className={rowHeader}>
+                Scored
+              </TableHead>
+              {innings.map(({ inning, scored, allowed }) => (
+                <TableCell key={inning} className={cn(cell, scored > allowed && "font-heading")}>
+                  {scored}
+                </TableCell>
+              ))}
+            </TableRow>
+            <TableRow>
+              <TableHead scope="row" className={rowHeader}>
+                Allowed
+              </TableHead>
+              {innings.map(({ inning, scored, allowed }) => (
+                <TableCell key={inning} className={cn(cell, allowed > scored && "font-heading")}>
+                  {allowed}
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );
@@ -97,36 +96,36 @@ function AbsChallengesCard({ abs }: { abs: AbsChallenges }) {
         <h2 className="text-lg">
           <Abbr term="ABS" /> challenges
         </h2>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-xs opacity-70">
-              <th scope="col" className={rowHeader}>
+        <Table>
+          <TableHeader>
+            <TableRow className="text-xs">
+              <TableHead scope="col" className={rowHeader}>
                 <span className="sr-only">Side</span>
-              </th>
-              <th scope="col" className={cell}>Challenges</th>
-              <th scope="col" className={cell}>Overturned</th>
-              <th scope="col" className={cell}>Rate</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="border-t-2 border-border">
-              <th scope="row" className={rowHeader}>
+              </TableHead>
+              <TableHead scope="col" className={cell}>Challenges</TableHead>
+              <TableHead scope="col" className={cell}>Overturned</TableHead>
+              <TableHead scope="col" className={cell}>Rate</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableHead scope="row" className={rowHeader}>
                 Team
-              </th>
-              <td className={cell}>{abs.challenges}</td>
-              <td className={cell}>{abs.overturned}</td>
-              <td className={cell}>{formatPercent(abs.overturnRate ?? null)}</td>
-            </tr>
-            <tr className="border-t-2 border-border">
-              <th scope="row" className={rowHeader}>
+              </TableHead>
+              <TableCell className={cell}>{abs.challenges}</TableCell>
+              <TableCell className={cell}>{abs.overturned}</TableCell>
+              <TableCell className={cell}>{formatPercent(abs.overturnRate ?? null)}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableHead scope="row" className={rowHeader}>
                 Opponents
-              </th>
-              <td className={cell}>{abs.opponentChallenges}</td>
-              <td className={cell}>{abs.opponentOverturned}</td>
-              <td className={cell}>{formatPercent(opponentRate)}</td>
-            </tr>
-          </tbody>
-        </table>
+              </TableHead>
+              <TableCell className={cell}>{abs.opponentChallenges}</TableCell>
+              <TableCell className={cell}>{abs.opponentOverturned}</TableCell>
+              <TableCell className={cell}>{formatPercent(opponentRate)}</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );
@@ -140,28 +139,28 @@ function BullpenWorkloadTable({ relievers }: { relievers: RelieverWorkload[] }) 
         {relievers.length === 0 ? (
           <p className="text-sm opacity-70">No relief appearances in the last week.</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-xs opacity-70">
-                <th scope="col" className={rowHeader}>
+          <Table>
+            <TableHeader>
+              <TableRow className="text-xs">
+                <TableHead scope="col" className={rowHeader}>
                   Pitcher
-                </th>
-                <th scope="col" className={cell}>Pitches, 3 days</th>
-                <th scope="col" className={cell}>Pitches, 7 days</th>
-              </tr>
-            </thead>
-            <tbody>
+                </TableHead>
+                <TableHead scope="col" className={cell}>Pitches, 3 days</TableHead>
+                <TableHead scope="col" className={cell}>Pitches, 7 days</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {relievers.map((r) => (
-                <tr key={r.pitcherId} className="border-t-2 border-border">
-                  <th scope="row" className={rowHeader}>
+                <TableRow key={r.pitcherId}>
+                  <TableHead scope="row" className={rowHeader}>
                     {r.name}
-                  </th>
-                  <td className={cell}>{r.last3Days}</td>
-                  <td className={cell}>{r.last7Days}</td>
-                </tr>
+                  </TableHead>
+                  <TableCell className={cell}>{r.last3Days}</TableCell>
+                  <TableCell className={cell}>{r.last7Days}</TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         )}
       </CardContent>
     </Card>
