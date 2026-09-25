@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TeamLink } from "@/components/team/team-link";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatShortDate } from "@/lib/dates";
 import type { Form, SeriesRecord, TeamResult } from "@/lib/matchup";
@@ -28,7 +29,9 @@ function FormRow({ team, form }: { team: Team; form: Form }) {
   return (
     <div className="flex items-center gap-3">
       <div className="flex w-12 shrink-0 flex-col">
-        <span className="font-heading">{team.abbreviation}</span>
+        <TeamLink teamId={team.id} className="font-heading">
+          {team.abbreviation}
+        </TeamLink>
         {form.streak && <span className="text-xs tabular-nums opacity-70">{form.streak}</span>}
       </div>
       <div className="grid max-w-80 flex-1 grid-cols-10 gap-1">

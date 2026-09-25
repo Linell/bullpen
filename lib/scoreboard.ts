@@ -1,4 +1,5 @@
 export type Team = {
+  id: number;
   name: string;
   abbreviation: string;
   record?: string;

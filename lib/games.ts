@@ -65,6 +65,7 @@ const GAMES_QUERY = `${GAMES_SELECT}
 
 function team(id: number, name: string | null, abbr: string | null, record: string | null): Team {
   return {
+    id,
     name: name ?? `Team ${id}`,
     abbreviation: abbr ?? String(id),
     record: record ?? undefined,

@@ -1,6 +1,7 @@
 import { Countdown } from "@/components/countdown";
 import { Diamond } from "@/components/diamond";
 import { StatusBadge } from "@/components/status-badge";
+import { TeamLink } from "@/components/team/team-link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatOfficialDate, formatShortDate } from "@/lib/dates";
@@ -13,7 +14,9 @@ function TeamScore({ side }: { side: GameSide }) {
       {side.score !== undefined && (
         <span className="text-4xl font-heading tabular-nums">{side.score}</span>
       )}
-      <span className="truncate font-heading">{side.team.name}</span>
+      <TeamLink teamId={side.team.id} className="truncate font-heading">
+        {side.team.name}
+      </TeamLink>
       {side.team.record && <span className="text-xs opacity-70">{side.team.record}</span>}
     </div>
   );
