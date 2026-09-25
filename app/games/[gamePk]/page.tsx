@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { GameHeader } from "@/components/game-header";
+import { GameHeader, GameHeaderSkeleton } from "@/components/game-header";
 import { Matchup } from "@/components/matchup";
 import { LinescoreTable } from "@/components/linescore-table";
 import { PlayByPlay } from "@/components/play-by-play";
 import { Starters } from "@/components/starters";
 import { Card, CardContent } from "@/components/ui/card";
+import { CardSkeleton } from "@/components/ui/skeleton";
 import { getGameDetail } from "@/lib/game-detail";
 import { GAME_PK_RE } from "@/lib/game-pk";
 import { gameTitle } from "@/lib/scoreboard";
@@ -85,8 +86,10 @@ async function GameContent({ params }: GameParams) {
 
 function GameFallback() {
   return (
-    <Card>
-      <CardContent>Loading game…</CardContent>
-    </Card>
+    <>
+      <GameHeaderSkeleton />
+      <CardSkeleton className="h-24" />
+      <CardSkeleton className="h-64" />
+    </>
   );
 }

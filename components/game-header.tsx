@@ -5,6 +5,7 @@ import { TeamLink } from "@/components/team/team-link";
 import { Abbr } from "@/components/ui/abbr";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatOfficialDate, formatShortDate } from "@/lib/dates";
 import type { Decisions } from "@/lib/game-detail";
 import type { GlossaryTerm } from "@/lib/glossary";
@@ -79,6 +80,22 @@ export function GameHeader({ game, decisions }: { game: Game; decisions?: Decisi
             .join(" · ")}
         </p>
         {decisions && <DecisionsLine decisions={decisions} />}
+      </CardContent>
+    </Card>
+  );
+}
+
+export function GameHeaderSkeleton() {
+  return (
+    <Card>
+      <CardContent className="flex flex-col items-center gap-4">
+        <Skeleton className="h-6 w-20" />
+        <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4">
+          <Skeleton className="h-16" />
+          <span className="text-xl font-heading opacity-70">@</span>
+          <Skeleton className="h-16" />
+        </div>
+        <Skeleton className="h-4 w-56" />
       </CardContent>
     </Card>
   );

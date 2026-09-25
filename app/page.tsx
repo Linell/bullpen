@@ -1,7 +1,9 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { DateNav } from "@/components/date-nav";
+import { GameCardSkeleton } from "@/components/game-card";
 import { Scoreboard } from "@/components/scoreboard";
-import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatOfficialDate, isOfficialDate, todayOfficialDate } from "@/lib/dates";
 import { getGames } from "@/lib/games";
 
@@ -17,6 +19,7 @@ export default function Home({ searchParams }: PageProps<"/">) {
 
 async function Games({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
   const { date: param } = await searchParams;
+  await connection();
   const today = todayOfficialDate();
   const date = isOfficialDate(param) ? param : today;
   const isToday = date === today;
@@ -38,8 +41,16 @@ async function Games({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
 
 function GamesFallback() {
   return (
-    <Card>
-      <CardContent>Loading games…</CardContent>
-    </Card>
+    <>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Skeleton className="h-10 w-56" />
+        <Skeleton className="h-8 w-44" />
+      </div>
+      <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }, (_, i) => (
+          <GameCardSkeleton key={i} />
+        ))}
+      </section>
+    </>
   );
 }

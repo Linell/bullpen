@@ -3,6 +3,7 @@ import { Diamond } from "@/components/diamond";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatShortDate } from "@/lib/dates";
 import type { Game, GameSide } from "@/lib/scoreboard";
 import { cn } from "@/lib/utils";
@@ -80,5 +81,28 @@ export function GameCard({ game }: { game: Game }) {
         </CardContent>
       </Card>
     </Link>
+  );
+}
+
+function TeamRowSkeleton() {
+  return (
+    <div className="flex items-center gap-3">
+      <Skeleton className="h-9 w-12" />
+      <Skeleton className="h-5 flex-1" />
+    </div>
+  );
+}
+
+export function GameCardSkeleton() {
+  return (
+    <Card size="sm" className="h-full">
+      <CardContent className="flex flex-col gap-4">
+        <Skeleton className="h-6 w-20" />
+        <div className="flex flex-col gap-3">
+          <TeamRowSkeleton />
+          <TeamRowSkeleton />
+        </div>
+      </CardContent>
+    </Card>
   );
 }
