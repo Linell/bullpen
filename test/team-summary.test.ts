@@ -34,7 +34,7 @@ function gameRow({ gamePk, date, home, away, score }: Seed) {
 type TeamSeed = [season: number, id: number, name: string, abbr: string, league: string, divisionId: number, division: string];
 
 function teamRow([season, id, name, abbr, league, divisionId, division]: TeamSeed) {
-  return `(${id}, ${season}, '${name}', '${abbr}', '${league}', ${divisionId}, '${division}', 1, '${season}-09-20', 1)`;
+  return `(${id}, ${season}, '${name}', '${abbr}', '${league}', ${divisionId}, '${division}', ${season}, '${season}-09-20', 1)`;
 }
 
 beforeAll(async () => {
@@ -63,8 +63,8 @@ beforeAll(async () => {
         abstract_state, coded_state, detailed_state, home_team_id, away_team_id, home_score,
         away_score, start_utc, updated_at)
       VALUES ${games.map(gameRow).join(",")}`);
-    await conn.run(`INSERT INTO teams (team_id, season, name, abbreviation, league_name, division_id,
-        division_name, source_game_pk, source_date, source_game_number)
+    await conn.run(`INSERT INTO game_teams (team_id, season, name, abbreviation, league_name, division_id,
+        division_name, game_pk, source_date, source_game_number)
       VALUES ${teams.map(teamRow).join(",")}`);
   });
 });

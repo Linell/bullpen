@@ -47,8 +47,8 @@ beforeAll(async () => {
       VALUES ${games.map(gameRow).join(",")}`);
     await conn.run(`INSERT INTO game_decisions VALUES (1, 2026, ${COLE}, NULL, NULL),
       (2, 2026, 999, ${COLE}, NULL), (3, 2026, ${COLE}, NULL, NULL), (5, 2026, ${COLE}, NULL, NULL)`);
-    await conn.run(`INSERT INTO players (player_id, full_name, boxscore_name, pitch_hand,
-        source_game_pk, source_date, source_game_number)
+    await conn.run(`INSERT INTO game_player_bios (player_id, full_name, boxscore_name, pitch_hand,
+        game_pk, source_date, source_game_number)
       VALUES (${COLE}, 'Gerrit Cole', 'Cole, G', 'R', 1, '2026-09-20', 1)`);
   });
 });

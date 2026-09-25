@@ -59,17 +59,19 @@ Rollback: fix `derive.sql` and send `mlb/game-tables.rebuild.requested` to rebui
 
 ### Schema
 
-TypeScript writes two tables. SQL derives the rest. Every table except `players` has `season`. DDL lives in ordered files under `sql/`.
+TypeScript writes two tables. SQL derives the rest. Every table except `game_player_bios` has `season`. DDL lives in ordered files under `sql/`.
 
 - **`raw_game_feeds`** (TS): `game_pk` PK, `season`, `feed_ts`, `fetched_at`, `json JSON`. Holds the latest feed per game, replaced only by a newer `feed_ts`.
 - **`games`** (TS): `game_pk` PK, `season`, `official_date`, `game_type`, `game_number`, `abstract_state`, `coded_state`, `detailed_state`, `home_team_id`, `away_team_id`, `home_score`, `away_score`, `inning`, `inning_half`, `start_utc`, `venue_name`, `home_record`, `away_record`, `updated_at`.
 - **`plays`** (SQL): one row per completed play, keyed by `(game_pk, at_bat_index)`.
 - **`pitches`** (SQL): keyed by `(game_pk, at_bat_index, pitch_index)`, because `playId` can be null.
-- **`players`** (SQL): the latest bio per player, taken from `gameData`.
+- **`game_player_bios`** (SQL): each player's bio as one game's `gameData` listed it, keyed by `(game_pk, player_id)`.
+- **`players`** (view): the newest `game_player_bios` row per player, by date, then game number, then `game_pk`.
 - **`game_players`** (SQL): one row per player in each game's boxscore, keyed by `(game_pk, player_id, side)`, with the team, jersey number, position and batting order he had that day. `side` is in the key because a suspended game resumed after a trade can list a player for both teams.
-- **`teams`** (SQL): the latest row per team and season, taken from `gameData`.
+- **`game_teams`** (SQL): each team as one game's `gameData` listed it, keyed by `(game_pk, team_id)`.
+- **`teams`** (view): the newest `game_teams` row per team and season, ordered the same way as `players`.
 
-Derived tables are real tables, not views, because a view would re-parse the JSON on every query. `sql/derive.sql` parses a game's feed once with `json_transform` into a temp table, then deletes and re-inserts that game's rows. Players and teams come only from feeds that have plays.
+Derived tables are real tables, not views over the JSON, because such a view would re-parse the JSON on every query. `sql/derive.sql` parses a game's feed once with `json_transform` into a temp table, then deletes and re-inserts that game's rows, and touches no other game's rows, so games can be derived at the same time. `players` and `teams` are views that pick the newest per-game row, so the result doesn't depend on which game is derived last. Bios and teams come only from feeds that have plays.
 
 ### Events
 
@@ -148,7 +150,7 @@ All live in `.env.local`, which is gitignored.
 
 ## Testing
 
-- **`derive.sql`**: run it on saved feed fixtures, including a doubleheader, a postponed game, a suspended game and an extra-innings game. Row counts and final scores should match the box score. Re-deriving leaves the row counts unchanged, a failed derive keeps the previous rows, and an older feed never replaces a newer one.
+- **`derive.sql`**: run it on saved feed fixtures, including a doubleheader, a postponed game, a suspended game and an extra-innings game. Row counts and final scores should match the box score. Re-deriving leaves the row counts unchanged, a failed derive keeps the previous rows, and an older feed never replaces a newer one. Deriving every game at once on separate connections gives the same rows as deriving them one at a time, and an older game derived last never replaces a newer bio or team.
 - **Schedule**: parsing, which rows count as changed, and which games count as completed, including a forfeit and a postponed game.
 - **Functions**: `@inngest/test` runs each function that sends events, with its steps mocked, and checks the events and their ids. `sync-schedule` emits `mlb/game.updated` only for changed live games and not at all when nothing changed, `ingest-game-feed` emits only for a stored feed and runs on `mlb/game.updated`, and `rebuild-game-tables` splits its events into batches of 5,000.
 

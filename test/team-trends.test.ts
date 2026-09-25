@@ -101,7 +101,7 @@ beforeAll(async () => {
       VALUES (1, 2026, 1, 'top', 1), (1, 2026, 1, 'bottom', 2), (1, 2026, 5, 'top', 3), (1, 2026, 7, 'bottom', 3),
         (2, 2026, 1, 'top', 2), (2, 2026, 9, 'bottom', 2), (2, 2026, 10, 'bottom', 1),
         (3, 2026, 3, 'bottom', 8), (3, 2026, 4, 'top', 1), (4, 2026, 1, 'bottom', 1)`);
-    await conn.run(`INSERT INTO players (player_id, full_name, boxscore_name, source_game_pk, source_date,
+    await conn.run(`INSERT INTO game_player_bios (player_id, full_name, boxscore_name, game_pk, source_date,
         source_game_number)
       VALUES (${RELIEVER}, 'Luke Weaver', 'Weaver', 1, '2026-09-18', 1)`);
   });

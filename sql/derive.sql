@@ -101,6 +101,12 @@ WHERE game_pk = $game_pk::INTEGER;
 DELETE FROM game_players
 WHERE game_pk = $game_pk::INTEGER;
 
+DELETE FROM game_teams
+WHERE game_pk = $game_pk::INTEGER;
+
+DELETE FROM game_player_bios
+WHERE game_pk = $game_pk::INTEGER;
+
 INSERT INTO plays BY NAME
 WITH plays_with_ball_in_play AS (
   SELECT *,
@@ -313,66 +319,46 @@ FROM feed,
   unnest(map_values(box.value.players)) AS unnested(player)
 WHERE has_plays;
 
-INSERT OR REPLACE INTO teams BY NAME
-WITH newest_team_rows AS (
-  SELECT
-    team.id AS team_id,
-    season,
-    team.name AS name,
-    team.teamName AS team_name,
-    team.abbreviation AS abbreviation,
-    team.locationName AS location_name,
-    team.shortName AS short_name,
-    team.teamCode AS team_code,
-    team.league.id AS league_id,
-    team.league.name AS league_name,
-    team.division.id AS division_id,
-    team.division.name AS division_name,
-    team.venue.id AS venue_id,
-    team.venue.name AS venue_name,
-    game_pk AS source_game_pk,
-    official_date AS source_date,
-    game_number AS source_game_number
-  FROM feed, unnest(home_and_away) AS unnested(team)
-  WHERE has_plays AND team.id IS NOT NULL
-  QUALIFY row_number() OVER (
-    PARTITION BY team_id, season ORDER BY source_date DESC, source_game_number DESC, source_game_pk DESC
-  ) = 1
-)
-SELECT newest.* FROM newest_team_rows newest
-LEFT JOIN teams stored USING (team_id, season)
-WHERE stored.team_id IS NULL
-  OR (newest.source_date, newest.source_game_number, newest.source_game_pk)
-     >= (stored.source_date, stored.source_game_number, stored.source_game_pk);
+INSERT INTO game_teams BY NAME
+SELECT
+  game_pk,
+  team.id AS team_id,
+  season,
+  team.name AS name,
+  team.teamName AS team_name,
+  team.abbreviation AS abbreviation,
+  team.locationName AS location_name,
+  team.shortName AS short_name,
+  team.teamCode AS team_code,
+  team.league.id AS league_id,
+  team.league.name AS league_name,
+  team.division.id AS division_id,
+  team.division.name AS division_name,
+  team.venue.id AS venue_id,
+  team.venue.name AS venue_name,
+  official_date AS source_date,
+  game_number AS source_game_number
+FROM feed, unnest(home_and_away) AS unnested(team)
+WHERE has_plays AND team.id IS NOT NULL;
 
-INSERT OR REPLACE INTO players BY NAME
-WITH newest_player_rows AS (
-  SELECT
-    player.id AS player_id,
-    player.fullName AS full_name,
-    player.firstName AS first_name,
-    player.lastName AS last_name,
-    player.boxscoreName AS boxscore_name,
-    player.batSide.code AS bat_side,
-    player.pitchHand.code AS pitch_hand,
-    player.birthDate AS birth_date,
-    player.height AS height,
-    player.weight AS weight,
-    player.mlbDebutDate AS mlb_debut_date,
-    player.active AS active,
-    player.strikeZoneTop AS sz_top,
-    player.strikeZoneBottom AS sz_bottom,
-    game_pk AS source_game_pk,
-    official_date AS source_date,
-    game_number AS source_game_number
-  FROM feed, unnest(roster) AS unnested(player)
-  WHERE has_plays AND player.id IS NOT NULL
-  QUALIFY row_number() OVER (
-    PARTITION BY player_id ORDER BY source_date DESC, source_game_number DESC, source_game_pk DESC
-  ) = 1
-)
-SELECT newest.* FROM newest_player_rows newest
-LEFT JOIN players stored USING (player_id)
-WHERE stored.player_id IS NULL
-  OR (newest.source_date, newest.source_game_number, newest.source_game_pk)
-     >= (stored.source_date, stored.source_game_number, stored.source_game_pk);
+INSERT INTO game_player_bios BY NAME
+SELECT
+  game_pk,
+  player.id AS player_id,
+  player.fullName AS full_name,
+  player.firstName AS first_name,
+  player.lastName AS last_name,
+  player.boxscoreName AS boxscore_name,
+  player.batSide.code AS bat_side,
+  player.pitchHand.code AS pitch_hand,
+  player.birthDate AS birth_date,
+  player.height AS height,
+  player.weight AS weight,
+  player.mlbDebutDate AS mlb_debut_date,
+  player.active AS active,
+  player.strikeZoneTop AS sz_top,
+  player.strikeZoneBottom AS sz_bottom,
+  official_date AS source_date,
+  game_number AS source_game_number
+FROM feed, unnest(roster) AS unnested(player)
+WHERE has_plays AND player.id IS NOT NULL;

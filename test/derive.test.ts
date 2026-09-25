@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { gunzipSync } from "node:zlib";
-import type { DuckDBConnection } from "@duckdb/node-api";
+import { DuckDBInstance, type DuckDBConnection } from "@duckdb/node-api";
 import { beforeAll, describe, expect, it } from "vitest";
 import { openDb } from "@/lib/db";
 import { migrate } from "@/lib/migrate";
@@ -413,6 +413,77 @@ describe("derive.sql for a game resumed after a trade", () => {
       { side: "away", team_id: away.team.id, jersey_number: "99" },
       { side: "home", team_id: home.team.id, jersey_number: player.jerseyNumber },
     ]);
+    conn.closeSync();
+  });
+});
+
+describe("derive.sql run concurrently", () => {
+  const TABLES = ["plays", "pitches", "play_events", "linescores", "game_decisions", "game_players", "players", "teams"];
+
+  function sameRosterNextGame(feed: Feed): Feed {
+    const next = structuredClone(feed);
+    next.gamePk = feed.gamePk + 1_000_000;
+    next.gameData.game.gameNumber = 2;
+    return next;
+  }
+
+  async function storedDatabase() {
+    const instance = await DuckDBInstance.create(":memory:");
+    const conn = await instance.connect();
+    await migrate(conn);
+    for (const feed of [...feeds, ...played.map(sameRosterNextGame)]) await storeFeed(conn, feed);
+    return { instance, conn, gamePks: await rawFeedGamePks(conn) };
+  }
+
+  async function snapshot(conn: DuckDBConnection) {
+    const counts = await Promise.all(TABLES.map(async (table) => (await rows(conn, `SELECT count(*) AS n FROM ${table}`))[0].n));
+    return {
+      counts: Object.fromEntries(TABLES.map((table, i) => [table, counts[i]])),
+      players: await rows(conn, "SELECT player_id, source_game_pk FROM players ORDER BY player_id"),
+      teams: await rows(conn, "SELECT team_id, season, source_game_pk FROM teams ORDER BY team_id, season"),
+    };
+  }
+
+  it("derives and re-derives the same rows as one game at a time", async () => {
+    const serial = await storedDatabase();
+    for (const gamePk of serial.gamePks) await deriveGame(serial.conn, gamePk);
+
+    const concurrent = await storedDatabase();
+    const connections = await Promise.all(concurrent.gamePks.map(() => concurrent.instance.connect()));
+    const deriveAllAtOnce = () => Promise.all(concurrent.gamePks.map((gamePk, i) => deriveGame(connections[i], gamePk)));
+
+    await deriveAllAtOnce();
+    expect(await snapshot(concurrent.conn)).toEqual(await snapshot(serial.conn));
+    await deriveAllAtOnce();
+    expect(await snapshot(concurrent.conn)).toEqual(await snapshot(serial.conn));
+    for (const conn of [serial.conn, concurrent.conn, ...connections]) conn.closeSync();
+  });
+});
+
+describe("derive.sql out of order", () => {
+  it("keeps the newest bio and team row when an older game derives last", async () => {
+    const conn = await openDb(":memory:");
+    await migrate(conn);
+    const [older] = played;
+    const newer = structuredClone(older);
+    newer.gamePk = 2;
+    newer.gameData.datetime.officialDate = "2026-12-31";
+    const [playerKey] = Object.keys(newer.gameData.players);
+    newer.gameData.players[playerKey].fullName = "Newer Name";
+    newer.gameData.teams.home.name = "Newer Team Name";
+    for (const f of [newer, older]) {
+      await storeFeed(conn, f);
+      await deriveGame(conn, f.gamePk);
+    }
+
+    const [player] = await rows(conn, "SELECT full_name, source_game_pk FROM players WHERE player_id = $playerId", {
+      playerId: newer.gameData.players[playerKey].id,
+    });
+    const [team] = await rows(conn, "SELECT name, source_game_pk FROM teams WHERE team_id = $teamId", {
+      teamId: newer.gameData.teams.home.id,
+    });
+    expect(player).toEqual({ full_name: "Newer Name", source_game_pk: 2 });
+    expect(team).toEqual({ name: "Newer Team Name", source_game_pk: 2 });
     conn.closeSync();
   });
 });
