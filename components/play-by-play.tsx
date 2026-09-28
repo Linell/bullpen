@@ -1,5 +1,6 @@
 import { ArrowLeftRight, ChevronDown } from "lucide-react";
 import { Fragment } from "react";
+import { PlayerLink } from "@/components/player-link";
 import { StrikeZone, RESULT_FILL } from "@/components/strike-zone";
 import { Abbr } from "@/components/ui/abbr";
 import { Badge } from "@/components/ui/badge";
@@ -48,11 +49,19 @@ function StepItem({ step }: { step: Step }) {
   return <li className="pl-7 italic opacity-70">{step.description}</li>;
 }
 
-function Summary({ pa, away, home }: { pa: PlateAppearance; away: Team; home: Team }) {
+type Sides = { away: Team; home: Team; season: number };
+
+function Summary({ pa, away, home, season }: Sides & { pa: PlateAppearance }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-1">
       <span className="text-xs opacity-70">
-        {pa.batter} vs. {pa.pitcher}
+        <PlayerLink playerId={pa.batter.id} role="hitting" season={season}>
+          {pa.batter.name}
+        </PlayerLink>{" "}
+        vs.{" "}
+        <PlayerLink playerId={pa.pitcher.id} role="pitching" season={season}>
+          {pa.pitcher.name}
+        </PlayerLink>
       </span>
       <span className="text-sm">{pa.description}</span>
       {pa.score && (
@@ -64,24 +73,30 @@ function Summary({ pa, away, home }: { pa: PlateAppearance; away: Team; home: Te
   );
 }
 
-function PitchingChangeItem({ change }: { change: PitchingChange }) {
+function PitchingChangeItem({ change, season }: { change: PitchingChange; season: number }) {
   return (
     <li className="flex items-center gap-2 border-t-2 border-border py-1.5 text-xs opacity-70 first:border-t-0">
       <ArrowLeftRight className="size-3.5 shrink-0" aria-hidden />
       <span>
-        {change.incoming} replaces {change.outgoing}
+        <PlayerLink playerId={change.incoming.id} role="pitching" season={season}>
+          {change.incoming.name}
+        </PlayerLink>{" "}
+        replaces{" "}
+        <PlayerLink playerId={change.outgoing.id} role="pitching" season={season}>
+          {change.outgoing.name}
+        </PlayerLink>
       </span>
     </li>
   );
 }
 
-function PlateAppearanceItem({ pa, away, home }: { pa: PlateAppearance; away: Team; home: Team }) {
+function PlateAppearanceItem({ pa, away, home, season }: Sides & { pa: PlateAppearance }) {
   const pitches = pa.steps.filter((step) => step.kind === "pitch");
 
   if (pa.steps.length === 0) {
     return (
       <li className="border-t-2 border-border py-3 first:border-t-0">
-        <Summary pa={pa} away={away} home={home} />
+        <Summary pa={pa} away={away} home={home} season={season} />
       </li>
     );
   }
@@ -90,7 +105,7 @@ function PlateAppearanceItem({ pa, away, home }: { pa: PlateAppearance; away: Te
     <li className="border-t-2 border-border first:border-t-0">
       <details className="group">
         <summary className="flex cursor-pointer list-none items-start gap-3 py-3 [&::-webkit-details-marker]:hidden">
-          <Summary pa={pa} away={away} home={home} />
+          <Summary pa={pa} away={away} home={home} season={season} />
           <ChevronDown className="mt-1 size-4 shrink-0 transition-transform group-open:rotate-180" />
         </summary>
         <div className="flex items-start gap-4 pb-4">
@@ -110,11 +125,8 @@ export function PlayByPlay({
   halfInnings,
   away,
   home,
-}: {
-  halfInnings: HalfInning[];
-  away: Team;
-  home: Team;
-}) {
+  season,
+}: Sides & { halfInnings: HalfInning[] }) {
   return (
     <section className="flex flex-col gap-6">
       {halfInnings.map((h) => (
@@ -129,8 +141,8 @@ export function PlayByPlay({
             <ol>
               {h.plateAppearances.map((pa) => (
                 <Fragment key={pa.atBatIndex}>
-                  {pa.pitchingChange && <PitchingChangeItem change={pa.pitchingChange} />}
-                  <PlateAppearanceItem pa={pa} away={away} home={home} />
+                  {pa.pitchingChange && <PitchingChangeItem change={pa.pitchingChange} season={season} />}
+                  <PlateAppearanceItem pa={pa} away={away} home={home} season={season} />
                 </Fragment>
               ))}
             </ol>

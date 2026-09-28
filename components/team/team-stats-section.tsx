@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { PlayerLink } from "@/components/player-link";
 import { Abbr } from "@/components/ui/abbr";
 import { StatComparison, type ComparedStat } from "@/components/team/stat-comparison";
 import { StatTable, type StatColumn } from "@/components/team/stat-table";
@@ -90,7 +91,7 @@ function StatGroup({ title, children }: { title: string; children: ReactNode }) 
   );
 }
 
-export function TeamStatsSection({ stats }: { stats: TeamStats }) {
+export function TeamStatsSection({ stats, season }: { stats: TeamStats; season?: number }) {
   const { batting, battingSplits, pitching, pitchMix, leaders } = stats;
 
   const splits: Split[] = [
@@ -149,7 +150,11 @@ export function TeamStatsSection({ stats }: { stats: TeamStats }) {
           rowLabel="Player"
           rows={leaders.hitters}
           rowKey={(r) => r.playerId}
-          rowName={(r) => r.name}
+          rowName={(r) => (
+            <PlayerLink playerId={r.playerId} role="hitting" season={season}>
+              {r.name}
+            </PlayerLink>
+          )}
           columns={hitterColumns}
         />
         <StatTable
@@ -157,7 +162,11 @@ export function TeamStatsSection({ stats }: { stats: TeamStats }) {
           rowLabel="Player"
           rows={leaders.pitchers}
           rowKey={(r) => r.playerId}
-          rowName={(r) => r.name}
+          rowName={(r) => (
+            <PlayerLink playerId={r.playerId} role="pitching" season={season}>
+              {r.name}
+            </PlayerLink>
+          )}
           columns={pitcherColumns}
         />
       </StatGroup>

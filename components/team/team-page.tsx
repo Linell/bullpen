@@ -5,11 +5,11 @@ import { GameCardSkeleton } from "@/components/game-card";
 import { DivisionStandings } from "@/components/team/division-standings";
 import { SeasonPicker } from "@/components/team/season-picker";
 import { TeamHeader, TeamHeaderSkeleton } from "@/components/team/team-header";
-import { teamPath } from "@/components/team/team-link";
 import { TeamSchedule } from "@/components/team/team-schedule";
 import { TeamStatsSection } from "@/components/team/team-stats-section";
 import { TeamTrendsSection } from "@/components/team/team-trends-section";
 import { CardSkeleton } from "@/components/ui/skeleton";
+import { teamPath } from "@/lib/routes";
 import { SEASON_RE, TEAM_ID_RE } from "@/lib/team-id";
 import { getTeamStats } from "@/lib/stats/team";
 import { getTeamSeasons, getTeamSummary, type TeamSummary } from "@/lib/team-summary";
@@ -70,7 +70,7 @@ async function TeamContent({ team }: { team: Promise<LoadedTeam> }) {
         standings={summary.standings}
       />
       <Suspense fallback={<CardSkeleton className="h-64" />}>
-        <TeamStats teamId={id} season={season} />
+        <TeamStats teamId={id} season={season} isCurrentSeason={isCurrentSeason} />
       </Suspense>
       <Suspense fallback={<CardSkeleton className="h-64" />}>
         <TeamTrends teamId={id} season={season} isCurrentSeason={isCurrentSeason} />
@@ -79,8 +79,17 @@ async function TeamContent({ team }: { team: Promise<LoadedTeam> }) {
   );
 }
 
-async function TeamStats({ teamId, season }: { teamId: number; season: number }) {
-  return <TeamStatsSection stats={await getTeamStats(teamId, season)} />;
+async function TeamStats({
+  teamId,
+  season,
+  isCurrentSeason,
+}: {
+  teamId: number;
+  season: number;
+  isCurrentSeason: boolean;
+}) {
+  const stats = await getTeamStats(teamId, season);
+  return <TeamStatsSection stats={stats} season={isCurrentSeason ? undefined : season} />;
 }
 
 async function TeamTrends({
@@ -92,7 +101,8 @@ async function TeamTrends({
   season: number;
   isCurrentSeason: boolean;
 }) {
-  return <TeamTrendsSection trends={await getTeamTrends(teamId, season, { isCurrentSeason })} />;
+  const trends = await getTeamTrends(teamId, season, { isCurrentSeason });
+  return <TeamTrendsSection trends={trends} season={isCurrentSeason ? undefined : season} />;
 }
 
 function TeamFallback() {

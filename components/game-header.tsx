@@ -1,5 +1,6 @@
 import { Countdown } from "@/components/countdown";
 import { Diamond } from "@/components/diamond";
+import { PlayerLink } from "@/components/player-link";
 import { StatusBadge } from "@/components/status-badge";
 import { TeamLink } from "@/components/team/team-link";
 import { Abbr } from "@/components/ui/abbr";
@@ -9,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatOfficialDate, formatShortDate } from "@/lib/dates";
 import type { Decisions } from "@/lib/game-detail";
 import type { GlossaryTerm } from "@/lib/glossary";
+import type { PlayerRef } from "@/lib/player-ref";
 import type { Game, GameSide } from "@/lib/scoreboard";
 
 function TeamScore({ side }: { side: GameSide }) {
@@ -25,8 +27,8 @@ function TeamScore({ side }: { side: GameSide }) {
   );
 }
 
-function DecisionsLine({ decisions }: { decisions: Decisions }) {
-  const entries: [GlossaryTerm, string | undefined][] = [
+function DecisionsLine({ decisions, season }: { decisions: Decisions; season: number }) {
+  const entries: [GlossaryTerm, PlayerRef | undefined][] = [
     ["W", decisions.winner],
     ["L", decisions.loser],
     ["S", decisions.save],
@@ -35,13 +37,15 @@ function DecisionsLine({ decisions }: { decisions: Decisions }) {
   return (
     <p className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm">
       {entries.map(
-        ([label, name]) =>
-          name && (
+        ([label, pitcher]) =>
+          pitcher && (
             <span key={label}>
               <span className="font-heading">
                 <Abbr term={label} />:
               </span>{" "}
-              {name}
+              <PlayerLink playerId={pitcher.id} role="pitching" season={season}>
+                {pitcher.name}
+              </PlayerLink>
             </span>
           ),
       )}
@@ -79,7 +83,7 @@ export function GameHeader({ game, decisions }: { game: Game; decisions?: Decisi
             .filter(Boolean)
             .join(" · ")}
         </p>
-        {decisions && <DecisionsLine decisions={decisions} />}
+        {decisions && <DecisionsLine decisions={decisions} season={game.season} />}
       </CardContent>
     </Card>
   );

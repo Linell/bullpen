@@ -1,10 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { teamPath } from "@/lib/routes";
 import { cn } from "@/lib/utils";
-
-export function teamPath(teamId: number, season?: number) {
-  return season === undefined ? `/teams/${teamId}` : `/teams/${teamId}/${season}`;
-}
 
 export function TeamLink({
   teamId,

@@ -3,6 +3,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { readRows } from "@/lib/db";
 import { dayTag, GAMES_TAG } from "@/lib/cache-tags";
 import { isCompleted } from "@/lib/schedule";
+import { playerRef } from "@/lib/player-ref";
 import { postseasonLabel, score, toStatus, type Game, type Team } from "@/lib/scoreboard";
 
 export type GameQueryRow = {
@@ -30,7 +31,9 @@ export type GameQueryRow = {
   venue_name: string | null;
   home_record: string | null;
   away_record: string | null;
+  home_probable_id: number | null;
   home_probable_name: string | null;
+  away_probable_id: number | null;
   away_probable_name: string | null;
   home_name: string | null;
   home_abbr: string | null;
@@ -43,7 +46,7 @@ const GAME_COLUMNS = `
   g.double_header, strftime(g.rescheduled_from, '%Y-%m-%d') AS rescheduled_from,
   g.abstract_state, g.coded_state, g.detailed_state, g.home_team_id, g.away_team_id,
   g.home_score, g.away_score, g.inning, g.inning_half, g.venue_name, g.home_record, g.away_record,
-  g.home_probable_name, g.away_probable_name,
+  g.home_probable_id, g.home_probable_name, g.away_probable_id, g.away_probable_name,
   g.outs, g.on_first, g.on_second, g.on_third,
   epoch_ms(g.start_utc)::DOUBLE AS start_ms`;
 
@@ -85,6 +88,7 @@ export function toGame(r: GameQueryRow): Game {
   return {
     id: String(r.game_pk),
     gamePk: r.game_pk,
+    season: r.season,
     officialDate: r.official_date,
     gameNumber: r.game_number,
     doubleHeader: r.double_header === "Y" || r.double_header === "S",
@@ -97,12 +101,12 @@ export function toGame(r: GameQueryRow): Game {
     away: {
       team: team(r.away_team_id, r.away_name, r.away_abbr, r.away_record),
       score: score(status, r.away_score),
-      probable: r.away_probable_name ?? undefined,
+      probable: playerRef(r.away_probable_id, r.away_probable_name),
     },
     home: {
       team: team(r.home_team_id, r.home_name, r.home_abbr, r.home_record),
       score: score(status, r.home_score),
-      probable: r.home_probable_name ?? undefined,
+      probable: playerRef(r.home_probable_id, r.home_probable_name),
     },
   };
 }

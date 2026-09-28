@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { teamPath } from "@/components/team/team-link";
 import { buttonVariants } from "@/components/ui/button";
+import { teamPath } from "@/lib/routes";
 
 export function SeasonPicker({
   teamId,

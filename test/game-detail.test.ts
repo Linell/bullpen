@@ -68,7 +68,7 @@ describe("getGameDetail", () => {
     const detail = await getGameDetail(4);
 
     expect(detail?.starters.home).toEqual({
-      name: "Cole, G",
+      pitcher: { id: COLE, name: "Cole, G" },
       hand: "R",
       wins: 2,
       losses: 1,

@@ -3,6 +3,7 @@ import { TeamLink } from "@/components/team/team-link";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatShortDate } from "@/lib/dates";
 import type { Form, SeriesRecord, TeamResult } from "@/lib/matchup";
+import { gamePath } from "@/lib/routes";
 import type { Team } from "@/lib/scoreboard";
 import { cn } from "@/lib/utils";
 
@@ -13,7 +14,7 @@ function resultLabel(r: TeamResult) {
 function ResultPip({ result }: { result: TeamResult }) {
   return (
     <Link
-      href={`/games/${result.gamePk}`}
+      href={gamePath(result.gamePk)}
       title={`${formatShortDate(result.officialDate)} · ${resultLabel(result)}`}
       className={cn(
         "flex aspect-square items-center justify-center rounded-base border-2 border-border text-xs font-heading",
@@ -56,7 +57,7 @@ function SeasonSeries({ away, results }: { away: Team; results: TeamResult[] }) 
       {results.map((r) => (
         <li key={r.gamePk} className="border-t-2 border-border first:border-t-0">
           <Link
-            href={`/games/${r.gamePk}`}
+            href={gamePath(r.gamePk)}
             className="flex justify-between gap-2 py-1.5 hover:underline"
           >
             <span className="opacity-70">{formatShortDate(r.officialDate)}</span>

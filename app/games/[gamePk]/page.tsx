@@ -61,15 +61,32 @@ async function GameContent({ params }: GameParams) {
       <h1 className="sr-only">{gameTitle(game)}</h1>
       <GameHeader game={game} decisions={decisions} />
       {isScheduled && (
-        <Starters title="Probable starters" away={away.team} home={home.team} starters={starters} />
+        <Starters
+          title="Probable starters"
+          away={away.team}
+          home={home.team}
+          season={game.season}
+          starters={starters}
+        />
       )}
       {!hasStarted && matchup}
       {linescore && <LinescoreTable linescore={linescore} away={away.team} home={home.team} />}
       {hasStarted && (
-        <Starters title="Starters" away={away.team} home={home.team} starters={starters} />
+        <Starters
+          title="Starters"
+          away={away.team}
+          home={home.team}
+          season={game.season}
+          starters={starters}
+        />
       )}
       {halfInnings.length > 0 ? (
-        <PlayByPlay halfInnings={halfInnings} away={away.team} home={home.team} />
+        <PlayByPlay
+          halfInnings={halfInnings}
+          away={away.team}
+          home={home.team}
+          season={game.season}
+        />
       ) : hasStarted ? (
         <Card>
           <CardContent>

@@ -1,3 +1,5 @@
+import type { PlayerRef } from "@/lib/player-ref";
+
 export type Team = {
   id: number;
   name: string;
@@ -21,12 +23,13 @@ export type GameStatus =
 export type GameSide = {
   team: Team;
   score?: number;
-  probable?: string;
+  probable?: PlayerRef;
 };
 
 export type Game = {
   id: string;
   gamePk: number;
+  season: number;
   officialDate: string;
   gameNumber: number;
   doubleHeader: boolean;

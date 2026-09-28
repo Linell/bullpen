@@ -1,3 +1,4 @@
+import { PlayerLink } from "@/components/player-link";
 import { Abbr } from "@/components/ui/abbr";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -131,7 +132,7 @@ function AbsChallengesCard({ abs }: { abs: AbsChallenges }) {
   );
 }
 
-function BullpenWorkloadTable({ relievers }: { relievers: RelieverWorkload[] }) {
+function BullpenWorkloadTable({ relievers, season }: { relievers: RelieverWorkload[]; season?: number }) {
   return (
     <Card size="sm">
       <CardContent className="flex flex-col gap-3">
@@ -153,7 +154,9 @@ function BullpenWorkloadTable({ relievers }: { relievers: RelieverWorkload[] }) 
               {relievers.map((r) => (
                 <TableRow key={r.pitcherId}>
                   <TableHead scope="row" className={rowHeader}>
-                    {r.name}
+                    <PlayerLink playerId={r.pitcherId} role="pitching" season={season}>
+                      {r.name}
+                    </PlayerLink>
                   </TableHead>
                   <TableCell className={cell}>{r.last3Days}</TableCell>
                   <TableCell className={cell}>{r.last7Days}</TableCell>
@@ -167,7 +170,7 @@ function BullpenWorkloadTable({ relievers }: { relievers: RelieverWorkload[] }) 
   );
 }
 
-export function TeamTrendsSection({ trends }: { trends: TeamTrends }) {
+export function TeamTrendsSection({ trends, season }: { trends: TeamTrends; season?: number }) {
   return (
     <section className="flex flex-col gap-4" aria-label="Team trends">
       <Card size="sm">
@@ -181,7 +184,7 @@ export function TeamTrendsSection({ trends }: { trends: TeamTrends }) {
         <InningRunsTable innings={trends.runsByInning} />
         <AbsChallengesCard abs={trends.absChallenges} />
       </div>
-      {trends.bullpenWorkload && <BullpenWorkloadTable relievers={trends.bullpenWorkload} />}
+      {trends.bullpenWorkload && <BullpenWorkloadTable relievers={trends.bullpenWorkload} season={season} />}
     </section>
   );
 }

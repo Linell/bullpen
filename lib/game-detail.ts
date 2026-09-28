@@ -13,16 +13,17 @@ import {
 } from "@/lib/matchup";
 import { toLinescore, type Linescore, type LinescoreRow } from "@/lib/linescore";
 import { toHalfInnings, type HalfInning, type PlayRow, type StepRow } from "@/lib/play-by-play";
+import { playerRef, type PlayerRef } from "@/lib/player-ref";
 import type { Game } from "@/lib/scoreboard";
 
 export type Decisions = {
-  winner: string;
-  loser?: string;
-  save?: string;
+  winner: PlayerRef;
+  loser?: PlayerRef;
+  save?: PlayerRef;
 };
 
 export type Starter = {
-  name?: string;
+  pitcher?: PlayerRef;
   hand?: string;
   wins: number;
   losses: number;
@@ -42,15 +43,21 @@ export type GameDetail = {
 };
 
 type GameWithDecisionsRow = GameQueryRow & {
+  winner_id: number | null;
   winner: string | null;
+  loser_id: number | null;
   loser: string | null;
+  save_id: number | null;
   save: string | null;
 };
 
 type FormRow = GameQueryRow & { team_id: number };
 
 const GAME_QUERY = `
-  SELECT game.*, w.full_name AS winner, l.full_name AS loser, s.full_name AS save
+  SELECT game.*,
+    w.player_id AS winner_id, w.full_name AS winner,
+    l.player_id AS loser_id, l.full_name AS loser,
+    s.player_id AS save_id, s.full_name AS save
   FROM (${GAMES_SELECT} WHERE g.game_pk = $gamePk::INTEGER) game
   LEFT JOIN game_decisions d USING (game_pk)
   LEFT JOIN players w ON w.player_id = d.winner_id
@@ -64,6 +71,7 @@ const LINESCORE_QUERY = `
 
 const PLAYS_QUERY = `
   SELECT p.at_bat_index, p.inning, p.half::VARCHAR AS half,
+    p.batter_id,
     coalesce(b.boxscore_name, b.full_name, 'Player ' || p.batter_id::VARCHAR) AS batter_name,
     p.pitcher_id,
     coalesce(m.boxscore_name, m.full_name, 'Player ' || p.pitcher_id::VARCHAR) AS pitcher_name,
@@ -125,7 +133,7 @@ const STARTERS_QUERY = `
     SELECT g.game_pk FROM games g, cur
     WHERE g.season = cur.season AND g.start_utc < cur.start_utc
   )
-  SELECT sides.side,
+  SELECT sides.side, sides.pitcher_id,
     coalesce(p.boxscore_name, p.full_name, CASE WHEN sides.pitcher_id = sides.probable_id THEN sides.probable_name END) AS name,
     p.pitch_hand::VARCHAR AS hand,
     (SELECT count(*) FROM game_decisions d JOIN prior USING (game_pk) WHERE d.winner_id = sides.pitcher_id)::INTEGER AS wins,
@@ -138,6 +146,7 @@ const STARTERS_QUERY = `
 
 type StarterRow = {
   side: "home" | "away";
+  pitcher_id: number | null;
   name: string | null;
   hand: string | null;
   wins: number;
@@ -149,7 +158,7 @@ type StarterRow = {
 function toStarter(rows: StarterRow[], side: StarterRow["side"]): Starter {
   const row = rows.find((r) => r.side === side);
   return {
-    name: row?.name ?? undefined,
+    pitcher: row && playerRef(row.pitcher_id, row.name),
     hand: row?.hand ?? undefined,
     wins: row?.wins ?? 0,
     losses: row?.losses ?? 0,
@@ -166,8 +175,13 @@ function toForm(rows: FormRow[], teamId: number): Form {
 }
 
 function toDecisions(row: GameWithDecisionsRow): Decisions | undefined {
-  if (!row.winner) return undefined;
-  return { winner: row.winner, loser: row.loser ?? undefined, save: row.save ?? undefined };
+  const winner = playerRef(row.winner_id, row.winner);
+  if (!winner) return undefined;
+  return {
+    winner,
+    loser: playerRef(row.loser_id, row.loser),
+    save: playerRef(row.save_id, row.save),
+  };
 }
 
 export async function getGameDetail(gamePk: number): Promise<GameDetail | undefined> {

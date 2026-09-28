@@ -42,6 +42,7 @@ function play(at_bat_index: number, inning: number, half: "top" | "bottom", pitc
     at_bat_index,
     inning,
     half,
+    batter_id: 100,
     batter_name: "Batter",
     pitcher_id,
     pitcher_name: `Pitcher${pitcher_id}, P`,
@@ -112,8 +113,8 @@ describe("toHalfInnings", () => {
     expect(halves.flatMap((h) => h.plateAppearances.map((pa) => pa.pitchingChange))).toEqual([
       undefined,
       undefined,
-      { incoming: "Pitcher3", outgoing: "Pitcher2" },
-      { incoming: "Pitcher4", outgoing: "Pitcher1" },
+      { incoming: { id: 3, name: "Pitcher3" }, outgoing: { id: 2, name: "Pitcher2" } },
+      { incoming: { id: 4, name: "Pitcher4" }, outgoing: { id: 1, name: "Pitcher1" } },
       undefined,
     ]);
   });

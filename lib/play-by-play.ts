@@ -1,9 +1,12 @@
+import type { PlayerRef } from "@/lib/player-ref";
+
 export type Half = "top" | "bottom";
 
 export type PlayRow = {
   at_bat_index: number;
   inning: number;
   half: Half;
+  batter_id: number;
   batter_name: string;
   pitcher_id: number;
   pitcher_name: string;
@@ -73,14 +76,14 @@ export type PlayEvent = {
 export type Step = Pitch | PlayEvent;
 
 export type PitchingChange = {
-  incoming: string;
-  outgoing: string;
+  incoming: PlayerRef;
+  outgoing: PlayerRef;
 };
 
 export type PlateAppearance = {
   atBatIndex: number;
-  batter: string;
-  pitcher: string;
+  batter: PlayerRef;
+  pitcher: PlayerRef;
   pitchingChange?: PitchingChange;
   description: string | null;
   score?: { away: number; home: number };
@@ -177,15 +180,18 @@ function groupBy<T>(rows: T[], key: (row: T) => number) {
 
 function toPitchingChange(play: PlayRow, previous: PlayRow | undefined): PitchingChange | undefined {
   if (!previous || previous.pitcher_id === play.pitcher_id) return undefined;
-  return { incoming: play.pitcher_last_name, outgoing: previous.pitcher_last_name };
+  return {
+    incoming: { id: play.pitcher_id, name: play.pitcher_last_name },
+    outgoing: { id: previous.pitcher_id, name: previous.pitcher_last_name },
+  };
 }
 
 function toPlateAppearance(play: PlayRow, previous: PlayRow | undefined, steps: StepRow[]): PlateAppearance {
   const { away_score_after: away, home_score_after: home } = play;
   return {
     atBatIndex: play.at_bat_index,
-    batter: play.batter_name,
-    pitcher: play.pitcher_name,
+    batter: { id: play.batter_id, name: play.batter_name },
+    pitcher: { id: play.pitcher_id, name: play.pitcher_name },
     pitchingChange: toPitchingChange(play, previous),
     description: play.description,
     score: play.is_scoring_play && away != null && home != null ? { away, home } : undefined,
