@@ -2,8 +2,8 @@ import "server-only";
 import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import { GameCardSkeleton } from "@/components/game-card";
+import { SeasonSwitcher } from "@/components/season-switcher";
 import { DivisionStandings } from "@/components/team/division-standings";
-import { SeasonPicker } from "@/components/team/season-picker";
 import { TeamHeader, TeamHeaderSkeleton } from "@/components/team/team-header";
 import { TeamSchedule } from "@/components/team/team-schedule";
 import { TeamStatsSection } from "@/components/team/team-stats-section";
@@ -58,11 +58,18 @@ async function TeamContent({ team }: { team: Promise<LoadedTeam> }) {
   const { summary, seasons, isCurrentSeason } = await team;
   const { id } = summary.team;
   const { season } = summary;
+  const [currentSeason] = seasons;
 
   return (
     <>
       <TeamHeader summary={summary} />
-      {seasons.length > 1 && <SeasonPicker teamId={id} seasons={seasons} season={season} />}
+      {seasons.length > 1 && (
+        <SeasonSwitcher
+          seasons={seasons}
+          season={season}
+          href={(s) => teamPath(id, s === currentSeason ? undefined : s)}
+        />
+      )}
       <TeamSchedule recent={summary.recentGames} upcoming={summary.upcomingGames} />
       <DivisionStandings
         title={summary.team.division ?? "Division"}

@@ -1,24 +1,21 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
-import { teamPath } from "@/lib/routes";
 
-export function SeasonPicker({
-  teamId,
+export function SeasonSwitcher({
   seasons,
   season,
+  href,
 }: {
-  teamId: number;
   seasons: number[];
   season: number;
+  href: (season: number) => string;
 }) {
-  const [currentSeason] = seasons;
-
   return (
     <nav aria-label="Seasons" className="flex flex-wrap gap-2">
       {seasons.map((s) => (
         <Link
           key={s}
-          href={teamPath(teamId, s === currentSeason ? undefined : s)}
+          href={href(s)}
           aria-current={s === season ? "page" : undefined}
           className={buttonVariants({ variant: s === season ? "noShadow" : "neutral", size: "xs" })}
         >

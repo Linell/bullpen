@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { PlayerLink } from "@/components/player-link";
 import { Abbr } from "@/components/ui/abbr";
 import { StatComparison, type ComparedStat } from "@/components/team/stat-comparison";
-import { StatTable, type StatColumn } from "@/components/team/stat-table";
+import { StatTable, type StatColumn } from "@/components/stat-table";
 import { formatAverage, formatCount, formatDecimal, formatInnings, formatPercent } from "@/lib/format";
 import type { BattingStats, PitchingStats } from "@/lib/stats/rates";
 import type { HitterLeader, PitcherLeader, PitchMixEntry, TeamStats } from "@/lib/stats/team";
