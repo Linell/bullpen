@@ -5,15 +5,17 @@ import { cn } from "@/lib/utils";
 
 export function TeamLink({
   teamId,
+  season,
   className,
   children,
 }: {
   teamId: number;
+  season?: number;
   className?: string;
   children: ReactNode;
 }) {
   return (
-    <Link href={teamPath(teamId)} className={cn("hover:underline", className)}>
+    <Link href={teamPath(teamId, season)} className={cn("hover:underline", className)}>
       {children}
     </Link>
   );

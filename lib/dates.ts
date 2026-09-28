@@ -63,3 +63,8 @@ export function formatCountdown(ms: number) {
   if (days > 0) return `${days}d ${hours}h`;
   return hours > 0 ? `${hours}h ${minutes % 60}m` : `${minutes}m`;
 }
+
+export function ageOn(birthDate: string, date: string) {
+  const years = Number(date.slice(0, 4)) - Number(birthDate.slice(0, 4));
+  return date.slice(5) < birthDate.slice(5) ? years - 1 : years;
+}
