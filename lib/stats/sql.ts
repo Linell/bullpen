@@ -1,0 +1,43 @@
+export const REGULAR_SEASON = `season = $season::INTEGER AND game_type = 'R' AND coded_state IN ('F', 'O', 'Q', 'R')`;
+
+export const REGULAR_SEASON_GAMES = `SELECT game_pk FROM games WHERE ${REGULAR_SEASON}`;
+
+export const BATTING_COUNTS = `
+  count(*) AS plate_appearances,
+  count(*) FILTER (is_at_bat) AS at_bats,
+  count(*) FILTER (bases > 0) AS hits,
+  sum(bases) AS total_bases,
+  count(*) FILTER (bases = 4) AS home_runs,
+  count(*) FILTER (is_walk) AS walks,
+  count(*) FILTER (event_type = 'hit_by_pitch') AS hit_by_pitch,
+  count(*) FILTER (event_type LIKE 'sac_fly%') AS sac_flies,
+  count(*) FILTER (is_strikeout) AS strikeouts,
+  count(launch_speed) AS batted_balls,
+  count(*) FILTER (launch_speed >= 95) AS hard_hits,
+  avg(launch_speed) AS exit_velocity`;
+
+export const SWING_DECISION_COUNTS = `
+  count(*) FILTER (NOT is_in_zone) AS out_of_zone_pitches,
+  count(*) FILTER (NOT is_in_zone AND is_swing) AS chases,
+  count(*) FILTER (is_in_zone AND is_swing) AS zone_swings,
+  count(*) FILTER (is_in_zone AND is_swing AND NOT is_whiff) AS zone_contacts`;
+
+export const PITCH_COUNTS = `
+  count(*) AS pitches,
+  count(*) FILTER (is_swing) AS swings,
+  count(*) FILTER (is_whiff) AS whiffs,
+  count(*) FILTER (is_called_strike) AS called_strikes,
+  avg(start_speed) FILTER (is_fastball) AS fastball_velocity`;
+
+export const PITCHING_COUNTS = `
+  sum(batters_faced) AS batters_faced,
+  sum(outs) AS outs,
+  sum(runs) AS runs,
+  sum(earned_runs) AS earned_runs,
+  sum(hits) AS hits,
+  sum(walks) AS walks,
+  sum(strikeouts) AS strikeouts`;
+
+export function withNumbers(query: string, labels: string[]) {
+  return `SELECT ${labels.join(", ")}, COLUMNS(* EXCLUDE (${labels.join(", ")}))::DOUBLE FROM (${query})`;
+}

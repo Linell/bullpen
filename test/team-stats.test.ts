@@ -6,7 +6,7 @@ process.env.DUCKDB_URL = ":memory:";
 
 const { withConnection } = await import("@/lib/db");
 const { migrate } = await import("@/lib/migrate");
-const { getTeamStats } = await import("@/lib/team-stats");
+const { getTeamStats } = await import("@/lib/stats/team");
 
 const HOME = 110;
 const AWAY = 141;
@@ -58,6 +58,27 @@ const pitches: Pitch[] = [
   [9, 2, 3, "S", "FF", 94],
 ];
 
+type BoxLine = [
+  game: number,
+  pitcher: number,
+  team: number,
+  isStarter: boolean,
+  outs: number,
+  battersFaced: number,
+  hits: number,
+  runs: number,
+  earnedRuns: number,
+  walks: number,
+  strikeouts: number,
+];
+
+const boxLines: BoxLine[] = [
+  [FINAL, STARTER, HOME, true, 1, 3, 1, 1, 1, 1, 1],
+  [FINAL, RELIEVER, HOME, false, 2, 3, 1, 1, 0, 0, 1],
+  [FINAL, 20, AWAY, true, 3, 4, 2, 0, 0, 0, 1],
+  [IN_PROGRESS, STARTER, HOME, true, 0, 1, 1, 1, 1, 0, 0],
+];
+
 function playRow([game, atBat, half, batter, pitcher, hand, menOn, event, launch, outs, awayScore]: Play) {
   return `(${game}, 2026, ${atBat}, 1, '${half}', ${batter}, ${pitcher}, '${hand}', '${menOn}', '${event}',
     ${launch ?? "NULL"}, ${outs}, 0, ${awayScore}, 1)`;
@@ -65,6 +86,11 @@ function playRow([game, atBat, half, batter, pitcher, hand, menOn, event, launch
 
 function pitchRow([atBat, index, zone, call, type, speed]: Pitch) {
   return `(${FINAL}, 2026, ${atBat}, ${index}, 1, 'bottom', 0, 20, 0, 0, 0, ${zone}, '${call}', '${type}', ${speed}, false)`;
+}
+
+function boxRow([game, pitcher, team, isStarter, outs, battersFaced, hits, runs, earnedRuns, walks, strikeouts]: BoxLine) {
+  return `(${game}, 2026, ${pitcher}, ${team}, ${isStarter}, ${outs}, ${battersFaced}, 0, 0, ${hits}, ${runs}, ${earnedRuns},
+    0, ${walks}, 0, ${strikeouts}, 0, 0, 0, 0, 0, false, false, false, false, false)`;
 }
 
 beforeAll(async () => {
@@ -81,6 +107,7 @@ beforeAll(async () => {
     await conn.run(`INSERT INTO pitches (game_pk, season, at_bat_index, pitch_index, inning, half, batter_id,
         pitcher_id, balls_before, strikes_before, outs_before, zone, call_code, pitch_type, start_speed, abs_challenged)
       VALUES ${pitches.map(pitchRow).join(",")}`);
+    await conn.run(`INSERT INTO player_game_pitching VALUES ${boxLines.map(boxRow).join(",")}`);
     await conn.run(`INSERT INTO game_player_bios (player_id, full_name, game_pk, source_date, source_game_number)
       VALUES (${STARTER}, 'Sam Starter', 1, '2026-09-20', 1), (10, 'Lead Off', 1, '2026-09-20', 1)`);
   });
@@ -118,13 +145,13 @@ describe("getTeamStats", () => {
     expect(battingSplits.basesEmpty).toMatchObject({ plateAppearances: 2, avg: 1 });
   });
 
-  it("charges runs and outs to starters and the bullpen", async () => {
+  it("charges runs and outs to starters and the bullpen from the box score", async () => {
     const { pitching } = await getTeamStats(HOME, 2026);
 
-    expect(pitching.team).toMatchObject({ battersFaced: 6, inningsPitched: 1, ra9: 18, whip: 3 });
+    expect(pitching.team).toMatchObject({ battersFaced: 6, inningsPitched: 1, era: 9, ra9: 18, whip: 3 });
     expect(pitching.team.strikeoutRate).toBeCloseTo(1 / 3);
-    expect(pitching.starters).toMatchObject({ battersFaced: 3, ra9: 27 });
-    expect(pitching.bullpen).toMatchObject({ battersFaced: 3, ra9: 13.5 });
+    expect(pitching.starters).toMatchObject({ battersFaced: 3, era: 27, ra9: 27 });
+    expect(pitching.bullpen).toMatchObject({ battersFaced: 3, era: 0, ra9: 13.5 });
     expect(pitching.league).toMatchObject({ battersFaced: 5, inningsPitched: 1, ra9: 9 });
   });
 
@@ -132,6 +159,7 @@ describe("getTeamStats", () => {
     const { pitching, pitchMix } = await getTeamStats(AWAY, 2026);
 
     expect(pitching.team).toMatchObject({ ra9: 0, whiffRate: 0.5, cswRate: 0.5, fastballVelocity: 95.5 });
+    expect(pitching.starters.whiffRate).toBe(0.5);
     expect(pitchMix.map((p) => [p.pitchType, p.pitches, p.usage])).toEqual([
       ["FF", 4, 0.5],
       ["SL", 3, 0.375],

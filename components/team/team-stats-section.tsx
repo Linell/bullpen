@@ -3,14 +3,8 @@ import { Abbr } from "@/components/ui/abbr";
 import { StatComparison, type ComparedStat } from "@/components/team/stat-comparison";
 import { StatTable, type StatColumn } from "@/components/team/stat-table";
 import { formatAverage, formatCount, formatDecimal, formatInnings, formatPercent } from "@/lib/format";
-import type {
-  BattingStats,
-  HitterLeader,
-  PitcherLeader,
-  PitchingStats,
-  PitchMixEntry,
-  TeamStats,
-} from "@/lib/team-stats";
+import type { BattingStats, PitchingStats } from "@/lib/stats/rates";
+import type { HitterLeader, PitcherLeader, PitchMixEntry, TeamStats } from "@/lib/stats/team";
 
 const formatWhole = (value: number | null) => formatDecimal(value, 0);
 const formatTwoDecimals = (value: number | null) => formatDecimal(value, 2);
