@@ -8,7 +8,7 @@ WITH parsed AS (
       "players": "MAP(VARCHAR, STRUCT(id INTEGER, fullName VARCHAR, firstName VARCHAR, lastName VARCHAR, boxscoreName VARCHAR, batSide STRUCT(code VARCHAR), pitchHand STRUCT(code VARCHAR), birthDate DATE, height VARCHAR, weight INTEGER, mlbDebutDate DATE, active BOOLEAN, strikeZoneTop DOUBLE, strikeZoneBottom DOUBLE))"
     },
     "liveData": {
-      "boxscore": {"teams": "MAP(VARCHAR, STRUCT(team STRUCT(id INTEGER), players MAP(VARCHAR, STRUCT(person STRUCT(id INTEGER), jerseyNumber VARCHAR, position STRUCT(abbreviation VARCHAR), battingOrder INTEGER, gameStatus STRUCT(isSubstitute BOOLEAN), allPositions STRUCT(abbreviation VARCHAR)[]))))"},
+      "boxscore": {"teams": "MAP(VARCHAR, STRUCT(team STRUCT(id INTEGER), players MAP(VARCHAR, STRUCT(person STRUCT(id INTEGER), jerseyNumber VARCHAR, position STRUCT(abbreviation VARCHAR), battingOrder INTEGER, gameStatus STRUCT(isSubstitute BOOLEAN), allPositions STRUCT(abbreviation VARCHAR)[], stats STRUCT(batting STRUCT(gamesPlayed INTEGER, plateAppearances INTEGER, atBats INTEGER, runs INTEGER, hits INTEGER, doubles INTEGER, triples INTEGER, homeRuns INTEGER, totalBases INTEGER, rbi INTEGER, baseOnBalls INTEGER, intentionalWalks INTEGER, strikeOuts INTEGER, hitByPitch INTEGER, sacFlies INTEGER, sacBunts INTEGER, stolenBases INTEGER, caughtStealing INTEGER, groundIntoDoublePlay INTEGER, leftOnBase INTEGER), pitching STRUCT(gamesPlayed INTEGER, gamesStarted INTEGER, outs INTEGER, battersFaced INTEGER, numberOfPitches INTEGER, strikes INTEGER, hits INTEGER, runs INTEGER, earnedRuns INTEGER, homeRuns INTEGER, baseOnBalls INTEGER, intentionalWalks INTEGER, strikeOuts INTEGER, hitBatsmen INTEGER, wildPitches INTEGER, balks INTEGER, inheritedRunners INTEGER, inheritedRunnersScored INTEGER, wins INTEGER, losses INTEGER, saves INTEGER, holds INTEGER, blownSaves INTEGER))))))"},
       "linescore": {"innings": [{
         "num": "INTEGER",
         "home": {"runs": "INTEGER", "hits": "INTEGER", "errors": "INTEGER", "leftOnBase": "INTEGER"},
@@ -105,6 +105,12 @@ DELETE FROM game_teams
 WHERE game_pk = $game_pk::INTEGER;
 
 DELETE FROM game_player_bios
+WHERE game_pk = $game_pk::INTEGER;
+
+DELETE FROM player_game_batting
+WHERE game_pk = $game_pk::INTEGER;
+
+DELETE FROM player_game_pitching
 WHERE game_pk = $game_pk::INTEGER;
 
 INSERT INTO plays BY NAME
@@ -310,23 +316,94 @@ SELECT
 FROM feed
 WHERE decisions.winner IS NOT NULL;
 
+CREATE OR REPLACE TEMP TABLE boxscore_players AS
+SELECT game_pk, season, box.value.team.id AS team_id, box.key AS side, player
+FROM feed,
+  unnest(map_entries(boxscore_teams)) AS sides(box),
+  unnest(map_values(box.value.players)) AS unnested(player)
+WHERE has_plays;
+
 INSERT INTO game_players BY NAME
 SELECT
   game_pk,
   season,
   player.person.id AS player_id,
-  box.value.team.id AS team_id,
-  box.key AS side,
+  team_id,
+  side,
   player.jerseyNumber AS jersey_number,
   player.position.abbreviation AS position,
   list_transform(player.allPositions, lambda p: p.abbreviation) AS all_positions,
   player.battingOrder AS batting_order,
   player.gameStatus.isSubstitute AS is_substitute,
   player.allPositions IS NOT NULL AS played
-FROM feed,
-  unnest(map_entries(boxscore_teams)) AS sides(box),
-  unnest(map_values(box.value.players)) AS unnested(player)
-WHERE has_plays;
+FROM boxscore_players;
+
+INSERT INTO player_game_batting BY NAME
+WITH batting AS (
+  SELECT game_pk, season, player.person.id AS player_id, team_id, player.stats.batting AS line
+  FROM boxscore_players
+  WHERE player.stats.batting.gamesPlayed > 0
+)
+SELECT
+  game_pk,
+  season,
+  player_id,
+  team_id,
+  line.plateAppearances AS plate_appearances,
+  line.atBats AS at_bats,
+  line.runs AS runs,
+  line.hits AS hits,
+  line.doubles AS doubles,
+  line.triples AS triples,
+  line.homeRuns AS home_runs,
+  line.totalBases AS total_bases,
+  line.rbi AS rbi,
+  line.baseOnBalls AS walks,
+  line.intentionalWalks AS intentional_walks,
+  line.strikeOuts AS strikeouts,
+  line.hitByPitch AS hit_by_pitch,
+  line.sacFlies AS sac_flies,
+  line.sacBunts AS sac_bunts,
+  line.stolenBases AS stolen_bases,
+  line.caughtStealing AS caught_stealing,
+  line.groundIntoDoublePlay AS grounded_into_double_play,
+  line.leftOnBase AS left_on_base
+FROM batting;
+
+INSERT INTO player_game_pitching BY NAME
+WITH pitching AS (
+  SELECT game_pk, season, player.person.id AS player_id, team_id, player.stats.pitching AS line
+  FROM boxscore_players
+  WHERE player.stats.pitching.gamesPlayed > 0
+)
+SELECT
+  game_pk,
+  season,
+  player_id,
+  team_id,
+  line.gamesStarted > 0 AS is_starter,
+  line.outs AS outs,
+  line.battersFaced AS batters_faced,
+  line.numberOfPitches AS pitches,
+  line.strikes AS strikes,
+  line.hits AS hits,
+  line.runs AS runs,
+  line.earnedRuns AS earned_runs,
+  line.homeRuns AS home_runs,
+  line.baseOnBalls AS walks,
+  line.intentionalWalks AS intentional_walks,
+  line.strikeOuts AS strikeouts,
+  line.hitBatsmen AS hit_batsmen,
+  line.wildPitches AS wild_pitches,
+  line.balks AS balks,
+  line.inheritedRunners AS inherited_runners,
+  line.inheritedRunnersScored AS inherited_runners_scored,
+  line.wins > 0 AS is_win,
+  line.losses > 0 AS is_loss,
+  line.saves > 0 AS is_save,
+  line.holds > 0 AS is_hold,
+  line.blownSaves > 0 AS is_blown_save
+FROM pitching;
 
 INSERT INTO game_teams BY NAME
 SELECT

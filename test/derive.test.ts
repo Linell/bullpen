@@ -30,6 +30,12 @@ function expected(feed: Feed) {
   };
 }
 
+function gameRow(feed: Feed) {
+  const { game, datetime, teams } = feed.gameData;
+  return `(${feed.gamePk}, ${game.season}, '${datetime.officialDate}', 'R', 1, 'Final', 'F', 'Final',
+    ${teams.home.id}, ${teams.away.id}, '${datetime.dateTime}', now())`;
+}
+
 function withTimeStamp(feed: Feed, timeStamp: string): Feed {
   return { ...feed, metaData: { ...feed.metaData, timeStamp } };
 }
@@ -63,6 +69,9 @@ describe("derive.sql", () => {
       firstRun.set(feed.gamePk, await deriveGame(conn, feed.gamePk));
     }
     firstGamePageCounts = await gamePageCounts(conn);
+    await conn.run(`INSERT INTO games (game_pk, season, official_date, game_type, game_number, abstract_state,
+        coded_state, detailed_state, home_team_id, away_team_id, start_utc, updated_at)
+      VALUES ${played.map(gameRow).join(",")}`);
   });
 
   it("has the fixtures it needs", () => {
@@ -316,6 +325,62 @@ describe("derive.sql", () => {
       { side: "home", pitcher_id: box.home.pitchers[0] },
       { side: "away", pitcher_id: box.away.pitchers[0] },
     ]);
+  });
+
+  it("knows every event type in the fixtures", async () => {
+    const unknown = await rows(
+      conn,
+      `SELECT DISTINCT event_type FROM (
+         SELECT event_type FROM plays UNION ALL SELECT event_type FROM play_events
+       )
+       WHERE event_type IS NOT NULL AND event_type NOT IN (SELECT event_type FROM event_types)`,
+    );
+    expect(unknown).toEqual([]);
+  });
+
+  it.each(played.map((f) => [f.gamePk, f]))("matches each batter's box score in game %i", async (gamePk) => {
+    const mismatches = await rows(
+      conn,
+      `WITH counted AS (
+         SELECT batter_id AS player_id, batting_team_id AS team_id,
+           count(*) AS plate_appearances,
+           count(*) FILTER (is_at_bat) AS at_bats,
+           count(*) FILTER (bases > 0) AS hits,
+           count(*) FILTER (bases = 4) AS home_runs,
+           sum(bases) AS total_bases,
+           count(*) FILTER (is_walk) AS walks,
+           count(*) FILTER (is_strikeout) AS strikeouts
+         FROM plate_appearances
+         WHERE game_pk = $gamePk
+         GROUP BY ALL
+       )
+       SELECT b.player_id, c.* EXCLUDE (player_id, team_id)
+       FROM player_game_batting b
+       LEFT JOIN counted c USING (player_id, team_id)
+       WHERE b.game_pk = $gamePk AND b.plate_appearances > 0
+         AND (b.plate_appearances, b.at_bats, b.hits, b.home_runs, b.total_bases, b.walks, b.strikeouts)
+           IS DISTINCT FROM (c.plate_appearances, c.at_bats, c.hits, c.home_runs, c.total_bases, c.walks, c.strikeouts)`,
+      { gamePk },
+    );
+    expect(mismatches).toEqual([]);
+  });
+
+  it.each(played.map((f) => [f.gamePk, f]))("matches each pitcher's pitch count in game %i", async (gamePk) => {
+    const mismatches = await rows(
+      conn,
+      `WITH counted AS (
+         SELECT pitcher_id AS player_id, count(*) AS pitches
+         FROM pitches
+         WHERE game_pk = $gamePk
+         GROUP BY ALL
+       )
+       SELECT p.player_id, p.pitches AS box_score, c.pitches AS counted
+       FROM player_game_pitching p
+       LEFT JOIN counted c USING (player_id)
+       WHERE p.game_pk = $gamePk AND p.pitches IS DISTINCT FROM c.pitches`,
+      { gamePk },
+    );
+    expect(mismatches).toEqual([]);
   });
 
   it("credits pitches before a mid-at-bat pitching change to the pitcher who threw them", async () => {
