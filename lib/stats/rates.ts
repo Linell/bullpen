@@ -10,6 +10,7 @@ export type BattingStats = {
   strikeoutRate: Rate;
   walkRate: Rate;
   homeRuns: number;
+  battedBalls: number;
   exitVelocity: Rate;
   hardHitRate: Rate;
   chaseRate: Rate;
@@ -132,6 +133,7 @@ export function toBattingStats(t: BattingTotals): BattingStats {
     strikeoutRate: ratio(t.strikeouts, t.plate_appearances),
     walkRate: ratio(t.walks, t.plate_appearances),
     homeRuns: t.home_runs / t.teams,
+    battedBalls: t.batted_balls / t.teams,
     exitVelocity: t.exit_velocity,
     hardHitRate: ratio(t.hard_hits, t.batted_balls),
     chaseRate: ratio(t.chases, t.out_of_zone_pitches),

@@ -45,6 +45,8 @@ export type HitterGameLogEntry = {
 
 export type HitterYear = { season: number; stats: BattingStats };
 
+export type BattedBall = { x: number; y: number; bases: number };
+
 type BattedBallCounts = Pick<BattingCounts, "batted_balls" | "hard_hits" | "exit_velocity">;
 type BoxBattingCounts = Omit<BattingCounts, keyof BattedBallCounts>;
 
@@ -88,6 +90,12 @@ const SPLITS_QUERY = withNumbers(
   GROUP BY split`,
   ["split"],
 );
+
+const SPRAY_CHART_QUERY = `
+  SELECT hit_coord_x AS x, hit_coord_y AS y, bases
+  FROM plate_appearances
+  WHERE ${REGULAR_SEASON} AND batter_id = $playerId::INTEGER AND hit_coord_x IS NOT NULL AND hit_coord_y IS NOT NULL
+  ORDER BY bases, game_pk, at_bat_index`;
 
 const GAME_LOG_QUERY = `
   SELECT b.game_pk AS "gamePk",
@@ -177,6 +185,14 @@ export async function hitterGameLog(playerId: number, season: number): Promise<H
   seasonCacheLife(season);
 
   return readRows<HitterGameLogEntry>(GAME_LOG_QUERY, { playerId, season });
+}
+
+export async function hitterSprayChart(playerId: number, season: number): Promise<BattedBall[]> {
+  "use cache: remote";
+  cacheTag(playerStatsTag(playerId));
+  seasonCacheLife(season);
+
+  return readRows<BattedBall>(SPRAY_CHART_QUERY, { playerId, season });
 }
 
 export async function hitterYears(playerId: number): Promise<HitterYear[]> {

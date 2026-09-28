@@ -7,7 +7,7 @@ process.env.DUCKDB_URL = ":memory:";
 const { withConnection } = await import("@/lib/db");
 const { migrate } = await import("@/lib/migrate");
 const { playerCacheTags } = await import("@/lib/cache-tags");
-const { hitterGameLog, hitterSeason, hitterSplits, hitterYears } = await import("@/lib/stats/hitting");
+const { hitterGameLog, hitterSeason, hitterSplits, hitterSprayChart, hitterYears } = await import("@/lib/stats/hitting");
 const { pitcherArsenal, pitcherGameLog, pitcherSeason, pitcherSplits, pitcherYears } = await import("@/lib/stats/pitching");
 const { playerSummary } = await import("@/lib/stats/player");
 
@@ -153,6 +153,7 @@ beforeAll(async () => {
     await conn.run(`INSERT INTO plays (game_pk, season, at_bat_index, inning, half, batter_id, pitcher_id, pitch_hand,
         bat_side, men_on_base, event_type, launch_speed, pitch_count)
       VALUES ${plays.map(playRow).join(",")}`);
+    await conn.run(`UPDATE plays SET hit_coord_x = 100 + at_bat_index, hit_coord_y = 150 + game_pk`);
     await conn.run(`INSERT INTO pitches (game_pk, season, at_bat_index, pitch_index, inning, half, batter_id, pitcher_id,
         balls_before, strikes_before, outs_before, zone, call_code, pitch_type, start_speed, spin_rate, abs_challenged)
       VALUES ${pitches.map(pitchRow).join(",")}`);
@@ -186,6 +187,16 @@ describe("hitter stats", () => {
     expect(splits.away).toMatchObject({ plateAppearances: 2, avg: 0.5 });
     expect(splits.risp).toMatchObject({ plateAppearances: 1, strikeoutRate: 1 });
     expect(splits.basesEmpty).toMatchObject({ plateAppearances: 2, homeRuns: 1 });
+  });
+
+  it("plots this season's balls in play, hits last", async () => {
+    const spray = await hitterSprayChart(HITTER, 2026);
+
+    expect(spray).toEqual([
+      { x: 101, y: 152, bases: 0 },
+      { x: 100, y: 152, bases: 1 },
+      { x: 100, y: 151, bases: 4 },
+    ]);
   });
 
   it("logs each regular-season game with its opponent", async () => {
