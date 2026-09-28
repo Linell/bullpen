@@ -294,7 +294,8 @@ describe("rebuild-game-tables", () => {
 describe("invalidate-game-cache", () => {
   it("dedupes gamePks across the batch and revalidates each game's tags", async () => {
     vi.mocked(revalidateTag).mockClear();
-    const tags = ["game:101", "day:2026-09-24", "team:110", "team:141"];
+    const gameTags = ["game:101", "day:2026-09-24", "team:110", "team:141"];
+    const playerTags = ["player-stats:500"];
     const t = new InngestTestEngine({ function: invalidateGameCache });
     const { result } = await t.execute({
       events: [
@@ -302,11 +303,11 @@ describe("invalidate-game-cache", () => {
         { name: "mlb/game.completed", data: { gamePk: 101 } },
         { name: "mlb/game-tables.derived", data: { gamePk: 101 } },
       ],
-      steps: [mockStep("load-game-tags", tags)],
+      steps: [mockStep("load-game-tags", gameTags), mockStep("load-player-tags", playerTags)],
     });
 
-    expect(result).toEqual({ gamePks: 1, tags: 4 });
-    expect(revalidateTag).toHaveBeenCalledTimes(4);
-    for (const tag of tags) expect(revalidateTag).toHaveBeenCalledWith(tag, "max");
+    expect(result).toEqual({ gamePks: 1, tags: 5 });
+    expect(revalidateTag).toHaveBeenCalledTimes(5);
+    for (const tag of [...gameTags, ...playerTags]) expect(revalidateTag).toHaveBeenCalledWith(tag, "max");
   });
 });

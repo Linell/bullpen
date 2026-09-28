@@ -1,5 +1,5 @@
 import { revalidateTag } from "next/cache";
-import { gameCacheTags } from "@/lib/cache-tags";
+import { gameCacheTags, playerCacheTags } from "@/lib/cache-tags";
 import { inngest } from "../client";
 import { gameCompleted, gameProbablesChanged, gameTablesDerived, gameUpdated } from "../events";
 
@@ -11,8 +11,14 @@ export const invalidateGameCache = inngest.createFunction(
   },
   async ({ events, step }) => {
     const gamePks = [...new Set(events.map((event) => event.data.gamePk))];
+    const derivedEvents = events.filter((event) => event.name === gameTablesDerived.name);
+    const derivedGamePks = [...new Set(derivedEvents.map((event) => event.data.gamePk))];
 
-    const tags = await step.run("load-game-tags", () => gameCacheTags(gamePks));
+    const gameTags = await step.run("load-game-tags", () => gameCacheTags(gamePks));
+
+    const playerTags = await step.run("load-player-tags", () => playerCacheTags(derivedGamePks));
+
+    const tags = [...gameTags, ...playerTags];
 
     await step.run("revalidate-tags", () => {
       for (const tag of tags) revalidateTag(tag, "max");

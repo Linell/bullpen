@@ -1,3 +1,4 @@
+import { listValue } from "@duckdb/node-api";
 import { readRows } from "@/lib/db";
 import { isCompleted } from "@/lib/schedule";
 
@@ -17,6 +18,10 @@ export function teamTag(teamId: number) {
 
 export function teamStatsTag(teamId: number) {
   return `team-stats:${teamId}`;
+}
+
+export function playerStatsTag(playerId: number) {
+  return `player-stats:${playerId}`;
 }
 
 type GameTagRow = {
@@ -45,4 +50,13 @@ export async function gameCacheTags(gamePks: number[]) {
     }
   }
   return [...tags];
+}
+
+export async function playerCacheTags(gamePks: number[]) {
+  if (gamePks.length === 0) return [];
+  const rows = await readRows<{ player_id: number }>(
+    `SELECT DISTINCT player_id FROM game_players WHERE played AND list_contains($gamePks::INTEGER[], game_pk)`,
+    { gamePks: listValue(gamePks) },
+  );
+  return rows.map((row) => playerStatsTag(row.player_id));
 }
