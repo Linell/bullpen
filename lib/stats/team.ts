@@ -1,8 +1,8 @@
 import "server-only";
-import { cacheLife, cacheTag } from "next/cache";
+import { cacheTag } from "next/cache";
 import { readRows } from "@/lib/db";
 import { teamStatsTag } from "@/lib/cache-tags";
-import { todayOfficialDate } from "@/lib/dates";
+import { seasonCacheLife } from "@/lib/stats/cache";
 import {
   NO_BATTING,
   NO_PITCHING,
@@ -19,8 +19,10 @@ import {
   type SwingDecisionCounts,
 } from "@/lib/stats/rates";
 import {
+  BATTER_SPLITS,
   BATTING_COUNTS,
   PITCH_COUNTS,
+  PITCH_MIX_COUNTS,
   PITCHING_COUNTS,
   REGULAR_SEASON,
   REGULAR_SEASON_GAMES,
@@ -91,18 +93,13 @@ type BattingRow = BattingCounts & { scope: BattingScope; split: string; teams: n
 type SwingDecisionRow = SwingDecisionCounts & { scope: BattingScope };
 type PitchingRow = PitchingCounts & { scope: PitchingScope; teams: number };
 type PitchRow = PitchCounts & { scope: PitchingScope };
-type PitchMixRow = { pitch_type: string; description: string; pitches: number; all_pitches: number; swings: number; whiffs: number; velocity: number | null };
+export type PitchMixRow = { pitch_type: string; description: string; pitches: number; all_pitches: number; swings: number; whiffs: number; velocity: number | null };
 type HitterRow = BattingCounts & { player_id: number; name: string };
 type PitcherRow = PitchingCounts & { player_id: number; name: string };
 
 const BATTING_QUERY = withNumbers(
   `WITH splits AS (
-    SELECT *, unnest([
-      'all',
-      'vs_' || pitch_hand::VARCHAR,
-      CASE half WHEN 'bottom' THEN 'home' ELSE 'away' END,
-      CASE WHEN men_on_base IN ('RISP', 'Loaded') THEN 'risp' WHEN men_on_base = 'Empty' THEN 'bases_empty' END
-    ]) AS split
+    SELECT *, ${BATTER_SPLITS} AS split
     FROM plate_appearances
     WHERE ${REGULAR_SEASON}
   )
@@ -166,13 +163,7 @@ const PITCHES_QUERY = withNumbers(
 );
 
 const PITCH_MIX_QUERY = withNumbers(
-  `SELECT pitch_type,
-    any_value(pitch_type_desc) AS description,
-    count(*) AS pitches,
-    sum(count(*)) OVER () AS all_pitches,
-    count(*) FILTER (is_swing) AS swings,
-    count(*) FILTER (is_whiff) AS whiffs,
-    avg(start_speed) AS velocity
+  `SELECT ${PITCH_MIX_COUNTS}
   FROM pitch_outcomes
   WHERE ${REGULAR_SEASON} AND fielding_team_id = $teamId::INTEGER AND pitch_type IS NOT NULL
   GROUP BY pitch_type
@@ -206,7 +197,7 @@ const PITCHERS_QUERY = withNumbers(
   ["player_id", "name"],
 );
 
-function toPitchMixEntry(r: PitchMixRow): PitchMixEntry {
+export function toPitchMixEntry(r: PitchMixRow): PitchMixEntry {
   return {
     pitchType: r.pitch_type,
     description: r.description,
@@ -232,15 +223,10 @@ function toPitcherLeader(r: PitcherRow): PitcherLeader {
   return { playerId: r.player_id, name: r.name, battersFaced, inningsPitched, strikeoutRate, walkRate, ra9 };
 }
 
-function isPastSeason(season: number) {
-  return season < Number(todayOfficialDate().slice(0, 4));
-}
-
 export async function getTeamStats(teamId: number, season: number): Promise<TeamStats> {
   "use cache: remote";
   cacheTag(teamStatsTag(teamId));
-  if (isPastSeason(season)) cacheLife("max");
-  else cacheLife("hours");
+  seasonCacheLife(season);
 
   const params = { teamId, season };
   const [batting, swingDecisions, pitching, pitches, pitchMix, hitters, pitchers] = await Promise.all([

@@ -1,6 +1,22 @@
-export const REGULAR_SEASON = `season = $season::INTEGER AND game_type = 'R' AND coded_state IN ('F', 'O', 'Q', 'R')`;
+export const REGULAR_GAME = `game_type = 'R' AND coded_state IN ('F', 'O', 'Q', 'R')`;
+
+export const REGULAR_SEASON = `season = $season::INTEGER AND ${REGULAR_GAME}`;
+
+export const REGULAR_GAMES = `SELECT game_pk FROM games WHERE ${REGULAR_GAME}`;
 
 export const REGULAR_SEASON_GAMES = `SELECT game_pk FROM games WHERE ${REGULAR_SEASON}`;
+
+export const BATTER_SPLITS = `unnest([
+  'all',
+  'vs_' || pitch_hand::VARCHAR,
+  CASE half WHEN 'bottom' THEN 'home' ELSE 'away' END,
+  CASE WHEN men_on_base IN ('RISP', 'Loaded') THEN 'risp' WHEN men_on_base = 'Empty' THEN 'bases_empty' END
+])`;
+
+export const BATTED_BALL_COUNTS = `
+  count(launch_speed) AS batted_balls,
+  count(*) FILTER (launch_speed >= 95) AS hard_hits,
+  avg(launch_speed) AS exit_velocity`;
 
 export const BATTING_COUNTS = `
   count(*) AS plate_appearances,
@@ -11,10 +27,18 @@ export const BATTING_COUNTS = `
   count(*) FILTER (is_walk) AS walks,
   count(*) FILTER (event_type = 'hit_by_pitch') AS hit_by_pitch,
   count(*) FILTER (event_type LIKE 'sac_fly%') AS sac_flies,
-  count(*) FILTER (is_strikeout) AS strikeouts,
-  count(launch_speed) AS batted_balls,
-  count(*) FILTER (launch_speed >= 95) AS hard_hits,
-  avg(launch_speed) AS exit_velocity`;
+  count(*) FILTER (is_strikeout) AS strikeouts,${BATTED_BALL_COUNTS}`;
+
+export const BOX_BATTING_COUNTS = `
+  sum(plate_appearances) AS plate_appearances,
+  sum(at_bats) AS at_bats,
+  sum(hits) AS hits,
+  sum(total_bases) AS total_bases,
+  sum(home_runs) AS home_runs,
+  sum(walks) AS walks,
+  sum(hit_by_pitch) AS hit_by_pitch,
+  sum(sac_flies) AS sac_flies,
+  sum(strikeouts) AS strikeouts`;
 
 export const SWING_DECISION_COUNTS = `
   count(*) FILTER (NOT is_in_zone) AS out_of_zone_pitches,
@@ -28,6 +52,15 @@ export const PITCH_COUNTS = `
   count(*) FILTER (is_whiff) AS whiffs,
   count(*) FILTER (is_called_strike) AS called_strikes,
   avg(start_speed) FILTER (is_fastball) AS fastball_velocity`;
+
+export const PITCH_MIX_COUNTS = `
+  pitch_type,
+  any_value(pitch_type_desc) AS description,
+  count(*) AS pitches,
+  sum(count(*)) OVER () AS all_pitches,
+  count(*) FILTER (is_swing) AS swings,
+  count(*) FILTER (is_whiff) AS whiffs,
+  avg(start_speed) AS velocity`;
 
 export const PITCHING_COUNTS = `
   sum(batters_faced) AS batters_faced,
