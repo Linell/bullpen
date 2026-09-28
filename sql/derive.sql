@@ -155,13 +155,18 @@ SELECT
 FROM plays_with_ball_in_play;
 
 INSERT INTO pitches BY NAME
-WITH outs_at_play_start AS (
+WITH play_start AS (
   SELECT
     game_pk,
     at_bat_index,
-    coalesce(lag(count.outs) OVER half_inning_in_order, 0) AS outs_before_play
+    coalesce(lag(count.outs) OVER half_inning_in_order, 0) AS outs_before_play,
+    lag(matchup) OVER fielding_team_in_order AS previous_matchup,
+    list_last(list_filter(playEvents, lambda event: event.details.eventType = 'pitching_substitution')).index
+      AS pitching_change_index
   FROM completed_plays
-  WINDOW half_inning_in_order AS (PARTITION BY game_pk, about.inning, about.halfInning ORDER BY at_bat_index)
+  WINDOW
+    half_inning_in_order AS (PARTITION BY game_pk, about.inning, about.halfInning ORDER BY at_bat_index),
+    fielding_team_in_order AS (PARTITION BY game_pk, about.halfInning ORDER BY at_bat_index)
 ),
 events_with_count_before AS (
   SELECT
@@ -175,9 +180,13 @@ events_with_count_before AS (
     event.index = max(event.index) FILTER (WHERE event.isPitch) OVER play_events AS is_last_pitch,
     coalesce(lag(event.count.balls) OVER play_events_in_order, 0) AS balls_before,
     coalesce(lag(event.count.strikes) OVER play_events_in_order, 0) AS strikes_before,
-    coalesce(lag(event.count.outs) OVER play_events_in_order, outs_before_play) AS outs_before
+    coalesce(lag(event.count.outs) OVER play_events_in_order, outs_before_play) AS outs_before,
+    CASE
+      WHEN event.index < pitching_change_index THEN coalesce(previous_matchup, matchup)
+      ELSE matchup
+    END AS pitching_matchup
   FROM completed_plays
-  JOIN outs_at_play_start USING (game_pk, at_bat_index),
+  JOIN play_start USING (game_pk, at_bat_index),
   unnest(playEvents) AS unnested(event)
   WINDOW
     play_events AS (PARTITION BY game_pk, at_bat_index),
@@ -202,9 +211,9 @@ SELECT
   about.inning AS inning,
   about.halfInning AS half,
   matchup.batter.id AS batter_id,
-  matchup.pitcher.id AS pitcher_id,
+  pitching_matchup.pitcher.id AS pitcher_id,
   matchup.batSide.code AS bat_side,
-  matchup.pitchHand.code AS pitch_hand,
+  pitching_matchup.pitchHand.code AS pitch_hand,
   balls_before,
   strikes_before,
   outs_before,

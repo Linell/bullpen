@@ -318,6 +318,18 @@ describe("derive.sql", () => {
     ]);
   });
 
+  it("credits pitches before a mid-at-bat pitching change to the pitcher who threw them", async () => {
+    const pitchers = await rows(
+      conn,
+      "SELECT pitch_index, pitcher_id FROM pitches WHERE game_pk = $gamePk AND at_bat_index = 31 ORDER BY pitch_index LIMIT 2",
+      { gamePk: 823394 },
+    );
+    expect(pitchers).toEqual([
+      { pitch_index: 0, pitcher_id: 656876 },
+      { pitch_index: 4, pitcher_id: 669438 },
+    ]);
+  });
+
   it("is idempotent", async () => {
     for (const feed of feeds) {
       expect((await storeFeed(conn, feed)).status).toBe("unchanged");
