@@ -41,12 +41,12 @@ export function ScoreboardSkeleton() {
         <Skeleton className="h-10 w-56" />
         <Skeleton className="h-8 w-44" />
       </div>
-      <section className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      <section className="grid gap-6 @xl:grid-cols-2 @4xl:grid-cols-3 @7xl:grid-cols-4">
         {Array.from({ length: 4 }, (_, i) => (
           <GameCardSkeleton key={i} />
         ))}
       </section>
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <section className="grid gap-3 @2xl:grid-cols-2 @4xl:grid-cols-3">
         {Array.from({ length: 6 }, (_, i) => (
           <GameRowSkeleton key={i} />
         ))}

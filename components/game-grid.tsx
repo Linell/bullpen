@@ -18,7 +18,7 @@ function GameRows({ title, games }: { title: string; games: Game[] }) {
 
   return (
     <GameSection title={title}>
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-3 @2xl:grid-cols-2 @4xl:grid-cols-3">
         {games.map((game) => (
           <GameRow key={game.id} game={game} />
         ))}
@@ -36,7 +36,7 @@ export function GameGrid({ games, latestPlays }: { games: Game[]; latestPlays?: 
     <>
       {live.length > 0 && (
         <GameSection title="Live now">
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          <div className="grid gap-6 @xl:grid-cols-2 @4xl:grid-cols-3 @7xl:grid-cols-4">
             {live.map((game) => (
               <GameCard key={game.id} game={game} latestPlay={latestPlays?.get(game.gamePk)} />
             ))}
