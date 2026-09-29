@@ -297,9 +297,9 @@ describe("invalidate-game-cache", () => {
       ],
     });
 
-    expect(result).toEqual({ gamePks: 1, tags: 5 });
-    expect(revalidateTag).toHaveBeenCalledTimes(5);
-    for (const tag of [...gameTags, ...playerTags]) expect(revalidateTag).toHaveBeenCalledWith(tag, { expire: 0 });
+    expect(result).toEqual({ gamePks: 1, tags: 6 });
+    expect(revalidateTag).toHaveBeenCalledTimes(6);
+    for (const tag of [...gameTags, ...playerTags, "leaderboards"]) expect(revalidateTag).toHaveBeenCalledWith(tag, { expire: 0 });
     expect(ctx.step.realtime.publish).toHaveBeenCalledWith(
       "publish-scoreboard-derived",
       expect.objectContaining({ channel: "scoreboard", topic: "derived" }),

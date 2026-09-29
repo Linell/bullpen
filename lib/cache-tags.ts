@@ -4,6 +4,8 @@ import { isCompleted } from "@/lib/schedule";
 
 export const GAMES_TAG = "games";
 
+export const LEADERBOARDS_TAG = "leaderboards";
+
 export function dayTag(date: string) {
   return `day:${date}`;
 }

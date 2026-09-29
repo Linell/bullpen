@@ -1,5 +1,5 @@
 import { revalidateTag } from "next/cache";
-import { gameCacheTags, playerCacheTags } from "@/lib/cache-tags";
+import { gameCacheTags, LEADERBOARDS_TAG, playerCacheTags } from "@/lib/cache-tags";
 import { gameChannel, scoreboardChannel } from "../channels";
 import { inngest } from "../client";
 import { gameChanged, gameCompleted, gameProbablesChanged, gameTablesDerived } from "../events";
@@ -19,7 +19,9 @@ export const invalidateGameCache = inngest.createFunction(
 
     const playerTags = await step.run("load-player-tags", () => playerCacheTags(derivedGamePks));
 
-    const tags = [...gameTags, ...playerTags];
+    const leaderboardTags = derivedGamePks.length > 0 ? [LEADERBOARDS_TAG] : [];
+
+    const tags = [...gameTags, ...playerTags, ...leaderboardTags];
 
     await step.run("revalidate-tags", () => {
       for (const tag of tags) revalidateTag(tag, { expire: 0 });
