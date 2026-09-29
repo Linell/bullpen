@@ -115,8 +115,10 @@ export function fetchFeed(gamePk: number): Promise<unknown> {
 }
 
 export async function fetchFeedTimestamp(gamePk: number): Promise<string> {
-  const feed = await get<{ metaData: { timeStamp: string } }>(`/api/v1.1/game/${gamePk}/feed/live`, {
-    fields: "metaData",
+  const feed = await get<{ metaData?: { timeStamp?: string } }>(`/api/v1.1/game/${gamePk}/feed/live`, {
+    fields: "metaData,timeStamp",
   });
-  return feed.metaData.timeStamp;
+  const timeStamp = feed.metaData?.timeStamp;
+  if (!timeStamp) throw new Error(`No feed timestamp for game ${gamePk}`);
+  return timeStamp;
 }
