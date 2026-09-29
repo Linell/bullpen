@@ -4,6 +4,7 @@ import { readRows } from "@/lib/db";
 import { dayTag, GAMES_TAG } from "@/lib/cache-tags";
 import { isCompleted } from "@/lib/schedule";
 import { playerRef } from "@/lib/player-ref";
+import { REGULAR_GAME } from "@/lib/stats/sql";
 import { postseasonLabel, score, toStatus, type Game, type Series, type Team } from "@/lib/scoreboard";
 
 export type GameQueryRow = {
@@ -48,11 +49,22 @@ const GAME_COLUMNS = `
   g.game_pk, g.season, strftime(g.official_date, '%Y-%m-%d') AS official_date, g.game_type, g.game_number,
   g.double_header, strftime(g.rescheduled_from, '%Y-%m-%d') AS rescheduled_from,
   g.abstract_state, g.coded_state, g.detailed_state, g.home_team_id, g.away_team_id,
-  g.home_score, g.away_score, g.inning, g.inning_half, g.venue_name, g.home_record, g.away_record,
+  g.home_score, g.away_score, g.inning, g.inning_half, g.venue_name,
+  CASE g.game_type WHEN 'R' THEN g.home_record ELSE hr.record END AS home_record,
+  CASE g.game_type WHEN 'R' THEN g.away_record ELSE ar.record END AS away_record,
   g.home_probable_id, g.home_probable_name, g.away_probable_id, g.away_probable_name,
   g.outs, g.on_first, g.on_second, g.on_third,
   g.series_game_number, g.games_in_series, g.series_result,
   epoch_ms(g.start_utc)::DOUBLE AS start_ms`;
+
+const FINAL_REGULAR_SEASON_RECORDS = `
+  SELECT season, team_id, arg_max(record, start_utc) AS record
+  FROM (
+    SELECT season, home_team_id AS team_id, home_record AS record, start_utc FROM games WHERE ${REGULAR_GAME}
+    UNION ALL
+    SELECT season, away_team_id, away_record, start_utc FROM games WHERE ${REGULAR_GAME}
+  )
+  GROUP BY season, team_id`;
 
 export const GAMES_SELECT = `
   SELECT ${GAME_COLUMNS},
@@ -60,7 +72,9 @@ export const GAMES_SELECT = `
     a.team_name AS away_name, a.abbreviation AS away_abbr
   FROM games g
   ASOF LEFT JOIN teams h ON h.team_id = g.home_team_id AND g.season >= h.season
-  ASOF LEFT JOIN teams a ON a.team_id = g.away_team_id AND g.season >= a.season`;
+  ASOF LEFT JOIN teams a ON a.team_id = g.away_team_id AND g.season >= a.season
+  LEFT JOIN (${FINAL_REGULAR_SEASON_RECORDS}) hr ON hr.season = g.season AND hr.team_id = g.home_team_id
+  LEFT JOIN (${FINAL_REGULAR_SEASON_RECORDS}) ar ON ar.season = g.season AND ar.team_id = g.away_team_id`;
 
 const GAMES_QUERY = `${GAMES_SELECT}
   WHERE g.official_date = $date::DATE

@@ -1,8 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/cache", () => ({ cacheTag: () => {}, cacheLife: () => {} }));
 
-const { toGame } = await import("@/lib/games");
+process.env.DUCKDB_URL = ":memory:";
+
+const { withConnection } = await import("@/lib/db");
+const { migrate } = await import("@/lib/migrate");
+const { getGames, toGame } = await import("@/lib/games");
 type GameQueryRow = import("@/lib/games").GameQueryRow;
 
 const row: GameQueryRow = {
@@ -50,5 +54,44 @@ describe("toGame", () => {
 
   it("leaves out the series of a regular-season game", () => {
     expect(toGame({ ...row, game_type: "R" }).series).toBeUndefined();
+  });
+});
+
+const ATL = 144;
+const PHI = 143;
+
+type Seed = { gamePk: number; date: string; type: string; records: [home: string, away: string] };
+
+function gameRow({ gamePk, date, type, records }: Seed) {
+  return `(${gamePk}, 2026, '${date}', '${type}', 1, 'Final', 'F', 'Final', ${ATL}, ${PHI},
+    '${date}T23:05:00Z', '${records[0]}', '${records[1]}', now())`;
+}
+
+beforeAll(async () => {
+  const games: Seed[] = [
+    { gamePk: 1, date: "2026-09-26", type: "R", records: ["92-69", "95-66"] },
+    { gamePk: 2, date: "2026-09-27", type: "R", records: ["93-69", "95-67"] },
+    { gamePk: 3, date: "2026-09-29", type: "F", records: ["1-0", "0-1"] },
+  ];
+  await withConnection(async (conn) => {
+    await migrate(conn);
+    await conn.run(`INSERT INTO games (game_pk, season, official_date, game_type, game_number,
+        abstract_state, coded_state, detailed_state, home_team_id, away_team_id, start_utc,
+        home_record, away_record, updated_at)
+      VALUES ${games.map(gameRow).join(",")}`);
+  });
+});
+
+describe("getGames", () => {
+  it("shows each team's final regular-season record in the postseason", async () => {
+    const [game] = await getGames("2026-09-29");
+
+    expect([game.home.team.record, game.away.team.record]).toEqual(["93-69", "95-67"]);
+  });
+
+  it("shows the record as of a regular-season game", async () => {
+    const [game] = await getGames("2026-09-26");
+
+    expect([game.home.team.record, game.away.team.record]).toEqual(["92-69", "95-66"]);
   });
 });
