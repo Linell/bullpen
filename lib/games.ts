@@ -4,8 +4,9 @@ import { readRows } from "@/lib/db";
 import { dayTag, GAMES_TAG } from "@/lib/cache-tags";
 import { isCompleted } from "@/lib/schedule";
 import { playerRef } from "@/lib/player-ref";
-import { REGULAR_GAME } from "@/lib/stats/sql";
-import { postseasonLabel, score, toStatus, type Game, type Series, type Team } from "@/lib/scoreboard";
+import { ratio } from "@/lib/stats/rates";
+import { REGULAR_GAME, REGULAR_GAMES } from "@/lib/stats/sql";
+import { postseasonLabel, score, toStatus, type Game, type PitcherLine, type Series, type Team } from "@/lib/scoreboard";
 
 export type GameQueryRow = {
   game_pk: number;
@@ -36,6 +37,14 @@ export type GameQueryRow = {
   home_probable_name: string | null;
   away_probable_id: number | null;
   away_probable_name: string | null;
+  home_probable_wins: number | null;
+  home_probable_losses: number | null;
+  home_probable_earned_runs: number | null;
+  home_probable_outs: number | null;
+  away_probable_wins: number | null;
+  away_probable_losses: number | null;
+  away_probable_earned_runs: number | null;
+  away_probable_outs: number | null;
   series_game_number: number | null;
   games_in_series: number | null;
   series_result: string | null;
@@ -55,6 +64,10 @@ const GAME_COLUMNS = `
   g.home_probable_id, g.home_probable_name, g.away_probable_id, g.away_probable_name,
   g.outs, g.on_first, g.on_second, g.on_third,
   g.series_game_number, g.games_in_series, g.series_result,
+  hp.wins AS home_probable_wins, hp.losses AS home_probable_losses,
+  hp.earned_runs AS home_probable_earned_runs, hp.outs AS home_probable_outs,
+  ap.wins AS away_probable_wins, ap.losses AS away_probable_losses,
+  ap.earned_runs AS away_probable_earned_runs, ap.outs AS away_probable_outs,
   epoch_ms(g.start_utc)::DOUBLE AS start_ms`;
 
 const FINAL_REGULAR_SEASON_RECORDS = `
@@ -66,6 +79,16 @@ const FINAL_REGULAR_SEASON_RECORDS = `
   )
   GROUP BY season, team_id`;
 
+const PITCHER_SEASON_LINES = `
+  SELECT season, player_id,
+    count(*) FILTER (is_win)::INTEGER AS wins,
+    count(*) FILTER (is_loss)::INTEGER AS losses,
+    sum(earned_runs)::INTEGER AS earned_runs,
+    sum(outs)::INTEGER AS outs
+  FROM player_game_pitching
+  WHERE game_pk IN (${REGULAR_GAMES})
+  GROUP BY season, player_id`;
+
 export const GAMES_SELECT = `
   SELECT ${GAME_COLUMNS},
     h.team_name AS home_name, h.abbreviation AS home_abbr,
@@ -74,7 +97,9 @@ export const GAMES_SELECT = `
   ASOF LEFT JOIN teams h ON h.team_id = g.home_team_id AND g.season >= h.season
   ASOF LEFT JOIN teams a ON a.team_id = g.away_team_id AND g.season >= a.season
   LEFT JOIN (${FINAL_REGULAR_SEASON_RECORDS}) hr ON hr.season = g.season AND hr.team_id = g.home_team_id
-  LEFT JOIN (${FINAL_REGULAR_SEASON_RECORDS}) ar ON ar.season = g.season AND ar.team_id = g.away_team_id`;
+  LEFT JOIN (${FINAL_REGULAR_SEASON_RECORDS}) ar ON ar.season = g.season AND ar.team_id = g.away_team_id
+  LEFT JOIN (${PITCHER_SEASON_LINES}) hp ON hp.season = g.season AND hp.player_id = g.home_probable_id
+  LEFT JOIN (${PITCHER_SEASON_LINES}) ap ON ap.season = g.season AND ap.player_id = g.away_probable_id`;
 
 const GAMES_QUERY = `${GAMES_SELECT}
   WHERE g.official_date = $date::DATE
@@ -91,6 +116,15 @@ function team(id: number, name: string | null, abbr: string | null, record: stri
 
 function makeupOf(rescheduledFrom: string | null, officialDate: string) {
   return rescheduledFrom && rescheduledFrom !== officialDate ? rescheduledFrom : undefined;
+}
+
+function probableLine(r: GameQueryRow, side: "home" | "away"): PitcherLine | undefined {
+  const wins = r[`${side}_probable_wins`];
+  const losses = r[`${side}_probable_losses`];
+  const earnedRuns = r[`${side}_probable_earned_runs`];
+  const outs = r[`${side}_probable_outs`];
+  if (wins == null || losses == null || earnedRuns == null || outs == null) return undefined;
+  return { wins, losses, era: ratio(earnedRuns * 27, outs) };
 }
 
 function series(r: GameQueryRow): Series | undefined {
@@ -130,11 +164,13 @@ export function toGame(r: GameQueryRow): Game {
       team: team(r.away_team_id, r.away_name, r.away_abbr, r.away_record),
       score: score(status, r.away_score),
       probable: playerRef(r.away_probable_id, r.away_probable_name),
+      probableLine: probableLine(r, "away"),
     },
     home: {
       team: team(r.home_team_id, r.home_name, r.home_abbr, r.home_record),
       score: score(status, r.home_score),
       probable: playerRef(r.home_probable_id, r.home_probable_name),
+      probableLine: probableLine(r, "home"),
     },
   };
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { seriesGameLabel, toStatus } from "@/lib/scoreboard";
+import { formatPitcherLine, seriesGameLabel, toStatus } from "@/lib/scoreboard";
 
 const base = {
   abstractState: "Live",
@@ -41,5 +41,11 @@ describe("toStatus", () => {
 describe("seriesGameLabel", () => {
   it("names the game and series length", () => {
     expect(seriesGameLabel({ gameNumber: 2, games: 3 })).toBe("Game 2 · Best of 3");
+  });
+});
+
+describe("formatPitcherLine", () => {
+  it("shows the record and ERA", () => {
+    expect(formatPitcherLine({ wins: 14, losses: 8, era: 3.2123 })).toBe("14-8, 3.21 ERA");
   });
 });

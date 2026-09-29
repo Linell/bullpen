@@ -1,4 +1,6 @@
+import { formatDecimal } from "@/lib/format";
 import type { PlayerRef } from "@/lib/player-ref";
+import type { Rate } from "@/lib/stats/rates";
 
 export type Team = {
   id: number;
@@ -27,10 +29,17 @@ export type GameStatus =
   | { state: "suspended" }
   | { state: "cancelled" };
 
+export type PitcherLine = {
+  wins: number;
+  losses: number;
+  era: Rate;
+};
+
 export type GameSide = {
   team: Team;
   score?: number;
   probable?: PlayerRef;
+  probableLine?: PitcherLine;
 };
 
 export type Series = {
@@ -81,6 +90,10 @@ export function postseasonLabel(gameType: string) {
 
 export function seriesGameLabel(series: Series) {
   return `Game ${series.gameNumber} · Best of ${series.games}`;
+}
+
+export function formatPitcherLine({ wins, losses, era }: PitcherLine) {
+  return `${wins}-${losses}, ${formatDecimal(era, 2)} ERA`;
 }
 
 const HALVES: Record<string, string> = {

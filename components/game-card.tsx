@@ -11,15 +11,18 @@ import { formatShortDate } from "@/lib/dates";
 import type { LivePlay } from "@/lib/live-game";
 import { gamePath } from "@/lib/routes";
 import { currentRuns } from "@/lib/scoring";
-import { gameTitle, seriesGameLabel, type AtBat, type Game, type GameSide } from "@/lib/scoreboard";
+import { formatPitcherLine, gameTitle, seriesGameLabel, type AtBat, type Game, type GameSide } from "@/lib/scoreboard";
 import { cn } from "@/lib/utils";
 
 export function Probable({ side, season }: { side: GameSide; season: number }) {
   if (!side.probable) return "TBD";
   return (
-    <PlayerLink playerId={side.probable.id} role="pitching" season={season} className="relative z-10">
-      {side.probable.name}
-    </PlayerLink>
+    <>
+      <PlayerLink playerId={side.probable.id} role="pitching" season={season} className="relative z-10">
+        {side.probable.name}
+      </PlayerLink>
+      {side.probableLine && <span className="tabular-nums"> ({formatPitcherLine(side.probableLine)})</span>}
+    </>
   );
 }
 

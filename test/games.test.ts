@@ -38,6 +38,14 @@ const row: GameQueryRow = {
   home_probable_name: null,
   away_probable_id: null,
   away_probable_name: null,
+  home_probable_wins: null,
+  home_probable_losses: null,
+  home_probable_earned_runs: null,
+  home_probable_outs: null,
+  away_probable_wins: null,
+  away_probable_losses: null,
+  away_probable_earned_runs: null,
+  away_probable_outs: null,
   series_game_number: 2,
   games_in_series: 3,
   series_result: "ATL leads 1-0",
@@ -55,16 +63,35 @@ describe("toGame", () => {
   it("leaves out the series of a regular-season game", () => {
     expect(toGame({ ...row, game_type: "R" }).series).toBeUndefined();
   });
+
+  it("gives a probable pitcher's season line", () => {
+    const game = toGame({
+      ...row,
+      home_probable_wins: 14,
+      home_probable_losses: 8,
+      home_probable_earned_runs: 64,
+      home_probable_outs: 538,
+    });
+
+    expect(game.home.probableLine).toEqual({ wins: 14, losses: 8, era: (64 * 27) / 538 });
+    expect(game.away.probableLine).toBeUndefined();
+  });
 });
 
 const ATL = 144;
 const PHI = 143;
+const SALE = 519242;
 
 type Seed = { gamePk: number; date: string; type: string; records: [home: string, away: string] };
 
 function gameRow({ gamePk, date, type, records }: Seed) {
   return `(${gamePk}, 2026, '${date}', '${type}', 1, 'Final', 'F', 'Final', ${ATL}, ${PHI},
-    '${date}T23:05:00Z', '${records[0]}', '${records[1]}', now())`;
+    '${date}T23:05:00Z', '${records[0]}', '${records[1]}', ${SALE}, 'Chris Sale', now())`;
+}
+
+function pitchingRow(gamePk: number, outs: number, earnedRuns: number, won: boolean) {
+  return `(${gamePk}, 2026, ${SALE}, ${ATL}, true, ${outs}, 0, 0, 0, 0, 0, ${earnedRuns},
+    0, 0, 0, 0, 0, 0, 0, 0, 0, ${won}, ${!won}, false, false, false)`;
 }
 
 beforeAll(async () => {
@@ -77,8 +104,10 @@ beforeAll(async () => {
     await migrate(conn);
     await conn.run(`INSERT INTO games (game_pk, season, official_date, game_type, game_number,
         abstract_state, coded_state, detailed_state, home_team_id, away_team_id, start_utc,
-        home_record, away_record, updated_at)
+        home_record, away_record, home_probable_id, home_probable_name, updated_at)
       VALUES ${games.map(gameRow).join(",")}`);
+    await conn.run(`INSERT INTO player_game_pitching
+      VALUES ${[pitchingRow(1, 18, 2, true), pitchingRow(2, 15, 3, false), pitchingRow(3, 27, 0, true)].join(",")}`);
   });
 });
 
@@ -93,5 +122,11 @@ describe("getGames", () => {
     const [game] = await getGames("2026-09-26");
 
     expect([game.home.team.record, game.away.team.record]).toEqual(["92-69", "95-66"]);
+  });
+
+  it("gives the probable pitcher's regular-season line", async () => {
+    const [game] = await getGames("2026-09-29");
+
+    expect(game.home.probableLine).toEqual({ wins: 1, losses: 1, era: (5 * 27) / 33 });
   });
 });
