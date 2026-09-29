@@ -8,7 +8,7 @@ type PlayerParams = Pick<LayoutProps<"/players/[playerId]">, "params">;
 
 export default function PlayerLayout({ params, children }: LayoutProps<"/players/[playerId]">) {
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 pt-6 pb-24">
+    <main className="mx-auto flex w-full max-w-(--breakpoint-2xl) flex-1 flex-col gap-6 px-6 pt-6 pb-24">
       <Suspense fallback={<PlayerHeaderSkeleton />}>
         <PlayerHeaderSection params={params} />
       </Suspense>

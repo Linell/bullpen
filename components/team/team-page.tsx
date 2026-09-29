@@ -46,7 +46,7 @@ export function teamTitle({ summary, isCurrentSeason }: LoadedTeam) {
 
 export function TeamPage({ team }: { team: Promise<LoadedTeam> }) {
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 pt-6 pb-24">
+    <main className="mx-auto flex w-full max-w-(--breakpoint-2xl) flex-1 flex-col gap-6 px-6 pt-6 pb-24">
       <Suspense fallback={<TeamFallback />}>
         <TeamContent team={team} />
       </Suspense>
