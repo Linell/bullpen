@@ -14,6 +14,7 @@ const SCHEDULE_FIELDS = [
   "teams", "home", "away", "team", "id", "name", "teamName", "abbreviation",
   "leagueRecord", "wins", "losses", "score", "linescore", "currentInning", "inningHalf",
   "runs", "outs", "offense", "first", "second", "third", "venue", "probablePitcher", "fullName",
+  "seriesGameNumber", "gamesInSeries", "seriesStatus", "result",
 ].join(",");
 
 type Side = {
@@ -42,6 +43,9 @@ export type ScheduleGame = {
     teams?: { home?: { runs?: number }; away?: { runs?: number } };
   };
   venue?: { id: number; name?: string };
+  seriesGameNumber?: number;
+  gamesInSeries?: number;
+  seriesStatus?: { result?: string };
 };
 
 export type ScheduleResponse = {
@@ -76,7 +80,7 @@ export function fetchSchedule({
     startDate,
     endDate,
     gameType: GAME_TYPES.join(","),
-    hydrate: "linescore,team,probablePitcher",
+    hydrate: "linescore,team,probablePitcher,seriesStatus",
     fields: SCHEDULE_FIELDS,
   });
 }
@@ -85,7 +89,7 @@ export function fetchScheduleGames(gamePks: number[]): Promise<ScheduleResponse>
   return get<ScheduleResponse>("/api/v1/schedule", {
     sportId: "1",
     gamePks: gamePks.join(","),
-    hydrate: "linescore,team,probablePitcher",
+    hydrate: "linescore,team,probablePitcher,seriesStatus",
     fields: SCHEDULE_FIELDS,
   });
 }

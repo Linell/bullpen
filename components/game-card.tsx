@@ -11,7 +11,7 @@ import { formatShortDate } from "@/lib/dates";
 import type { LivePlay } from "@/lib/live-game";
 import { gamePath } from "@/lib/routes";
 import { currentRuns } from "@/lib/scoring";
-import { gameTitle, type AtBat, type Game, type GameSide } from "@/lib/scoreboard";
+import { gameTitle, seriesGameLabel, type AtBat, type Game, type GameSide } from "@/lib/scoreboard";
 import { cn } from "@/lib/utils";
 
 export function Probable({ side, season }: { side: GameSide; season: number }) {
@@ -100,9 +100,8 @@ export function GameCard({ game, latestPlay }: { game: Game; latestPlay?: LivePl
               </span>
             )}
             {game.doubleHeader && <Badge variant="neutral">Game {game.gameNumber}</Badge>}
-            {game.postseason && <Badge variant="neutral">{game.postseason}</Badge>}
           </div>
-          <span className="truncate text-xs opacity-70">{game.venue}</span>
+          {game.series && <span className="truncate text-xs opacity-70">{seriesGameLabel(game.series)}</span>}
         </div>
         <div className="flex flex-col gap-3">
           <TeamRow
@@ -118,6 +117,7 @@ export function GameCard({ game, latestPlay }: { game: Game; latestPlay?: LivePl
             showProbable={isScheduled}
           />
         </div>
+        {game.series?.result && <span className="text-xs font-heading">{game.series.result}</span>}
         {atBat && <Matchup atBat={atBat} season={game.season} />}
         {latestPlay && (
           <p
@@ -137,7 +137,12 @@ export function GameCard({ game, latestPlay }: { game: Game; latestPlay?: LivePl
           teams={{ away: away.team.abbreviation, home: home.team.abbreviation }}
         />
       )}
-      <Link href={gamePath(game.gamePk)} aria-label={gameTitle(game)} className="absolute inset-0 rounded-base" />
+      <Link
+        href={gamePath(game.gamePk)}
+        aria-label={gameTitle(game)}
+        title={game.venue}
+        className="absolute inset-0 rounded-base"
+      />
     </Card>
   );
 }

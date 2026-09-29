@@ -4,7 +4,7 @@ import { readRows } from "@/lib/db";
 import { dayTag, GAMES_TAG } from "@/lib/cache-tags";
 import { isCompleted } from "@/lib/schedule";
 import { playerRef } from "@/lib/player-ref";
-import { postseasonLabel, score, toStatus, type Game, type Team } from "@/lib/scoreboard";
+import { postseasonLabel, score, toStatus, type Game, type Series, type Team } from "@/lib/scoreboard";
 
 export type GameQueryRow = {
   game_pk: number;
@@ -35,6 +35,9 @@ export type GameQueryRow = {
   home_probable_name: string | null;
   away_probable_id: number | null;
   away_probable_name: string | null;
+  series_game_number: number | null;
+  games_in_series: number | null;
+  series_result: string | null;
   home_name: string | null;
   home_abbr: string | null;
   away_name: string | null;
@@ -48,6 +51,7 @@ const GAME_COLUMNS = `
   g.home_score, g.away_score, g.inning, g.inning_half, g.venue_name, g.home_record, g.away_record,
   g.home_probable_id, g.home_probable_name, g.away_probable_id, g.away_probable_name,
   g.outs, g.on_first, g.on_second, g.on_third,
+  g.series_game_number, g.games_in_series, g.series_result,
   epoch_ms(g.start_utc)::DOUBLE AS start_ms`;
 
 export const GAMES_SELECT = `
@@ -75,6 +79,15 @@ function makeupOf(rescheduledFrom: string | null, officialDate: string) {
   return rescheduledFrom && rescheduledFrom !== officialDate ? rescheduledFrom : undefined;
 }
 
+function series(r: GameQueryRow): Series | undefined {
+  if (!postseasonLabel(r.game_type) || r.series_game_number == null || r.games_in_series == null) return undefined;
+  return {
+    gameNumber: r.series_game_number,
+    games: r.games_in_series,
+    result: r.series_result ?? undefined,
+  };
+}
+
 export function toGame(r: GameQueryRow): Game {
   const status = toStatus({
     abstractState: r.abstract_state,
@@ -94,6 +107,7 @@ export function toGame(r: GameQueryRow): Game {
     doubleHeader: r.double_header === "Y" || r.double_header === "S",
     makeupOf: makeupOf(r.rescheduled_from, r.official_date),
     postseason: postseasonLabel(r.game_type),
+    series: series(r),
     startTime: new Date(r.start_ms).toISOString(),
     venue: r.venue_name ?? undefined,
     status,

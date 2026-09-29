@@ -30,6 +30,9 @@ export type GameRow = {
   homeProbableName: string | null;
   awayProbableId: number | null;
   awayProbableName: string | null;
+  seriesGameNumber: number | null;
+  gamesInSeries: number | null;
+  seriesResult: string | null;
 };
 
 const COLUMNS = [
@@ -61,6 +64,9 @@ const COLUMNS = [
   ["homeProbableName", "home_probable_name", "VARCHAR"],
   ["awayProbableId", "away_probable_id", "INTEGER"],
   ["awayProbableName", "away_probable_name", "VARCHAR"],
+  ["seriesGameNumber", "series_game_number", "INTEGER"],
+  ["gamesInSeries", "games_in_series", "INTEGER"],
+  ["seriesResult", "series_result", "VARCHAR"],
 ] as const satisfies readonly (readonly [keyof GameRow, string, string])[];
 
 const INSERT_CHUNK = 500;
@@ -133,6 +139,9 @@ function toRow(g: ScheduleGame): GameRow {
     homeProbableName: home.probablePitcher?.fullName ?? null,
     awayProbableId: away.probablePitcher?.id ?? null,
     awayProbableName: away.probablePitcher?.fullName ?? null,
+    seriesGameNumber: g.seriesGameNumber ?? null,
+    gamesInSeries: g.gamesInSeries ?? null,
+    seriesResult: g.seriesStatus?.result ?? null,
   };
 }
 

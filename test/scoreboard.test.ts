@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { toStatus } from "@/lib/scoreboard";
+import { seriesGameLabel, toStatus } from "@/lib/scoreboard";
 
 const base = {
   abstractState: "Live",
@@ -35,5 +35,11 @@ describe("toStatus", () => {
 
   it("drops the situation between half-innings", () => {
     expect(toStatus({ ...base, codedState: "I", outs: 3 })).toMatchObject({ situation: undefined });
+  });
+});
+
+describe("seriesGameLabel", () => {
+  it("names the game and series length", () => {
+    expect(seriesGameLabel({ gameNumber: 2, games: 3 })).toBe("Game 2 · Best of 3");
   });
 });

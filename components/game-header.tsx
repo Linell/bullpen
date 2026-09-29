@@ -12,7 +12,7 @@ import { formatOfficialDate, formatShortDate } from "@/lib/dates";
 import type { Decisions } from "@/lib/game-detail";
 import type { GlossaryTerm } from "@/lib/glossary";
 import type { PlayerRef } from "@/lib/player-ref";
-import type { Game, GameSide } from "@/lib/scoreboard";
+import { seriesGameLabel, type Game, type GameSide } from "@/lib/scoreboard";
 
 function TeamScore({ side }: { side: GameSide }) {
   return (
@@ -78,6 +78,8 @@ export function GameHeader({ game, decisions }: { game: Game; decisions?: Decisi
         <p className="text-center text-sm opacity-70">
           {[
             formatOfficialDate(game.officialDate),
+            game.series && seriesGameLabel(game.series),
+            game.series?.result,
             game.venue,
             game.makeupOf && `Makeup of ${formatShortDate(game.makeupOf)}`,
           ]

@@ -33,6 +33,12 @@ export type GameSide = {
   probable?: PlayerRef;
 };
 
+export type Series = {
+  gameNumber: number;
+  games: number;
+  result?: string;
+};
+
 export type Game = {
   id: string;
   gamePk: number;
@@ -42,6 +48,7 @@ export type Game = {
   doubleHeader: boolean;
   makeupOf?: string;
   postseason?: string;
+  series?: Series;
   startTime: string;
   venue?: string;
   status: GameStatus;
@@ -70,6 +77,10 @@ const POSTSEASON: Record<string, string> = {
 
 export function postseasonLabel(gameType: string) {
   return POSTSEASON[gameType];
+}
+
+export function seriesGameLabel(series: Series) {
+  return `Game ${series.gameNumber} · Best of ${series.games}`;
 }
 
 const HALVES: Record<string, string> = {

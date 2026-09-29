@@ -10,11 +10,15 @@ import { getGames } from "@/lib/games";
 
 export async function Scoreboard({ date, isToday = false }: { date: string; isToday?: boolean }) {
   const games = await getGames(date);
+  const rounds = [...new Set(games.map((game) => game.postseason).filter(Boolean))];
 
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-4xl">{isToday ? "Today" : formatOfficialDate(date)}</h1>
+        <div className="flex flex-col gap-1">
+          <h1 className="text-4xl">{isToday ? "Today" : formatOfficialDate(date)}</h1>
+          {rounds.length > 0 && <p className="text-xl font-heading opacity-70">{rounds.join(" · ")}</p>}
+        </div>
         <DateNav date={date} isToday={isToday} />
       </div>
       {games.length === 0 ? (

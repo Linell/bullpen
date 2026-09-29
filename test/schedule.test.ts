@@ -54,6 +54,20 @@ describe("parseSchedule", () => {
       homeProbableName: null,
       awayProbableId: null,
       awayProbableName: null,
+      seriesGameNumber: null,
+      gamesInSeries: null,
+      seriesResult: null,
+    });
+  });
+
+  it("maps the series status", () => {
+    const json = fixture("2026-09-21");
+    const game = json.dates[0].games[0];
+    Object.assign(game, { seriesGameNumber: 2, gamesInSeries: 3, seriesStatus: { result: "ATL leads 1-0" } });
+    expect(parseSchedule(json).find((r) => r.gamePk === game.gamePk)).toMatchObject({
+      seriesGameNumber: 2,
+      gamesInSeries: 3,
+      seriesResult: "ATL leads 1-0",
     });
   });
 
