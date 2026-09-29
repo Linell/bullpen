@@ -3,10 +3,10 @@ import { PlayerLink } from "@/components/player-link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDecimal } from "@/lib/format";
-import { gamePath, type PlayerRole } from "@/lib/routes";
-import { fastestPitches, hardestHitBalls, longestHomeRuns, type Leader } from "@/lib/stats/leaderboards";
+import { gamePath, leadersPath, type PlayerRole } from "@/lib/routes";
+import { fastestPitches, hardestHitBalls, longestHomeRuns, type EventLeader } from "@/lib/stats/leaderboards";
 
-function GameLink({ leader }: { leader: Leader }) {
+function GameLink({ leader }: { leader: EventLeader }) {
   return (
     <Link href={gamePath(leader.gamePk)} className="shrink-0 opacity-70 hover:underline">
       {leader.matchup}
@@ -25,7 +25,7 @@ function LeaderTile({
   unit: string;
   digits: number;
   role: PlayerRole;
-  leaders: Leader[];
+  leaders: EventLeader[];
 }) {
   const [top, ...rest] = leaders;
 
@@ -70,7 +70,7 @@ function LeaderTile({
 }
 
 export async function Leaders({ date }: { date: string }) {
-  const range = { from: date, to: date };
+  const range = { from: date, to: date, limit: 3 };
   const [homeRuns, pitches, battedBalls] = await Promise.all([
     longestHomeRuns(range),
     fastestPitches(range),
@@ -80,7 +80,11 @@ export async function Leaders({ date }: { date: string }) {
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-2xl">Today&apos;s leaders</h2>
+      <h2 className="text-2xl">
+        <Link href={leadersPath()} className="hover:underline">
+          Today&apos;s leaders
+        </Link>
+      </h2>
       {isEmpty ? (
         <Card size="sm">
           <CardContent className="opacity-70">Leaders show up here once today&apos;s first pitch is thrown.</CardContent>

@@ -1,3 +1,5 @@
+import { DEFAULT_SEARCH, type LeaderboardSearch } from "@/lib/leaderboard-range";
+
 export type PlayerRole = "hitting" | "pitching";
 
 export function teamPath(teamId: number, season?: number) {
@@ -11,4 +13,12 @@ export function gamePath(gamePk: number) {
 export function playerPath(playerId: number, { role, season }: { role?: PlayerRole; season?: number } = {}) {
   if (!role) return `/players/${playerId}`;
   return season === undefined ? `/players/${playerId}/${role}` : `/players/${playerId}/${role}/${season}`;
+}
+
+export function leadersPath({ range, limit }: Partial<LeaderboardSearch> = {}) {
+  const query = new URLSearchParams();
+  if (range && range !== DEFAULT_SEARCH.range) query.set("range", range);
+  if (limit && limit !== DEFAULT_SEARCH.limit) query.set("limit", String(limit));
+  const search = query.toString();
+  return search ? `/leaders?${search}` : "/leaders";
 }
