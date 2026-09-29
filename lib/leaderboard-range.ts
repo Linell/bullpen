@@ -4,6 +4,8 @@ export const RANGES = { today: "Today", week: "7 days", month: "30 days", season
 
 export type RangeKey = keyof typeof RANGES;
 
+export const RANGE_KEYS = Object.keys(RANGES) as RangeKey[];
+
 export const LIMITS = [10, 25, 50] as const;
 
 export type Limit = (typeof LIMITS)[number];
@@ -15,12 +17,12 @@ export const DEFAULT_SEARCH: LeaderboardSearch = { range: "today", limit: 25 };
 type SearchParams = Record<string, string | string[] | undefined>;
 
 function isRangeKey(value: unknown): value is RangeKey {
-  return typeof value === "string" && value in RANGES;
+  return typeof value === "string" && Object.hasOwn(RANGES, value);
 }
 
 export function parseLeaderboardSearch(params: SearchParams): LeaderboardSearch {
   const range = isRangeKey(params.range) ? params.range : DEFAULT_SEARCH.range;
-  const limit = LIMITS.find((l) => String(l) === params.limit) ?? DEFAULT_SEARCH.limit;
+  const limit = LIMITS.find((n) => String(n) === params.limit) ?? DEFAULT_SEARCH.limit;
   return { range, limit };
 }
 

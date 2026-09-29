@@ -11,8 +11,9 @@ describe("parseLeaderboardSearch", () => {
     expect(parseLeaderboardSearch({ range: "month", limit: "50" })).toEqual({ range: "month", limit: 50 });
   });
 
-  it("falls back on unknown or repeated values", () => {
+  it("falls back on unknown, inherited, or repeated values", () => {
     expect(parseLeaderboardSearch({ range: "decade", limit: "7" })).toEqual(DEFAULT_SEARCH);
+    expect(parseLeaderboardSearch({ range: "constructor" })).toEqual(DEFAULT_SEARCH);
     expect(parseLeaderboardSearch({ range: ["week", "month"], limit: ["10", "50"] })).toEqual(DEFAULT_SEARCH);
   });
 });

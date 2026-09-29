@@ -5,7 +5,15 @@ import { LeaderboardNav } from "@/components/leaderboard-nav";
 import { Skeleton } from "@/components/ui/skeleton";
 import { todayOfficialDate } from "@/lib/dates";
 import { parseLeaderboardSearch, rangeDates } from "@/lib/leaderboard-range";
-import { barrelRates, fastestPitches, hardestHitBalls, longestHomeRuns, whiffRates } from "@/lib/stats/leaderboards";
+import {
+  BATTED_BALLS_PER_GAME_DAY,
+  barrelRates,
+  fastestPitches,
+  hardestHitBalls,
+  longestHomeRuns,
+  PITCHES_PER_GAME_DAY,
+  whiffRates,
+} from "@/lib/stats/leaderboards";
 
 export const metadata: Metadata = { title: "Leaders" };
 
@@ -24,13 +32,13 @@ export default function LeadersPage({ searchParams }: PageProps<"/leaders">) {
 
 async function Leaderboards({ searchParams }: Pick<PageProps<"/leaders">, "searchParams">) {
   const search = parseLeaderboardSearch(await searchParams);
-  const range = { ...rangeDates(search.range, todayOfficialDate()), limit: search.limit };
+  const query = { ...rangeDates(search.range, todayOfficialDate()), limit: search.limit };
   const [homeRuns, pitches, battedBalls, barrels, whiffs] = await Promise.all([
-    longestHomeRuns(range),
-    fastestPitches(range),
-    hardestHitBalls(range),
-    barrelRates(range),
-    whiffRates(range),
+    longestHomeRuns(query),
+    fastestPitches(query),
+    hardestHitBalls(query),
+    barrelRates(query),
+    whiffRates(query),
   ]);
 
   return (
@@ -43,7 +51,10 @@ async function Leaderboards({ searchParams }: Pick<PageProps<"/leaders">, "searc
         <BarrelBoard leaders={barrels} />
         <WhiffBoard leaders={whiffs} />
       </div>
-      <p className="text-sm opacity-70">Rate boards require at least 1 batted ball or 10 pitches per game day in the range.</p>
+      <p className="text-sm opacity-70">
+        Rate boards require at least {BATTED_BALLS_PER_GAME_DAY} batted ball or {PITCHES_PER_GAME_DAY} pitches per game
+        day in the range.
+      </p>
     </>
   );
 }

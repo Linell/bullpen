@@ -6,7 +6,7 @@ import type { PlayerRef } from "@/lib/player-ref";
 import { ratio, type Rate } from "@/lib/stats/rates";
 import { BATTED_BALL_COUNTS, PITCH_COUNTS, SWING_DECISION_COUNTS, TRACKED_GAME, withNumbers } from "@/lib/stats/sql";
 
-export type LeaderboardRange = {
+export type LeaderboardQuery = {
   from: string;
   to: string;
   limit: number;
@@ -75,8 +75,8 @@ type WhiffRow = {
   chases: number;
 };
 
-const BATTED_BALLS_PER_GAME_DAY = 1;
-const PITCHES_PER_GAME_DAY = 10;
+export const BATTED_BALLS_PER_GAME_DAY = 1;
+export const PITCHES_PER_GAME_DAY = 10;
 
 const IN_RANGE = `official_date BETWEEN $from::DATE AND $to::DATE AND ${TRACKED_GAME}`;
 
@@ -115,29 +115,25 @@ const FASTEST_PITCHES_QUERY = eventQuery("pitcher", "e.start_speed", "e.start_sp
 const HARDEST_HIT_BALLS_QUERY = eventQuery("batter", "e.launch_speed", "e.is_in_play AND e.launch_speed IS NOT NULL");
 
 const BARREL_RATES_QUERY = withNumbers(
-  `SELECT * FROM (
-    SELECT pa.batter_id AS player_id, ${playerName("any_value(pl.full_name)", "pa.batter_id")} AS name, ${BATTED_BALL_COUNTS}
-    FROM plate_appearances pa
-    LEFT JOIN players pl ON pl.player_id = pa.batter_id
-    WHERE ${IN_RANGE}
-    GROUP BY pa.batter_id
-  )
-  WHERE batted_balls >= ${BATTED_BALLS_PER_GAME_DAY} * ${GAME_DAYS}
+  `SELECT pa.batter_id AS player_id, ${playerName("any_value(pl.full_name)", "pa.batter_id")} AS name, ${BATTED_BALL_COUNTS}
+  FROM plate_appearances pa
+  LEFT JOIN players pl ON pl.player_id = pa.batter_id
+  WHERE ${IN_RANGE}
+  GROUP BY pa.batter_id
+  HAVING batted_balls >= ${BATTED_BALLS_PER_GAME_DAY} * ${GAME_DAYS}
   ORDER BY barrels / batted_balls DESC, hard_hits / batted_balls DESC, batted_balls DESC, player_id
   LIMIT $limit::INTEGER`,
   ["player_id", "name"],
 );
 
 const WHIFF_RATES_QUERY = withNumbers(
-  `SELECT * FROM (
-    SELECT po.pitcher_id AS player_id, ${playerName("any_value(pl.full_name)", "po.pitcher_id")} AS name,
-      ${PITCH_COUNTS}, ${SWING_DECISION_COUNTS}
-    FROM pitch_outcomes po
-    LEFT JOIN players pl ON pl.player_id = po.pitcher_id
-    WHERE ${IN_RANGE}
-    GROUP BY po.pitcher_id
-  )
-  WHERE pitches >= ${PITCHES_PER_GAME_DAY} * ${GAME_DAYS}
+  `SELECT po.pitcher_id AS player_id, ${playerName("any_value(pl.full_name)", "po.pitcher_id")} AS name,
+    ${PITCH_COUNTS}, ${SWING_DECISION_COUNTS}
+  FROM pitch_outcomes po
+  LEFT JOIN players pl ON pl.player_id = po.pitcher_id
+  WHERE ${IN_RANGE}
+  GROUP BY po.pitcher_id
+  HAVING pitches >= ${PITCHES_PER_GAME_DAY} * ${GAME_DAYS} AND swings > 0
   ORDER BY whiffs / swings DESC, (called_strikes + whiffs) / pitches DESC, pitches DESC, player_id
   LIMIT $limit::INTEGER`,
   ["player_id", "name"],
@@ -177,44 +173,42 @@ function toWhiffLeader(r: WhiffRow): WhiffLeader {
   };
 }
 
-async function readEventLeaders(query: string, range: LeaderboardRange) {
-  const rows = await readRows<EventRow>(query, range);
-  return rows.map(toEventLeader);
+async function readLeaders<Row, Leader>(query: string, params: LeaderboardQuery, toLeader: (row: Row) => Leader) {
+  const rows = await readRows<Row>(query, params);
+  return rows.map(toLeader);
 }
 
-export async function longestHomeRuns(range: LeaderboardRange): Promise<EventLeader[]> {
+export async function longestHomeRuns(query: LeaderboardQuery): Promise<EventLeader[]> {
   "use cache: remote";
   cacheTag(LEADERBOARDS_TAG);
   cacheLife("hours");
-  return readEventLeaders(LONGEST_HOME_RUNS_QUERY, range);
+  return readLeaders(LONGEST_HOME_RUNS_QUERY, query, toEventLeader);
 }
 
-export async function fastestPitches(range: LeaderboardRange): Promise<EventLeader[]> {
+export async function fastestPitches(query: LeaderboardQuery): Promise<EventLeader[]> {
   "use cache: remote";
   cacheTag(LEADERBOARDS_TAG);
   cacheLife("hours");
-  return readEventLeaders(FASTEST_PITCHES_QUERY, range);
+  return readLeaders(FASTEST_PITCHES_QUERY, query, toEventLeader);
 }
 
-export async function hardestHitBalls(range: LeaderboardRange): Promise<EventLeader[]> {
+export async function hardestHitBalls(query: LeaderboardQuery): Promise<EventLeader[]> {
   "use cache: remote";
   cacheTag(LEADERBOARDS_TAG);
   cacheLife("hours");
-  return readEventLeaders(HARDEST_HIT_BALLS_QUERY, range);
+  return readLeaders(HARDEST_HIT_BALLS_QUERY, query, toEventLeader);
 }
 
-export async function barrelRates(range: LeaderboardRange): Promise<BarrelLeader[]> {
+export async function barrelRates(query: LeaderboardQuery): Promise<BarrelLeader[]> {
   "use cache: remote";
   cacheTag(LEADERBOARDS_TAG);
   cacheLife("hours");
-  const rows = await readRows<BarrelRow>(BARREL_RATES_QUERY, range);
-  return rows.map(toBarrelLeader);
+  return readLeaders(BARREL_RATES_QUERY, query, toBarrelLeader);
 }
 
-export async function whiffRates(range: LeaderboardRange): Promise<WhiffLeader[]> {
+export async function whiffRates(query: LeaderboardQuery): Promise<WhiffLeader[]> {
   "use cache: remote";
   cacheTag(LEADERBOARDS_TAG);
   cacheLife("hours");
-  const rows = await readRows<WhiffRow>(WHIFF_RATES_QUERY, range);
-  return rows.map(toWhiffLeader);
+  return readLeaders(WHIFF_RATES_QUERY, query, toWhiffLeader);
 }

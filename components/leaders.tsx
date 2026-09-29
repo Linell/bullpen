@@ -70,11 +70,11 @@ function LeaderTile({
 }
 
 export async function Leaders({ date }: { date: string }) {
-  const range = { from: date, to: date, limit: 3 };
+  const query = { from: date, to: date, limit: 3 };
   const [homeRuns, pitches, battedBalls] = await Promise.all([
-    longestHomeRuns(range),
-    fastestPitches(range),
-    hardestHitBalls(range),
+    longestHomeRuns(query),
+    fastestPitches(query),
+    hardestHitBalls(query),
   ]);
   const isEmpty = homeRuns.length === 0 && pitches.length === 0 && battedBalls.length === 0;
 

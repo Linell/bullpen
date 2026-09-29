@@ -14,8 +14,8 @@ export type StatColumn<Row> = {
 type StatGridProps<Row> = {
   rowLabel: string;
   rows: Row[];
-  rowKey: (row: Row) => string | number;
-  rowName: (row: Row) => ReactNode;
+  rowKey: (row: Row, index: number) => string | number;
+  rowName: (row: Row, index: number) => ReactNode;
   columns: StatColumn<Row>[];
   isHighlighted?: (row: Row) => boolean;
 };
@@ -43,12 +43,12 @@ export function StatGrid<Row>({ rowLabel, rows, rowKey, rowName, columns, isHigh
         </TableRow>
       </TableHeader>
       <TableBody>
-        {rows.map((row) => {
+        {rows.map((row, index) => {
           const isRowHighlighted = isHighlighted?.(row) ?? false;
           return (
-            <TableRow key={rowKey(row)} className={cn(isRowHighlighted && highlighted)}>
+            <TableRow key={rowKey(row, index)} className={cn(isRowHighlighted && highlighted)}>
               <TableHead scope="row" className={cn(labelCell, isRowHighlighted && highlighted)}>
-                {rowName(row)}
+                {rowName(row, index)}
               </TableHead>
               {columns.map((column) => (
                 <TableCell key={column.label} className={cn(cell, column.align && leftCell)}>

@@ -7,28 +7,22 @@ import { gamePath, type PlayerRole } from "@/lib/routes";
 import type { PlayerRef } from "@/lib/player-ref";
 import type { BarrelLeader, EventLeader, WhiffLeader } from "@/lib/stats/leaderboards";
 
-type Ranked<Leader> = Leader & { rank: number };
-
 type ValueLabel = "MPH" | "Distance";
 
 const OPPONENT_ROLE = { hitting: "pitching", pitching: "hitting" } as const;
 
-function rank<Leader>(leaders: Leader[]): Ranked<Leader>[] {
-  return leaders.map((leader, i) => ({ ...leader, rank: i + 1 }));
-}
-
-function RankedPlayer({ leader, role }: { leader: Ranked<{ player: PlayerRef }>; role: PlayerRole }) {
+function RankedPlayer({ index, player, role }: { index: number; player: PlayerRef; role: PlayerRole }) {
   return (
     <>
-      <span className="mr-2 opacity-70">{leader.rank}</span>
-      <PlayerLink playerId={leader.player.id} role={role}>
-        {leader.player.name}
+      <span className="mr-2 opacity-70">{index + 1}</span>
+      <PlayerLink playerId={player.id} role={role}>
+        {player.name}
       </PlayerLink>
     </>
   );
 }
 
-function eventColumns(role: PlayerRole, valueLabel: ValueLabel, digits: number): StatColumn<Ranked<EventLeader>>[] {
+function eventColumns(role: PlayerRole, valueLabel: ValueLabel, digits: number): StatColumn<EventLeader>[] {
   const opponentRole = OPPONENT_ROLE[role];
   return [
     { label: valueLabel, value: (leader) => formatDecimal(leader.value, digits) },
@@ -73,15 +67,15 @@ export function EventBoard({
     <StatTable
       title={title}
       rowLabel="Player"
-      rows={rank(leaders)}
-      rowKey={(leader) => leader.rank}
-      rowName={(leader) => <RankedPlayer leader={leader} role={role} />}
+      rows={leaders}
+      rowKey={(_, index) => index}
+      rowName={(leader, index) => <RankedPlayer index={index} player={leader.player} role={role} />}
       columns={eventColumns(role, valueLabel, digits)}
     />
   );
 }
 
-const BARREL_COLUMNS: StatColumn<Ranked<BarrelLeader>>[] = [
+const BARREL_COLUMNS: StatColumn<BarrelLeader>[] = [
   { label: "Batted balls", value: (leader) => formatCount(leader.battedBalls) },
   { label: "Barrel%", value: (leader) => formatPercent(leader.barrelRate) },
   { label: "Hard-hit%", value: (leader) => formatPercent(leader.hardHitRate) },
@@ -93,15 +87,15 @@ export function BarrelBoard({ leaders }: { leaders: BarrelLeader[] }) {
     <StatTable
       title="Barrel rate"
       rowLabel="Player"
-      rows={rank(leaders)}
-      rowKey={(leader) => leader.rank}
-      rowName={(leader) => <RankedPlayer leader={leader} role="hitting" />}
+      rows={leaders}
+      rowKey={(_, index) => index}
+      rowName={(leader, index) => <RankedPlayer index={index} player={leader.player} role="hitting" />}
       columns={BARREL_COLUMNS}
     />
   );
 }
 
-const WHIFF_COLUMNS: StatColumn<Ranked<WhiffLeader>>[] = [
+const WHIFF_COLUMNS: StatColumn<WhiffLeader>[] = [
   { label: "NP", value: (leader) => formatCount(leader.pitches) },
   { label: "Whiff%", value: (leader) => formatPercent(leader.whiffRate) },
   { label: "Chase%", value: (leader) => formatPercent(leader.chaseRate) },
@@ -113,9 +107,9 @@ export function WhiffBoard({ leaders }: { leaders: WhiffLeader[] }) {
     <StatTable
       title="Whiff rate"
       rowLabel="Player"
-      rows={rank(leaders)}
-      rowKey={(leader) => leader.rank}
-      rowName={(leader) => <RankedPlayer leader={leader} role="pitching" />}
+      rows={leaders}
+      rowKey={(_, index) => index}
+      rowName={(leader, index) => <RankedPlayer index={index} player={leader.player} role="pitching" />}
       columns={WHIFF_COLUMNS}
     />
   );
