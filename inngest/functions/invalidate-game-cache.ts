@@ -1,5 +1,6 @@
 import { revalidateTag } from "next/cache";
 import { gameCacheTags, playerCacheTags } from "@/lib/cache-tags";
+import { gameChannel, scoreboardChannel } from "../channels";
 import { inngest } from "../client";
 import { gameChanged, gameCompleted, gameProbablesChanged, gameTablesDerived } from "../events";
 
@@ -21,8 +22,16 @@ export const invalidateGameCache = inngest.createFunction(
     const tags = [...gameTags, ...playerTags];
 
     await step.run("revalidate-tags", () => {
-      for (const tag of tags) revalidateTag(tag, "max");
+      for (const tag of tags) revalidateTag(tag, { expire: 0 });
     });
+
+    if (derivedGamePks.length > 0) {
+      await step.realtime.publish("publish-scoreboard-derived", scoreboardChannel.derived, { gamePks: derivedGamePks });
+    }
+
+    for (const gamePk of derivedGamePks) {
+      await step.realtime.publish(`publish-game-derived-${gamePk}`, gameChannel({ gamePk }).derived, { gamePk });
+    }
 
     return { gamePks: gamePks.length, tags: tags.length };
   },

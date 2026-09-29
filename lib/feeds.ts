@@ -28,6 +28,12 @@ export async function storeFeed(conn: DuckDBConnection, feed: unknown) {
   return { status, gamePk, feedTs };
 }
 
+export async function readFeed(conn: DuckDBConnection, gamePk: number): Promise<unknown> {
+  const reader = await conn.runAndReadAll("SELECT json FROM raw_game_feeds WHERE game_pk = $gamePk", { gamePk });
+  const [row] = reader.getRowObjectsJS();
+  return row ? JSON.parse(String(row.json)) : null;
+}
+
 export async function deriveGame(conn: DuckDBConnection, gamePk: number) {
   return inTransaction(conn, () => derive(conn, gamePk));
 }
