@@ -1,5 +1,7 @@
 import { DateNav } from "@/components/date-nav";
-import { GameCard, GameCardSkeleton } from "@/components/game-card";
+import { GameCardSkeleton } from "@/components/game-card";
+import { GameGrid } from "@/components/game-grid";
+import { LiveScoreboard } from "@/components/live-scoreboard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatOfficialDate } from "@/lib/dates";
@@ -14,16 +16,14 @@ export async function Scoreboard({ date, isToday = false }: { date: string; isTo
         <h1 className="text-4xl">{isToday ? "Today" : formatOfficialDate(date)}</h1>
         <DateNav date={date} isToday={isToday} />
       </div>
-      {games.length > 0 ? (
-        <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {games.map((game) => (
-            <GameCard key={game.id} game={game} />
-          ))}
-        </section>
-      ) : (
+      {games.length === 0 ? (
         <Card>
           <CardContent>{isToday ? "No games today." : "No games on this date."}</CardContent>
         </Card>
+      ) : isToday ? (
+        <LiveScoreboard games={games} />
+      ) : (
+        <GameGrid games={games} />
       )}
     </>
   );

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { GameHeader, GameHeaderSkeleton } from "@/components/game-header";
+import { GameHeaderSkeleton } from "@/components/game-header";
+import { LiveGameHeader } from "@/components/live-game-header";
 import { Matchup } from "@/components/matchup";
-import { LinescoreTable } from "@/components/linescore-table";
 import { PlayByPlay } from "@/components/play-by-play";
 import { Starters } from "@/components/starters";
 import { Card, CardContent } from "@/components/ui/card";
@@ -59,7 +59,7 @@ async function GameContent({ params }: GameParams) {
   return (
     <>
       <h1 className="sr-only">{gameTitle(game)}</h1>
-      <GameHeader game={game} decisions={decisions} />
+      <LiveGameHeader game={game} decisions={decisions} linescore={linescore} />
       {isScheduled && (
         <Starters
           title="Probable starters"
@@ -70,7 +70,6 @@ async function GameContent({ params }: GameParams) {
         />
       )}
       {!hasStarted && matchup}
-      {linescore && <LinescoreTable linescore={linescore} away={away.team} home={home.team} />}
       {hasStarted && (
         <Starters
           title="Starters"
