@@ -18,6 +18,7 @@ export const BATTER_SPLITS = `unnest([
 export const BATTED_BALL_COUNTS = `
   count(launch_speed) AS batted_balls,
   count(*) FILTER (launch_speed >= 95) AS hard_hits,
+  count(*) FILTER (is_barrel(launch_speed, launch_angle)) AS barrels,
   avg(launch_speed) AS exit_velocity`;
 
 export const BATTING_COUNTS = `

@@ -13,6 +13,7 @@ export type BattingStats = {
   battedBalls: number;
   exitVelocity: Rate;
   hardHitRate: Rate;
+  barrelRate: Rate;
   chaseRate: Rate;
   zoneContactRate: Rate;
 };
@@ -42,6 +43,7 @@ export type BattingCounts = {
   strikeouts: number;
   batted_balls: number;
   hard_hits: number;
+  barrels: number;
   exit_velocity: number | null;
 };
 
@@ -86,6 +88,7 @@ export const NO_BATTING: BattingTotals = {
   strikeouts: 0,
   batted_balls: 0,
   hard_hits: 0,
+  barrels: 0,
   exit_velocity: null,
   out_of_zone_pitches: 0,
   chases: 0,
@@ -136,6 +139,7 @@ export function toBattingStats(t: BattingTotals): BattingStats {
     battedBalls: t.batted_balls / t.teams,
     exitVelocity: t.exit_velocity,
     hardHitRate: ratio(t.hard_hits, t.batted_balls),
+    barrelRate: ratio(t.barrels, t.batted_balls),
     chaseRate: ratio(t.chases, t.out_of_zone_pitches),
     zoneContactRate: ratio(t.zone_contacts, t.zone_swings),
   };

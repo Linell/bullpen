@@ -8,6 +8,7 @@ export const GLOSSARY = {
   "Batted balls": "Balls in play with a tracked exit velocity.",
   BB: "Walks.",
   "BB%": "Walk rate: walks per plate appearance.",
+  "Barrel%": "Share of batted balls that were barrels: 98+ mph in a launch-angle band that starts at 26–30° and widens with speed (approximates Statcast's definition).",
   BF: "Batters faced.",
   "Chase%": "Share of pitches outside the strike zone that the batter swung at.",
   "CSW%": "Called strikes plus whiffs, as a share of all pitches.",

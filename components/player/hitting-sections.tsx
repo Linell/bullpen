@@ -121,6 +121,7 @@ async function BattedBall({ playerId, season }: { playerId: number; season: numb
         stats={[
           { key: "ev", label: <Abbr term="Exit velo" />, value: formatDecimal(stats.exitVelocity) },
           { key: "hard", label: <Abbr term="Hard-hit%" />, value: formatPercent(stats.hardHitRate) },
+          { key: "barrel", label: <Abbr term="Barrel%" />, value: formatPercent(stats.barrelRate) },
           { key: "bbe", label: <Abbr term="Batted balls" />, value: formatCount(stats.battedBalls) },
         ]}
       />
