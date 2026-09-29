@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 export type StatColumn<Row> = {
   label: GlossaryTerm;
   value: (row: Row) => ReactNode;
+  align?: "left";
 };
 
 type StatGridProps<Row> = {
@@ -20,6 +21,7 @@ type StatGridProps<Row> = {
 };
 
 const cell = "h-auto px-2 py-1.5 text-right tabular-nums whitespace-nowrap";
+const leftCell = "text-left";
 const labelCell = "sticky left-0 h-auto bg-background px-2 py-1.5 whitespace-nowrap";
 const highlighted = "bg-main text-main-foreground";
 
@@ -34,7 +36,7 @@ export function StatGrid<Row>({ rowLabel, rows, rowKey, rowName, columns, isHigh
             {rowLabel}
           </TableHead>
           {columns.map((column) => (
-            <TableHead key={column.label} scope="col" className={cell}>
+            <TableHead key={column.label} scope="col" className={cn(cell, column.align && leftCell)}>
               <Abbr term={column.label} />
             </TableHead>
           ))}
@@ -49,7 +51,7 @@ export function StatGrid<Row>({ rowLabel, rows, rowKey, rowName, columns, isHigh
                 {rowName(row)}
               </TableHead>
               {columns.map((column) => (
-                <TableCell key={column.label} className={cell}>
+                <TableCell key={column.label} className={cn(cell, column.align && leftCell)}>
                   {column.value(row)}
                 </TableCell>
               ))}
