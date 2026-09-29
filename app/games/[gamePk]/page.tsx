@@ -45,6 +45,7 @@ async function GameContent({ params }: GameParams) {
   const isLive = game.status.state === "live";
   const isScheduled = game.status.state === "scheduled";
   const hasStarted = isLive || game.status.state === "final";
+  const lastAtBatIndex = Math.max(-1, ...halfInnings.flatMap((h) => h.plateAppearances.map((pa) => pa.atBatIndex)));
 
   const matchup = (
     <Matchup
@@ -59,7 +60,7 @@ async function GameContent({ params }: GameParams) {
   return (
     <>
       <h1 className="sr-only">{gameTitle(game)}</h1>
-      <LiveGameHeader game={game} decisions={decisions} linescore={linescore} />
+      <LiveGameHeader game={game} decisions={decisions} linescore={linescore} lastAtBatIndex={lastAtBatIndex} />
       {isScheduled && (
         <Starters
           title="Probable starters"

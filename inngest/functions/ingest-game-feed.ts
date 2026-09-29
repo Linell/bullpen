@@ -43,6 +43,7 @@ export const ingestGameFeed = inngest.createFunction(
 
     if (diff && diff.plays.length > 0) {
       await step.realtime.publish("publish-plays", scoreboardChannel.play, { gamePk, plays: diff.plays });
+      await step.realtime.publish("publish-game-page-plays", gameChannel({ gamePk }).play, { gamePk, plays: diff.plays });
     }
 
     return { gamePk, feedTs, status };
