@@ -1,14 +1,22 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
+import { Leaders, LeadersSkeleton } from "@/components/leaders";
 import { Scoreboard, ScoreboardSkeleton } from "@/components/scoreboard";
 import { todayOfficialDate } from "@/lib/dates";
 
 export default function Home() {
   return (
-    <main className="mx-auto flex w-full max-w-(--breakpoint-2xl) flex-1 flex-col gap-6 px-6 pt-6 pb-24">
-      <Suspense fallback={<ScoreboardSkeleton />}>
-        <TodayScoreboard />
-      </Suspense>
+    <main className="mx-auto grid w-full max-w-(--breakpoint-2xl) flex-1 content-start gap-6 px-6 pt-6 pb-24 xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="@container flex min-w-0 flex-col gap-6">
+        <Suspense fallback={<ScoreboardSkeleton />}>
+          <TodayScoreboard />
+        </Suspense>
+      </div>
+      <aside>
+        <Suspense fallback={<LeadersSkeleton />}>
+          <TodayLeaders />
+        </Suspense>
+      </aside>
     </main>
   );
 }
@@ -16,4 +24,9 @@ export default function Home() {
 async function TodayScoreboard() {
   await connection();
   return <Scoreboard date={todayOfficialDate()} isToday />;
+}
+
+async function TodayLeaders() {
+  await connection();
+  return <Leaders date={todayOfficialDate()} />;
 }
