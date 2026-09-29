@@ -39,7 +39,7 @@ export function Diamond({
             height={6}
             transform={`rotate(45 ${x + 3} ${y + 3})`}
             className={cn(
-              "stroke-foreground stroke-[1.5]",
+              "stroke-foreground stroke-[1.5] transition-colors duration-500",
               situation.bases[i] ? "fill-foreground" : "fill-none",
             )}
           />
@@ -50,7 +50,7 @@ export function Diamond({
           <span
             key={i}
             className={cn(
-              "rounded-full border-foreground",
+              "rounded-full border-foreground transition-colors duration-500",
               classes.out,
               i < situation.outs && "bg-foreground",
             )}

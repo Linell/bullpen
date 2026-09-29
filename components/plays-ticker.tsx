@@ -16,7 +16,7 @@ export function PlaysTicker({ plays }: { plays: TickerPlay[] }) {
         <Link
           key={`${play.game.gamePk}-${play.atBatIndex}`}
           href={gamePath(play.game.gamePk)}
-          className="flex items-baseline gap-2 truncate hover:text-foreground"
+          className="flex items-baseline gap-2 truncate hover:text-foreground motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-1 motion-safe:duration-500"
         >
           <span className={cn("shrink-0 tabular-nums", play.isScoringPlay && "font-heading text-foreground")}>
             {play.game.away.team.abbreviation} {play.awayScore}, {play.game.home.team.abbreviation} {play.homeScore}

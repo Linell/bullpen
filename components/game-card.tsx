@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Diamond } from "@/components/diamond";
 import { PlayerLink } from "@/components/player-link";
+import { Pop } from "@/components/pop";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -48,7 +49,7 @@ function TeamRow({
         )}
       </div>
       {side.score !== undefined && (
-        <span className="text-2xl font-heading tabular-nums">{side.score}</span>
+        <Pop value={side.score} className="text-2xl font-heading tabular-nums">{side.score}</Pop>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import { Countdown } from "@/components/countdown";
 import { Diamond } from "@/components/diamond";
 import { PlayerLink } from "@/components/player-link";
+import { Pop } from "@/components/pop";
 import { StatusBadge } from "@/components/status-badge";
 import { TeamLink } from "@/components/team/team-link";
 import { Abbr } from "@/components/ui/abbr";
@@ -17,7 +18,7 @@ function TeamScore({ side }: { side: GameSide }) {
   return (
     <div className="flex min-w-0 flex-col items-center gap-1 text-center">
       {side.score !== undefined && (
-        <span className="text-4xl font-heading tabular-nums">{side.score}</span>
+        <Pop value={side.score} className="text-4xl font-heading tabular-nums">{side.score}</Pop>
       )}
       <TeamLink teamId={side.team.id} className="truncate font-heading">
         {side.team.name}
