@@ -11,7 +11,7 @@ import { gamePath } from "@/lib/routes";
 import { gameTitle, type Game, type GameSide } from "@/lib/scoreboard";
 import { cn } from "@/lib/utils";
 
-function Probable({ side, season }: { side: GameSide; season: number }) {
+export function Probable({ side, season }: { side: GameSide; season: number }) {
   if (!side.probable) return "TBD";
   return (
     <PlayerLink playerId={side.probable.id} role="pitching" season={season} className="relative z-10">
