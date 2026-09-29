@@ -8,10 +8,10 @@ import type { ScheduleResponse } from "@/lib/mlb";
 import {
   changedGames,
   findCompletedGamePks,
-  findLiveGamePks,
   findRescheduledGamePks,
   isCompleted,
   parseSchedule,
+  readLiveGamePks,
   replaceGames,
   upsertGames,
 } from "@/lib/schedule";
@@ -176,26 +176,37 @@ describe("findCompletedGamePks", () => {
   });
 });
 
-describe("findLiveGamePks", () => {
-  it("includes only live games", () => {
-    const [row] = parseSchedule(fixture("2026-09-21"));
-    const live = { ...row, gamePk: 1, abstractState: "Live", codedState: "I" };
-    const scheduled = { ...row, gamePk: 2, abstractState: "Preview", codedState: "S" };
-    expect(findLiveGamePks([row, live, scheduled])).toEqual([1]);
+describe("readLiveGamePks", () => {
+  let conn: DuckDBConnection;
+  beforeEach(async () => {
+    conn = await openDb(":memory:");
+    await migrate(conn);
+    await conn.run("DELETE FROM games");
   });
 
-  it("includes warmup, challenges and suspensions only while abstract is Live", () => {
+  it("leaves out live games from before yesterday", async () => {
+    const [row] = parseSchedule(fixture("2026-09-21"));
+    await upsertGames(conn, [{ ...row, officialDate: "2020-07-23", abstractState: "Live", codedState: "I" }]);
+    expect(await readLiveGamePks(conn)).toEqual([]);
+  });
+
+  it("includes warmup, challenges and suspensions only while abstract is Live", async () => {
     const [row] = parseSchedule(fixture("2026-09-21"));
     const states = [
+      ["Live", "I"],
       ["Live", "P"],
       ["Live", "M"],
       ["Live", "T"],
       ["Live", "U"],
+      ["Live", "F"],
       ["Final", "T"],
       ["Final", "U"],
+      ["Preview", "S"],
     ];
-    const rows = states.map(([abstractState, codedState], i) => ({ ...row, gamePk: i + 1, abstractState, codedState }));
-    expect(findLiveGamePks(rows)).toEqual([1, 2, 3, 4]);
+    const officialDate = new Date().toISOString().slice(0, 10);
+    const rows = states.map(([abstractState, codedState], i) => ({ ...row, gamePk: i + 1, officialDate, abstractState, codedState }));
+    await upsertGames(conn, rows);
+    expect(await readLiveGamePks(conn)).toEqual([1, 2, 3, 4, 5]);
   });
 });
 

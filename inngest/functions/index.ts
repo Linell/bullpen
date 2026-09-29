@@ -4,9 +4,11 @@ import { ingestGameFeed } from "./ingest-game-feed";
 import { invalidateGameCache } from "./invalidate-game-cache";
 import { rebuildGameTables } from "./rebuild-game-tables";
 import { syncSchedule } from "./sync-schedule";
+import { watchLiveGames } from "./watch-live-games";
 
 export const functions = [
   syncSchedule,
+  watchLiveGames,
   backfillSeason,
   ingestGameFeed,
   deriveGameTables,

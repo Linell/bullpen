@@ -113,3 +113,10 @@ export async function fetchSeasonDates(
 export function fetchFeed(gamePk: number): Promise<unknown> {
   return get<unknown>(`/api/v1.1/game/${gamePk}/feed/live`);
 }
+
+export async function fetchFeedTimestamp(gamePk: number): Promise<string> {
+  const feed = await get<{ metaData: { timeStamp: string } }>(`/api/v1.1/game/${gamePk}/feed/live`, {
+    fields: "metaData",
+  });
+  return feed.metaData.timeStamp;
+}

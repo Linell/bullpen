@@ -30,6 +30,10 @@ export const gameUpdated = eventType("mlb/game.updated", {
   schema: z.object({ gamePk }),
 });
 
+export const gameChanged = eventType("mlb/game.changed", {
+  schema: z.object({ gamePk }),
+});
+
 export const gameFeedStored = eventType("mlb/game-feed.stored", {
   schema: z.object({ gamePk, reason: feedReason.optional() }),
 });

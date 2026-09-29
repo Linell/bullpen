@@ -86,10 +86,14 @@ export function replaceGames(rows: GameRow[], replacements: GameRow[]): GameRow[
   return rows.map((row) => byGamePk.get(row.gamePk) ?? row);
 }
 
-export function findLiveGamePks(rows: GameRow[]): number[] {
-  return rows
-    .filter((row) => row.abstractState === "Live" && !isCompleted(row.codedState))
-    .map((row) => row.gamePk);
+export async function readLiveGamePks(conn: DuckDBConnection): Promise<number[]> {
+  const completed = COMPLETED_STATES.map((state) => `'${state}'`).join(", ");
+  const reader = await conn.runAndReadAll(
+    `SELECT game_pk FROM games
+     WHERE abstract_state = 'Live' AND coded_state NOT IN (${completed}) AND official_date >= current_date - 1
+     ORDER BY game_pk`,
+  );
+  return reader.getRowObjectsJS().map((row) => Number(row.game_pk));
 }
 
 function record(side: ScheduleGame["teams"]["home"]): string | null {

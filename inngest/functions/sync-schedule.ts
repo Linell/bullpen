@@ -1,16 +1,16 @@
-import { cron } from "inngest";
 import { shiftDate, todayOfficialDate } from "@/lib/dates";
 import { withConnection } from "@/lib/db";
 import { fetchSchedule } from "@/lib/mlb";
 import { recordProbables } from "@/lib/probables";
-import { findCompletedGamePks, findLiveGamePks, parseSchedule, upsertGames } from "@/lib/schedule";
+import { findCompletedGamePks, parseSchedule, upsertGames } from "@/lib/schedule";
 import { inngest } from "../client";
-import { gameCompleted, gameProbablesChanged, gameUpdated } from "../events";
+import { everyMinuteOfBaseballHours } from "../cron";
+import { gameChanged, gameCompleted, gameProbablesChanged } from "../events";
 
 export const syncSchedule = inngest.createFunction(
   {
     id: "sync-schedule",
-    triggers: [cron("TZ=UTC * 15-23,0-7 * 2-11 *")],
+    triggers: [everyMinuteOfBaseballHours],
     singleton: { mode: "skip" },
   },
   async ({ event, step }) => {
@@ -31,7 +31,6 @@ export const syncSchedule = inngest.createFunction(
     );
 
     const completedGamePks = findCompletedGamePks(rows);
-    const updatedGamePks = findLiveGamePks(rows).filter((gamePk) => changedGamePks.includes(gamePk));
 
     if (completedGamePks.length > 0) {
       await step.sendEvent(
@@ -40,12 +39,10 @@ export const syncSchedule = inngest.createFunction(
       );
     }
 
-    if (updatedGamePks.length > 0) {
+    if (changedGamePks.length > 0) {
       await step.sendEvent(
-        "emit-game-updated",
-        updatedGamePks.map((gamePk) =>
-          gameUpdated.create({ gamePk }, { id: `game-updated-${gamePk}-${event.ts}` }),
-        ),
+        "emit-game-changed",
+        changedGamePks.map((gamePk) => gameChanged.create({ gamePk }, { id: `game-changed-${gamePk}-${event.ts}` })),
       );
     }
 
@@ -64,7 +61,6 @@ export const syncSchedule = inngest.createFunction(
       games: rows.length,
       changed,
       completed: completedGamePks.length,
-      updated: updatedGamePks.length,
       probablesChanged: probablesGamePks.length,
     };
   },

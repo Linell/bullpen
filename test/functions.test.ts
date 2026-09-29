@@ -47,34 +47,15 @@ describe("sync-schedule", () => {
         upserted([101]),
         recorded(),
         mockSend("emit-game-completed"),
+        mockSend("emit-game-changed"),
       ],
     });
 
-    expect(result).toEqual({ ...window, games: 3, changed: 1, completed: 2, updated: 0, probablesChanged: 0 });
-    expect(ctx.step.sendEvent).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ ...window, games: 3, changed: 1, completed: 2, probablesChanged: 0 });
+    expect(ctx.step.sendEvent).toHaveBeenCalledTimes(2);
     expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-completed", [
       expect.objectContaining({ data: { gamePk: 101, reason: "live" }, id: "game-completed-101" }),
       expect.objectContaining({ data: { gamePk: 102, reason: "live" }, id: "game-completed-102" }),
-    ]);
-  });
-
-  it("emits game.updated for each changed live game with the run time in its id", async () => {
-    const t = new InngestTestEngine({ function: syncSchedule });
-    const { ctx, result } = await t.execute({
-      events: [timer],
-      steps: [
-        fetched(row(201, "Live", "I"), row(202, "Live", "I"), row(203, "Live", "I")),
-        upserted([201, 202]),
-        recorded(),
-        mockSend("emit-game-updated"),
-      ],
-    });
-
-    expect(result).toEqual({ ...window, games: 3, changed: 2, completed: 0, updated: 2, probablesChanged: 0 });
-    expect(ctx.step.sendEvent).toHaveBeenCalledTimes(1);
-    expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-updated", [
-      expect.objectContaining({ data: { gamePk: 201 }, id: "game-updated-201-1700000000000" }),
-      expect.objectContaining({ data: { gamePk: 202 }, id: "game-updated-202-1700000000000" }),
     ]);
   });
 
@@ -85,7 +66,7 @@ describe("sync-schedule", () => {
       steps: [fetched(row(301, "Live", "I"), row(302, "Preview", "S")), upserted([]), recorded()],
     });
 
-    expect(result).toEqual({ ...window, games: 2, changed: 0, completed: 0, updated: 0, probablesChanged: 0 });
+    expect(result).toEqual({ ...window, games: 2, changed: 0, completed: 0, probablesChanged: 0 });
     expect(ctx.step.sendEvent).not.toHaveBeenCalled();
   });
 
@@ -97,12 +78,17 @@ describe("sync-schedule", () => {
         fetched(row(401, "Preview", "S"), row(402, "Preview", "S")),
         upserted([401, 402]),
         recorded([402]),
+        mockSend("emit-game-changed"),
         mockSend("emit-game-probables-changed"),
       ],
     });
 
-    expect(result).toEqual({ ...window, games: 2, changed: 2, completed: 0, updated: 0, probablesChanged: 1 });
-    expect(ctx.step.sendEvent).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ ...window, games: 2, changed: 2, completed: 0, probablesChanged: 1 });
+    expect(ctx.step.sendEvent).toHaveBeenCalledTimes(2);
+    expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-changed", [
+      expect.objectContaining({ data: { gamePk: 401 }, id: "game-changed-401-1700000000000" }),
+      expect.objectContaining({ data: { gamePk: 402 }, id: "game-changed-402-1700000000000" }),
+    ]);
     expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-probables-changed", [
       expect.objectContaining({ data: { gamePk: 402 }, id: "game-probables-changed-402-1700000000000" }),
     ]);
@@ -299,7 +285,7 @@ describe("invalidate-game-cache", () => {
     const t = new InngestTestEngine({ function: invalidateGameCache });
     const { result } = await t.execute({
       events: [
-        { name: "mlb/game.updated", data: { gamePk: 101 } },
+        { name: "mlb/game.changed", data: { gamePk: 101 } },
         { name: "mlb/game.completed", data: { gamePk: 101 } },
         { name: "mlb/game-tables.derived", data: { gamePk: 101 } },
       ],
