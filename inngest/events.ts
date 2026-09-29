@@ -22,6 +22,10 @@ export const seasonBackfillRequested = eventType("mlb/season.backfill.requested"
     }),
 });
 
+export const gamesBackfillRequested = eventType("mlb/games.backfill.requested", {
+  schema: z.object({ gamePks: z.array(gamePk).min(1), refetch: z.boolean() }),
+});
+
 export const gameCompleted = eventType("mlb/game.completed", {
   schema: z.object({ gamePk, reason: feedReason.optional() }),
 });

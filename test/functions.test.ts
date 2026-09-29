@@ -1,6 +1,7 @@
 import { InngestTestEngine } from "@inngest/test";
 import { revalidateTag } from "next/cache";
 import { describe, expect, it, vi } from "vitest";
+import { backfillGames } from "@/inngest/functions/backfill-games";
 import { backfillSeason } from "@/inngest/functions/backfill-season";
 import { ingestGameFeed } from "@/inngest/functions/ingest-game-feed";
 import { invalidateGameCache } from "@/inngest/functions/invalidate-game-cache";
@@ -102,30 +103,35 @@ describe("backfill-season", () => {
     return { name: "mlb/season.backfill.requested", data: { season: 2026, ...data }, ts: 1700000000000 };
   }
 
-  it("includes the request time in each event id", async () => {
+  it("backfills completed games in batches and revalidates once", async () => {
+    vi.mocked(revalidateTag).mockClear();
+    const completed = Array.from({ length: 30 }, (_, i) => ({ gamePk: i + 1, abstractState: "Final", codedState: "F" }));
     const t = new InngestTestEngine({ function: backfillSeason });
     const { ctx, result } = await t.execute({
-      events: [{ name: "mlb/season.backfill.requested", data: { season: 2026 }, ts: 1700000000000 }],
+      events: [requested({})],
       steps: [
         mockStep("fetch-season-dates", seasonDates),
-        mockStep("fetch-schedule", [
-          { gamePk: 101, abstractState: "Final", codedState: "F" },
-          { gamePk: 102, abstractState: "Preview", codedState: "S" },
-        ]),
-        mockStep("upsert-games", { changed: 2, changedGamePks: [101, 102] }),
-        mockStep("record-probables", [102]),
-        mockSend("emit-game-completed"),
+        mockStep("fetch-schedule", [...completed, { gamePk: 31, abstractState: "Preview", codedState: "S" }]),
+        mockStep("upsert-games", { changed: 31, changedGamePks: [] }),
+        mockStep("record-probables", [31]),
         mockSend("emit-game-probables-changed"),
+        mockStep("backfill-games-1", { failed: [] }),
+        mockStep("backfill-games-2", { failed: [27] }),
       ],
     });
 
-    expect(result).toEqual({ season: 2026, ...seasonDates, games: 2, rescheduled: 0, changed: 2, completed: 1, probablesChanged: 1 });
-    expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-completed", [
-      expect.objectContaining({ data: { gamePk: 101, reason: "backfill" }, id: "game-completed-101-1700000000000" }),
-    ]);
+    expect(result).toEqual({
+      season: 2026, ...seasonDates, games: 31, rescheduled: 0, changed: 31, completed: 30, failed: [27], probablesChanged: 1,
+    });
+    expect(ctx.step.invoke).toHaveBeenCalledTimes(2);
+    expect(ctx.step.invoke).toHaveBeenLastCalledWith(
+      "backfill-games-2",
+      expect.objectContaining({ data: { gamePks: [26, 27, 28, 29, 30], refetch: true } }),
+    );
     expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-probables-changed", [
-      expect.objectContaining({ data: { gamePk: 102 }, id: "game-probables-changed-102-1700000000000" }),
+      expect.objectContaining({ data: { gamePk: 31 }, id: "game-probables-changed-31-1700000000000" }),
     ]);
+    expect(revalidateTag).toHaveBeenCalledTimes(3);
   });
 
   it("re-fetches postponed games so completed makeups are ingested", async () => {
@@ -141,15 +147,15 @@ describe("backfill-season", () => {
         mockStep("fetch-rescheduled-games", [{ gamePk: 101, abstractState: "Final", codedState: "F" }]),
         mockStep("upsert-games", { changed: 2, changedGamePks: [101, 102] }),
         mockStep("record-probables", []),
-        mockSend("emit-game-completed"),
+        mockStep("backfill-games-1", { failed: [] }),
       ],
     });
 
     expect(result).toMatchObject({ games: 2, rescheduled: 1, completed: 2 });
-    expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-completed", [
-      expect.objectContaining({ data: { gamePk: 101, reason: "backfill" } }),
-      expect.objectContaining({ data: { gamePk: 102, reason: "backfill" } }),
-    ]);
+    expect(ctx.step.invoke).toHaveBeenCalledWith(
+      "backfill-games-1",
+      expect.objectContaining({ data: { gamePks: [101, 102], refetch: true } }),
+    );
   });
 
   it("clamps a requested slice to the season's dates", async () => {
@@ -257,23 +263,52 @@ describe("ingest-game-feed", () => {
 });
 
 describe("rebuild-game-tables", () => {
-  it("sends at most 5,000 events at a time", async () => {
-    const gamePks = Array.from({ length: 5001 }, (_, i) => i + 1);
+  it("re-derives every stored feed in batches without refetching", async () => {
+    const gamePks = Array.from({ length: 51 }, (_, i) => i + 1);
     const t = new InngestTestEngine({ function: rebuildGameTables });
     const { ctx, result } = await t.execute({
       events: [{ name: "mlb/game-tables.rebuild.requested", data: {}, ts: 1700000000000 }],
       steps: [
         mockStep("list-raw-feeds", gamePks),
-        mockSend("emit-game-feed-stored-1"),
-        mockSend("emit-game-feed-stored-2"),
+        mockStep("backfill-games-1", { failed: [] }),
+        mockStep("backfill-games-2", { failed: [] }),
+        mockStep("backfill-games-3", { failed: [] }),
       ],
     });
 
-    expect(result).toEqual({ feeds: 5001 });
-    expect(ctx.step.sendEvent).toHaveBeenCalledTimes(2);
-    expect(ctx.step.sendEvent).toHaveBeenLastCalledWith("emit-game-feed-stored-2", [
-      expect.objectContaining({ data: { gamePk: 5001, reason: "backfill" }, id: "game-feed-stored-5001-1700000000000" }),
-    ]);
+    expect(result).toEqual({ feeds: 51 });
+    expect(ctx.step.invoke).toHaveBeenCalledTimes(3);
+    expect(ctx.step.invoke).toHaveBeenLastCalledWith(
+      "backfill-games-3",
+      expect.objectContaining({ data: { gamePks: [51], refetch: false } }),
+    );
+  });
+});
+
+describe("backfill-games", () => {
+  it("derives only the feeds it stored", async () => {
+    const t = new InngestTestEngine({ function: backfillGames });
+    const { ctx, result } = await t.execute({
+      events: [{ name: "mlb/games.backfill.requested", data: { gamePks: [101, 102, 103], refetch: true } }],
+      steps: [
+        mockStep("store-feeds", { stored: [101], failed: [103] }),
+        mockStep("derive-games", { plays: 70, pitches: 280 }),
+      ],
+    });
+
+    expect(result).toEqual({ games: 3, stored: 1, failed: [103], plays: 70, pitches: 280 });
+    expect(ctx.step.run).toHaveBeenCalledTimes(2);
+  });
+
+  it("derives stored feeds without refetching them", async () => {
+    const t = new InngestTestEngine({ function: backfillGames });
+    const { ctx, result } = await t.execute({
+      events: [{ name: "mlb/games.backfill.requested", data: { gamePks: [101, 102], refetch: false } }],
+      steps: [mockStep("derive-games", { plays: 140, pitches: 560 })],
+    });
+
+    expect(result).toEqual({ games: 2, stored: 2, failed: [], plays: 140, pitches: 560 });
+    expect(ctx.step.run).toHaveBeenCalledTimes(1);
   });
 });
 

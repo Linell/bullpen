@@ -1,11 +1,14 @@
 import { NonRetriableError } from "inngest";
+import { revalidateTag } from "next/cache";
+import { BACKFILL_TAGS } from "@/lib/cache-tags";
 import { clampDateRange } from "@/lib/dates";
 import { withConnection } from "@/lib/db";
 import { fetchSchedule, fetchScheduleGames, fetchSeasonDates } from "@/lib/mlb";
 import { recordProbables } from "@/lib/probables";
 import { findCompletedGamePks, findRescheduledGamePks, parseSchedule, replaceGames, upsertGames } from "@/lib/schedule";
 import { inngest } from "../client";
-import { gameCompleted, gameProbablesChanged, seasonBackfillRequested } from "../events";
+import { gameProbablesChanged, seasonBackfillRequested } from "../events";
+import { backfillBatches, backfillGames } from "./backfill-games";
 
 export const backfillSeason = inngest.createFunction(
   { id: "backfill-season", triggers: [seasonBackfillRequested] },
@@ -38,20 +41,6 @@ export const backfillSeason = inngest.createFunction(
       withConnection((conn) => recordProbables(conn, gamePks)),
     );
 
-    const completedGamePks = findCompletedGamePks(rows);
-
-    if (completedGamePks.length > 0) {
-      await step.sendEvent(
-        "emit-game-completed",
-        completedGamePks.map((gamePk) =>
-          gameCompleted.create(
-            { gamePk, reason: "backfill" },
-            { id: `game-completed-${gamePk}-${event.ts}` },
-          ),
-        ),
-      );
-    }
-
     if (probablesGamePks.length > 0) {
       await step.sendEvent(
         "emit-game-probables-changed",
@@ -61,6 +50,18 @@ export const backfillSeason = inngest.createFunction(
       );
     }
 
+    const completedGamePks = findCompletedGamePks(rows);
+
+    const backfills = await Promise.all(
+      backfillBatches(completedGamePks).map((batch, i) =>
+        step.invoke(`backfill-games-${i + 1}`, { function: backfillGames, data: { gamePks: batch, refetch: true } }),
+      ),
+    );
+
+    await step.run("revalidate-tags", () => {
+      for (const tag of BACKFILL_TAGS) revalidateTag(tag, { expire: 0 });
+    });
+
     return {
       season,
       ...dates,
@@ -68,6 +69,7 @@ export const backfillSeason = inngest.createFunction(
       rescheduled: rescheduled.length,
       changed,
       completed: completedGamePks.length,
+      failed: backfills.flatMap((backfill) => backfill.failed),
       probablesChanged: probablesGamePks.length,
     };
   },

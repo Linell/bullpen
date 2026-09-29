@@ -1,3 +1,4 @@
+import { backfillGames } from "./backfill-games";
 import { backfillSeason } from "./backfill-season";
 import { deriveGameTables } from "./derive-game-tables";
 import { ingestGameFeed } from "./ingest-game-feed";
@@ -10,6 +11,7 @@ export const functions = [
   syncSchedule,
   watchLiveGames,
   backfillSeason,
+  backfillGames,
   ingestGameFeed,
   deriveGameTables,
   rebuildGameTables,
