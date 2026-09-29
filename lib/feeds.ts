@@ -1,5 +1,5 @@
 import "server-only";
-import type { DuckDBConnection } from "@duckdb/node-api";
+import { type DuckDBConnection, listValue } from "@duckdb/node-api";
 import { readSql } from "@/lib/db";
 
 type FeedHeader = {
@@ -11,10 +11,18 @@ type FeedHeader = {
 let deriveSql: Promise<string> | undefined;
 
 export async function storeFeed(conn: DuckDBConnection, feed: unknown) {
-  const { gamePk, season, feedTs } = readFeedHeader(feed);
+  const { gamePk, feedTs } = readFeedHeader(feed);
+  const stored = await storeFeeds(conn, [feed]);
+  const status = stored.length > 0 ? ("stored" as const) : ("unchanged" as const);
+  return { status, gamePk, feedTs };
+}
+
+export async function storeFeeds(conn: DuckDBConnection, feeds: unknown[]): Promise<number[]> {
+  if (feeds.length === 0) return [];
+  const headers = feeds.map(readFeedHeader);
   const stored = await conn.runAndReadAll(
     `INSERT INTO raw_game_feeds (game_pk, season, feed_ts, fetched_at, json)
-     VALUES ($gamePk, $season, $feedTs, now(), $json)
+     SELECT unnest($gamePks::INTEGER[]), unnest($seasons::INTEGER[]), unnest($feedTs::VARCHAR[]), now(), unnest($jsons::VARCHAR[])
      ON CONFLICT (game_pk) DO UPDATE SET
        season = excluded.season,
        feed_ts = excluded.feed_ts,
@@ -22,10 +30,14 @@ export async function storeFeed(conn: DuckDBConnection, feed: unknown) {
        json = excluded.json
      WHERE excluded.feed_ts > raw_game_feeds.feed_ts
      RETURNING game_pk`,
-    { gamePk, season, feedTs, json: JSON.stringify(feed) },
+    {
+      gamePks: listValue(headers.map((header) => header.gamePk)),
+      seasons: listValue(headers.map((header) => header.season)),
+      feedTs: listValue(headers.map((header) => header.feedTs)),
+      jsons: listValue(feeds.map((feed) => JSON.stringify(feed))),
+    },
   );
-  const status = stored.currentRowCount > 0 ? ("stored" as const) : ("unchanged" as const);
-  return { status, gamePk, feedTs };
+  return stored.getRowObjectsJS().map((row) => Number(row.game_pk));
 }
 
 export async function readFeed(conn: DuckDBConnection, gamePk: number): Promise<unknown> {
@@ -35,7 +47,11 @@ export async function readFeed(conn: DuckDBConnection, gamePk: number): Promise<
 }
 
 export async function deriveGame(conn: DuckDBConnection, gamePk: number) {
-  return inTransaction(conn, () => derive(conn, gamePk));
+  return deriveGames(conn, [gamePk]);
+}
+
+export async function deriveGames(conn: DuckDBConnection, gamePks: number[]) {
+  return inTransaction(conn, () => derive(conn, gamePks));
 }
 
 export async function rawFeedGamePks(conn: DuckDBConnection): Promise<number[]> {
@@ -54,7 +70,7 @@ function readFeedHeader(feed: unknown) {
   return { gamePk, season, feedTs };
 }
 
-async function derive(conn: DuckDBConnection, gamePk: number) {
+async function derive(conn: DuckDBConnection, gamePks: number[]) {
   deriveSql ??= readSql("derive.sql").catch((err) => {
     deriveSql = undefined;
     throw err;
@@ -62,15 +78,15 @@ async function derive(conn: DuckDBConnection, gamePk: number) {
   const statements = await conn.extractStatements(await deriveSql);
   for (let i = 0; i < statements.count; i++) {
     const statement = await statements.prepare(i);
-    if (statement.parameterCount > 0) statement.bind({ game_pk: gamePk });
+    if (statement.parameterCount > 0) statement.bind({ game_pks: listValue(gamePks) });
     await statement.run();
   }
 
   const counts = await conn.runAndReadAll(
     `SELECT
-       (SELECT count(*) FROM plays WHERE game_pk = $game_pk::INTEGER) AS plays,
-       (SELECT count(*) FROM pitches WHERE game_pk = $game_pk::INTEGER) AS pitches`,
-    { game_pk: gamePk },
+       (SELECT count(*) FROM plays WHERE list_contains($game_pks::INTEGER[], game_pk)) AS plays,
+       (SELECT count(*) FROM pitches WHERE list_contains($game_pks::INTEGER[], game_pk)) AS pitches`,
+    { game_pks: listValue(gamePks) },
   );
   const [row] = counts.getRowObjects();
   return { plays: Number(row.plays), pitches: Number(row.pitches) };

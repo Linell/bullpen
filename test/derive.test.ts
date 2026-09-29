@@ -5,7 +5,7 @@ import { DuckDBInstance, type DuckDBConnection } from "@duckdb/node-api";
 import { beforeAll, describe, expect, it } from "vitest";
 import { openDb } from "@/lib/db";
 import { migrate } from "@/lib/migrate";
-import { deriveGame, rawFeedGamePks, storeFeed } from "@/lib/feeds";
+import { deriveGame, deriveGames, rawFeedGamePks, storeFeed, storeFeeds } from "@/lib/feeds";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Feed = any;
@@ -432,6 +432,22 @@ describe("derive.sql", () => {
       gamePk: feed.gamePk,
     });
     expect(row.feed_ts).toBe(newest);
+  });
+
+  it("stores and derives many games at once like one at a time", async () => {
+    const batch = await openDb(":memory:");
+    await migrate(batch);
+    const gamePks = feeds.map((f) => f.gamePk);
+
+    expect((await storeFeeds(batch, feeds)).sort()).toEqual([...gamePks].sort());
+    expect(await storeFeeds(batch, feeds)).toEqual([]);
+
+    const totals = [...firstRun.values()].reduce((sum, run) => ({
+      plays: sum.plays + run.plays,
+      pitches: sum.pitches + run.pitches,
+    }));
+    expect(await deriveGames(batch, gamePks)).toEqual(totals);
+    expect(await gamePageCounts(batch)).toEqual(firstGamePageCounts);
   });
 
   it("lists every stored feed", async () => {
