@@ -15,10 +15,10 @@ import {
   BATTER_SPLITS,
   BATTING_COUNTS,
   BOX_BATTING_COUNTS,
-  REGULAR_GAME,
-  REGULAR_GAMES,
-  REGULAR_SEASON,
-  REGULAR_SEASON_GAMES,
+  TRACKED_GAME,
+  TRACKED_GAMES,
+  TRACKED_SEASON,
+  TRACKED_SEASON_GAMES,
   SWING_DECISION_COUNTS,
   withNumbers,
 } from "@/lib/stats/sql";
@@ -58,7 +58,7 @@ type SplitRow = BattingCounts & { split: string };
 const SEASON_BOX_QUERY = withNumbers(
   `SELECT season, ${BOX_BATTING_COUNTS}
   FROM player_game_batting
-  WHERE player_id = $playerId::INTEGER AND game_pk IN (${REGULAR_SEASON_GAMES})
+  WHERE player_id = $playerId::INTEGER AND game_pk IN (${TRACKED_SEASON_GAMES})
   GROUP BY season`,
   ["season"],
 );
@@ -66,7 +66,7 @@ const SEASON_BOX_QUERY = withNumbers(
 const SEASON_BATTED_BALLS_QUERY = withNumbers(
   `SELECT season, ${BATTED_BALL_COUNTS}
   FROM plate_appearances
-  WHERE ${REGULAR_SEASON} AND batter_id = $playerId::INTEGER
+  WHERE ${TRACKED_SEASON} AND batter_id = $playerId::INTEGER
   GROUP BY season`,
   ["season"],
 );
@@ -74,7 +74,7 @@ const SEASON_BATTED_BALLS_QUERY = withNumbers(
 const SEASON_SWING_DECISIONS_QUERY = withNumbers(
   `SELECT season, ${SWING_DECISION_COUNTS}
   FROM pitch_outcomes
-  WHERE ${REGULAR_SEASON} AND batter_id = $playerId::INTEGER
+  WHERE ${TRACKED_SEASON} AND batter_id = $playerId::INTEGER
   GROUP BY season`,
   ["season"],
 );
@@ -84,7 +84,7 @@ const SPLITS_QUERY = withNumbers(
   FROM (
     SELECT *, ${BATTER_SPLITS} AS split
     FROM plate_appearances
-    WHERE ${REGULAR_SEASON} AND batter_id = $playerId::INTEGER
+    WHERE ${TRACKED_SEASON} AND batter_id = $playerId::INTEGER
   )
   WHERE split IS NOT NULL
   GROUP BY split`,
@@ -94,7 +94,7 @@ const SPLITS_QUERY = withNumbers(
 const SPRAY_CHART_QUERY = `
   SELECT hit_coord_x AS x, hit_coord_y AS y, bases
   FROM plate_appearances
-  WHERE ${REGULAR_SEASON} AND batter_id = $playerId::INTEGER AND hit_coord_x IS NOT NULL AND hit_coord_y IS NOT NULL
+  WHERE ${TRACKED_SEASON} AND batter_id = $playerId::INTEGER AND hit_coord_x IS NOT NULL AND hit_coord_y IS NOT NULL
   ORDER BY bases, game_pk, at_bat_index`;
 
 const GAME_LOG_QUERY = `
@@ -117,13 +117,13 @@ const GAME_LOG_QUERY = `
   FROM player_game_batting b
   JOIN games g USING (game_pk)
   LEFT JOIN game_teams opponent ON opponent.game_pk = b.game_pk AND opponent.team_id <> b.team_id
-  WHERE b.player_id = $playerId::INTEGER AND b.game_pk IN (${REGULAR_SEASON_GAMES})
+  WHERE b.player_id = $playerId::INTEGER AND b.game_pk IN (${TRACKED_SEASON_GAMES})
   ORDER BY g.official_date, g.game_number`;
 
 const YEARS_BOX_QUERY = withNumbers(
   `SELECT season, ${BOX_BATTING_COUNTS}
   FROM player_game_batting
-  WHERE player_id = $playerId::INTEGER AND game_pk IN (${REGULAR_GAMES})
+  WHERE player_id = $playerId::INTEGER AND game_pk IN (${TRACKED_GAMES})
   GROUP BY season
   HAVING sum(plate_appearances) > 0
   ORDER BY season`,
@@ -133,7 +133,7 @@ const YEARS_BOX_QUERY = withNumbers(
 const YEARS_BATTED_BALLS_QUERY = withNumbers(
   `SELECT season, ${BATTED_BALL_COUNTS}
   FROM plate_appearances
-  WHERE ${REGULAR_GAME} AND batter_id = $playerId::INTEGER
+  WHERE ${TRACKED_GAME} AND batter_id = $playerId::INTEGER
   GROUP BY season`,
   ["season"],
 );
@@ -141,7 +141,7 @@ const YEARS_BATTED_BALLS_QUERY = withNumbers(
 const YEARS_SWING_DECISIONS_QUERY = withNumbers(
   `SELECT season, ${SWING_DECISION_COUNTS}
   FROM pitch_outcomes
-  WHERE ${REGULAR_GAME} AND batter_id = $playerId::INTEGER
+  WHERE ${TRACKED_GAME} AND batter_id = $playerId::INTEGER
   GROUP BY season`,
   ["season"],
 );

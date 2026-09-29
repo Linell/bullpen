@@ -114,14 +114,14 @@ beforeAll(async () => {
 });
 
 describe("getTeamStats", () => {
-  it("builds a batting line from completed regular-season games only", async () => {
+  it("builds a batting line from in-progress and finished games, not spring training", async () => {
     const { batting } = await getTeamStats(HOME, 2026);
 
-    expect(batting.team).toMatchObject({ plateAppearances: 4, avg: 0.5, obp: 0.5, slg: 1, ops: 1.5, iso: 0.5, homeRuns: 0 });
-    expect(batting.team.strikeoutRate).toBe(0.25);
+    expect(batting.team).toMatchObject({ plateAppearances: 5, avg: 0.6, obp: 0.6, slg: 1.6, ops: 2.2, iso: 1, homeRuns: 1 });
+    expect(batting.team.strikeoutRate).toBe(0.2);
     expect(batting.team.chaseRate).toBeCloseTo(2 / 3);
     expect(batting.team.zoneContactRate).toBe(0.75);
-    expect(batting.team.exitVelocity).toBeCloseTo(275 / 3);
+    expect(batting.team.exitVelocity).toBeCloseTo(96.25);
   });
 
   it("pairs each batting stat with the league average", async () => {
@@ -130,29 +130,30 @@ describe("getTeamStats", () => {
     expect(batting.team).toMatchObject({ plateAppearances: 6, avg: 0.4, obp: 0.5, homeRuns: 1 });
     expect(batting.team.slg).toBeCloseTo(1.2);
     expect(batting.team.hardHitRate).toBeCloseTo(2 / 3);
-    expect(batting.league).toMatchObject({ plateAppearances: 5, homeRuns: 0.5, walkRate: 0.1 });
-    expect(batting.league.avg).toBeCloseTo(4 / 9);
+    expect(batting.league).toMatchObject({ plateAppearances: 5.5, homeRuns: 1 });
+    expect(batting.league.walkRate).toBeCloseTo(1 / 11);
+    expect(batting.league.avg).toBeCloseTo(0.5);
   });
 
   it("splits batting by pitcher hand, venue and base state", async () => {
     const { battingSplits } = await getTeamStats(HOME, 2026);
 
-    expect(battingSplits.vsLeft.plateAppearances).toBe(4);
+    expect(battingSplits.vsLeft.plateAppearances).toBe(5);
     expect(battingSplits.vsRight.plateAppearances).toBe(0);
-    expect(battingSplits.home.plateAppearances).toBe(4);
+    expect(battingSplits.home.plateAppearances).toBe(5);
     expect(battingSplits.away.avg).toBeNull();
     expect(battingSplits.risp).toMatchObject({ plateAppearances: 1, strikeoutRate: 1 });
-    expect(battingSplits.basesEmpty).toMatchObject({ plateAppearances: 2, avg: 1 });
+    expect(battingSplits.basesEmpty).toMatchObject({ plateAppearances: 3, avg: 1 });
   });
 
   it("charges runs and outs to starters and the bullpen from the box score", async () => {
     const { pitching } = await getTeamStats(HOME, 2026);
 
-    expect(pitching.team).toMatchObject({ battersFaced: 6, inningsPitched: 1, era: 9, ra9: 18, whip: 3 });
-    expect(pitching.team.strikeoutRate).toBeCloseTo(1 / 3);
-    expect(pitching.starters).toMatchObject({ battersFaced: 3, era: 27, ra9: 27 });
+    expect(pitching.team).toMatchObject({ battersFaced: 7, inningsPitched: 1, era: 18, ra9: 27, whip: 4 });
+    expect(pitching.team.strikeoutRate).toBeCloseTo(2 / 7);
+    expect(pitching.starters).toMatchObject({ battersFaced: 4, era: 54, ra9: 54 });
     expect(pitching.bullpen).toMatchObject({ battersFaced: 3, era: 0, ra9: 13.5 });
-    expect(pitching.league).toMatchObject({ battersFaced: 5, inningsPitched: 1, ra9: 9 });
+    expect(pitching.league).toMatchObject({ battersFaced: 5.5, inningsPitched: 1, ra9: 13.5 });
   });
 
   it("measures swing-and-miss and velocity from the pitches thrown", async () => {
@@ -175,7 +176,7 @@ describe("getTeamStats", () => {
 
     expect(away.leaders.hitters[0]).toMatchObject({ playerId: 10, name: "Lead Off", plateAppearances: 2, homeRuns: 1, avg: 0.5 });
     expect(home.leaders.pitchers.map((p) => [p.name, p.battersFaced, p.ra9])).toEqual([
-      ["Sam Starter", 3, 27],
+      ["Sam Starter", 4, 54],
       [`Player ${RELIEVER}`, 3, 13.5],
     ]);
   });

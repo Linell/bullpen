@@ -5,7 +5,7 @@ import { dayTag, GAMES_TAG } from "@/lib/cache-tags";
 import { isCompleted } from "@/lib/schedule";
 import { playerRef } from "@/lib/player-ref";
 import { ratio } from "@/lib/stats/rates";
-import { REGULAR_GAME, REGULAR_GAMES } from "@/lib/stats/sql";
+import { COMPLETED_REGULAR_GAME, TRACKED_GAMES } from "@/lib/stats/sql";
 import { postseasonLabel, score, toStatus, type Game, type PitcherLine, type Series, type Team } from "@/lib/scoreboard";
 
 export type GameQueryRow = {
@@ -73,9 +73,9 @@ const GAME_COLUMNS = `
 const FINAL_REGULAR_SEASON_RECORDS = `
   SELECT season, team_id, arg_max(record, start_utc) AS record
   FROM (
-    SELECT season, home_team_id AS team_id, home_record AS record, start_utc FROM games WHERE ${REGULAR_GAME}
+    SELECT season, home_team_id AS team_id, home_record AS record, start_utc FROM games WHERE ${COMPLETED_REGULAR_GAME}
     UNION ALL
-    SELECT season, away_team_id, away_record, start_utc FROM games WHERE ${REGULAR_GAME}
+    SELECT season, away_team_id, away_record, start_utc FROM games WHERE ${COMPLETED_REGULAR_GAME}
   )
   GROUP BY season, team_id`;
 
@@ -86,7 +86,7 @@ const PITCHER_SEASON_LINES = `
     sum(earned_runs)::INTEGER AS earned_runs,
     sum(outs)::INTEGER AS outs
   FROM player_game_pitching
-  WHERE game_pk IN (${REGULAR_GAMES})
+  WHERE game_pk IN (${TRACKED_GAMES})
   GROUP BY season, player_id`;
 
 export const GAMES_SELECT = `

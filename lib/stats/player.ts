@@ -2,7 +2,7 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { readRows } from "@/lib/db";
 import { playerStatsTag, STATS_TAG } from "@/lib/cache-tags";
-import { REGULAR_GAMES } from "@/lib/stats/sql";
+import { TRACKED_GAMES } from "@/lib/stats/sql";
 
 export type PlayerBio = {
   playerId: number;
@@ -52,14 +52,14 @@ const LATEST_ROLE_QUERY = `
   FROM game_players gp
   JOIN games g USING (game_pk)
   LEFT JOIN game_teams team ON team.game_pk = gp.game_pk AND team.team_id = gp.team_id
-  WHERE gp.player_id = $playerId::INTEGER AND gp.played AND gp.game_pk IN (${REGULAR_GAMES})
+  WHERE gp.player_id = $playerId::INTEGER AND gp.played AND gp.game_pk IN (${TRACKED_GAMES})
   ORDER BY g.official_date DESC, g.game_number DESC
   LIMIT 1`;
 
 const BATTING_SEASONS_QUERY = `
   SELECT season
   FROM player_game_batting
-  WHERE player_id = $playerId::INTEGER AND game_pk IN (${REGULAR_GAMES})
+  WHERE player_id = $playerId::INTEGER AND game_pk IN (${TRACKED_GAMES})
   GROUP BY season
   HAVING sum(plate_appearances) > 0
   ORDER BY season`;
@@ -67,7 +67,7 @@ const BATTING_SEASONS_QUERY = `
 const PITCHING_SEASONS_QUERY = `
   SELECT DISTINCT season
   FROM player_game_pitching
-  WHERE player_id = $playerId::INTEGER AND game_pk IN (${REGULAR_GAMES})
+  WHERE player_id = $playerId::INTEGER AND game_pk IN (${TRACKED_GAMES})
   ORDER BY season`;
 
 export async function playerSummary(playerId: number): Promise<PlayerSummary | null> {

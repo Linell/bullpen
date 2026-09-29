@@ -24,8 +24,8 @@ import {
   PITCH_COUNTS,
   PITCH_MIX_COUNTS,
   PITCHING_COUNTS,
-  REGULAR_SEASON,
-  REGULAR_SEASON_GAMES,
+  TRACKED_SEASON,
+  TRACKED_SEASON_GAMES,
   SWING_DECISION_COUNTS,
   withNumbers,
 } from "@/lib/stats/sql";
@@ -101,7 +101,7 @@ const BATTING_QUERY = withNumbers(
   `WITH splits AS (
     SELECT *, ${BATTER_SPLITS} AS split
     FROM plate_appearances
-    WHERE ${REGULAR_SEASON}
+    WHERE ${TRACKED_SEASON}
   )
   SELECT split,
     CASE grouping(batting_team_id) WHEN 1 THEN 'league' ELSE 'team' END AS scope,
@@ -118,7 +118,7 @@ const SWING_DECISIONS_QUERY = withNumbers(
   `SELECT CASE grouping(batting_team_id) WHEN 1 THEN 'league' ELSE 'team' END AS scope,
     ${SWING_DECISION_COUNTS}
   FROM pitch_outcomes
-  WHERE ${REGULAR_SEASON}
+  WHERE ${TRACKED_SEASON}
   GROUP BY GROUPING SETS ((batting_team_id), ())
   HAVING grouping(batting_team_id) = 1 OR batting_team_id = $teamId::INTEGER`,
   ["scope"],
@@ -135,7 +135,7 @@ const PITCHING_QUERY = withNumbers(
     greatest(count(DISTINCT team_id), 1) AS teams,
     ${PITCHING_COUNTS}
   FROM player_game_pitching
-  WHERE game_pk IN (${REGULAR_SEASON_GAMES})
+  WHERE game_pk IN (${TRACKED_SEASON_GAMES})
   GROUP BY GROUPING SETS ((team_id, is_starter), (team_id), ())
   HAVING grouping(team_id) = 1 OR team_id = $teamId::INTEGER`,
   ["scope"],
@@ -156,7 +156,7 @@ const PITCHES_QUERY = withNumbers(
     ${PITCH_COUNTS}
   FROM pitch_outcomes
   LEFT JOIN pitcher_roles USING (game_pk, fielding_team_id, pitcher_id)
-  WHERE ${REGULAR_SEASON}
+  WHERE ${TRACKED_SEASON}
   GROUP BY GROUPING SETS ((fielding_team_id, is_starter), (fielding_team_id), ())
   HAVING grouping(fielding_team_id) = 1 OR fielding_team_id = $teamId::INTEGER`,
   ["scope"],
@@ -165,7 +165,7 @@ const PITCHES_QUERY = withNumbers(
 const PITCH_MIX_QUERY = withNumbers(
   `SELECT ${PITCH_MIX_COUNTS}
   FROM pitch_outcomes
-  WHERE ${REGULAR_SEASON} AND fielding_team_id = $teamId::INTEGER AND pitch_type IS NOT NULL
+  WHERE ${TRACKED_SEASON} AND fielding_team_id = $teamId::INTEGER AND pitch_type IS NOT NULL
   GROUP BY pitch_type
   ORDER BY pitches DESC`,
   ["pitch_type", "description"],
@@ -177,7 +177,7 @@ const HITTERS_QUERY = withNumbers(
     ${BATTING_COUNTS}
   FROM plate_appearances pa
   LEFT JOIN players pl ON pl.player_id = pa.batter_id
-  WHERE ${REGULAR_SEASON} AND pa.batting_team_id = $teamId::INTEGER
+  WHERE ${TRACKED_SEASON} AND pa.batting_team_id = $teamId::INTEGER
   GROUP BY pa.batter_id
   ORDER BY plate_appearances DESC, pa.batter_id
   LIMIT 5`,
@@ -190,7 +190,7 @@ const PITCHERS_QUERY = withNumbers(
     ${PITCHING_COUNTS}
   FROM player_game_pitching pgp
   LEFT JOIN players pl ON pl.player_id = pgp.player_id
-  WHERE pgp.game_pk IN (${REGULAR_SEASON_GAMES}) AND pgp.team_id = $teamId::INTEGER
+  WHERE pgp.game_pk IN (${TRACKED_SEASON_GAMES}) AND pgp.team_id = $teamId::INTEGER
   GROUP BY pgp.player_id
   ORDER BY batters_faced DESC, pgp.player_id
   LIMIT 5`,

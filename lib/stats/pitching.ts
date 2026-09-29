@@ -20,10 +20,10 @@ import {
   PITCH_COUNTS,
   PITCH_MIX_COUNTS,
   PITCHING_COUNTS,
-  REGULAR_GAME,
-  REGULAR_GAMES,
-  REGULAR_SEASON,
-  REGULAR_SEASON_GAMES,
+  TRACKED_GAME,
+  TRACKED_GAMES,
+  TRACKED_SEASON,
+  TRACKED_SEASON_GAMES,
   withNumbers,
 } from "@/lib/stats/sql";
 import { toPitchMixEntry, type PitchMixEntry, type PitchMixRow } from "@/lib/stats/team";
@@ -68,7 +68,7 @@ type ArsenalRow = PitchMixRow & { spin_rate: number | null };
 const SEASON_BOX_QUERY = withNumbers(
   `SELECT season, ${PITCHING_COUNTS}
   FROM player_game_pitching
-  WHERE player_id = $playerId::INTEGER AND game_pk IN (${REGULAR_SEASON_GAMES})
+  WHERE player_id = $playerId::INTEGER AND game_pk IN (${TRACKED_SEASON_GAMES})
   GROUP BY season`,
   ["season"],
 );
@@ -76,7 +76,7 @@ const SEASON_BOX_QUERY = withNumbers(
 const SEASON_PITCHES_QUERY = withNumbers(
   `SELECT season, ${PITCH_COUNTS}
   FROM pitch_outcomes
-  WHERE ${REGULAR_SEASON} AND pitcher_id = $playerId::INTEGER
+  WHERE ${TRACKED_SEASON} AND pitcher_id = $playerId::INTEGER
   GROUP BY season`,
   ["season"],
 );
@@ -89,7 +89,7 @@ const SPLITS_QUERY = withNumbers(
       CASE half WHEN 'top' THEN 'home' ELSE 'away' END
     ]) AS split
     FROM plate_appearances
-    WHERE ${REGULAR_SEASON} AND pitcher_id = $playerId::INTEGER
+    WHERE ${TRACKED_SEASON} AND pitcher_id = $playerId::INTEGER
   )
   WHERE split IS NOT NULL
   GROUP BY split`,
@@ -122,13 +122,13 @@ const GAME_LOG_QUERY = `
   FROM player_game_pitching p
   JOIN games g USING (game_pk)
   LEFT JOIN game_teams opponent ON opponent.game_pk = p.game_pk AND opponent.team_id <> p.team_id
-  WHERE p.player_id = $playerId::INTEGER AND p.game_pk IN (${REGULAR_SEASON_GAMES})
+  WHERE p.player_id = $playerId::INTEGER AND p.game_pk IN (${TRACKED_SEASON_GAMES})
   ORDER BY g.official_date, g.game_number`;
 
 const YEARS_BOX_QUERY = withNumbers(
   `SELECT season, ${PITCHING_COUNTS}
   FROM player_game_pitching
-  WHERE player_id = $playerId::INTEGER AND game_pk IN (${REGULAR_GAMES})
+  WHERE player_id = $playerId::INTEGER AND game_pk IN (${TRACKED_GAMES})
   GROUP BY season
   ORDER BY season`,
   ["season"],
@@ -137,7 +137,7 @@ const YEARS_BOX_QUERY = withNumbers(
 const YEARS_PITCHES_QUERY = withNumbers(
   `SELECT season, ${PITCH_COUNTS}
   FROM pitch_outcomes
-  WHERE ${REGULAR_GAME} AND pitcher_id = $playerId::INTEGER
+  WHERE ${TRACKED_GAME} AND pitcher_id = $playerId::INTEGER
   GROUP BY season`,
   ["season"],
 );
@@ -146,7 +146,7 @@ const ARSENAL_QUERY = withNumbers(
   `SELECT ${PITCH_MIX_COUNTS},
     avg(spin_rate) AS spin_rate
   FROM pitch_outcomes
-  WHERE ${REGULAR_SEASON} AND pitcher_id = $playerId::INTEGER AND pitch_type IS NOT NULL
+  WHERE ${TRACKED_SEASON} AND pitcher_id = $playerId::INTEGER AND pitch_type IS NOT NULL
   GROUP BY pitch_type
   ORDER BY pitches DESC`,
   ["pitch_type", "description"],

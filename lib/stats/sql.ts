@@ -1,10 +1,12 @@
-export const REGULAR_GAME = `game_type = 'R' AND coded_state IN ('F', 'O', 'Q', 'R')`;
+export const COMPLETED_REGULAR_GAME = `game_type = 'R' AND coded_state IN ('F', 'O', 'Q', 'R')`;
 
-export const REGULAR_SEASON = `season = $season::INTEGER AND ${REGULAR_GAME}`;
+export const TRACKED_GAME = `game_type IN ('R', 'F', 'D', 'L', 'W')`;
 
-export const REGULAR_GAMES = `SELECT game_pk FROM games WHERE ${REGULAR_GAME}`;
+export const TRACKED_SEASON = `season = $season::INTEGER AND ${TRACKED_GAME}`;
 
-export const REGULAR_SEASON_GAMES = `SELECT game_pk FROM games WHERE ${REGULAR_SEASON}`;
+export const TRACKED_GAMES = `SELECT game_pk FROM games WHERE ${TRACKED_GAME}`;
+
+export const TRACKED_SEASON_GAMES = `SELECT game_pk FROM games WHERE ${TRACKED_SEASON}`;
 
 export const BATTER_SPLITS = `unnest([
   'all',

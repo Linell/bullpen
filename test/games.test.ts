@@ -124,9 +124,9 @@ describe("getGames", () => {
     expect([game.home.team.record, game.away.team.record]).toEqual(["92-69", "95-66"]);
   });
 
-  it("gives the probable pitcher's regular-season line", async () => {
+  it("gives the probable pitcher's line across regular-season and postseason games", async () => {
     const [game] = await getGames("2026-09-29");
 
-    expect(game.home.probableLine).toEqual({ wins: 1, losses: 1, era: (5 * 27) / 33 });
+    expect(game.home.probableLine).toEqual({ wins: 2, losses: 1, era: (5 * 27) / 60 });
   });
 });
