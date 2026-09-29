@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { readRows } from "@/lib/db";
-import { playerStatsTag } from "@/lib/cache-tags";
+import { playerStatsTag, STATS_TAG } from "@/lib/cache-tags";
 import { REGULAR_GAMES } from "@/lib/stats/sql";
 
 export type PlayerBio = {
@@ -72,7 +72,7 @@ const PITCHING_SEASONS_QUERY = `
 
 export async function playerSummary(playerId: number): Promise<PlayerSummary | null> {
   "use cache: remote";
-  cacheTag(playerStatsTag(playerId));
+  cacheTag(playerStatsTag(playerId), STATS_TAG);
   cacheLife("hours");
 
   const params = { playerId };

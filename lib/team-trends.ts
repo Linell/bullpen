@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { readRows } from "@/lib/db";
-import { teamStatsTag } from "@/lib/cache-tags";
+import { STATS_TAG, teamStatsTag } from "@/lib/cache-tags";
 import type { WinLoss } from "@/lib/team-summary";
 
 export type RunDiffPoint = {
@@ -196,7 +196,7 @@ export async function getTeamTrends(
   { isCurrentSeason }: { isCurrentSeason: boolean },
 ): Promise<TeamTrends> {
   "use cache: remote";
-  cacheTag(teamStatsTag(teamId));
+  cacheTag(teamStatsTag(teamId), STATS_TAG);
   if (isCurrentSeason) cacheLife("hours");
   else cacheLife("max");
 

@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { readRows } from "@/lib/db";
-import { teamTag } from "@/lib/cache-tags";
+import { STATS_TAG, teamTag } from "@/lib/cache-tags";
 import { todayOfficialDate } from "@/lib/dates";
 import { GAMES_SELECT, toGame, type GameQueryRow } from "@/lib/games";
 import { streak, toResult, type TeamResult } from "@/lib/matchup";
@@ -171,14 +171,14 @@ function isPastSeason(season: number) {
 export async function getTeamSeasons(teamId: number): Promise<number[]> {
   "use cache: remote";
   const rows = await readRows<{ season: number }>(SEASONS_QUERY, { teamId });
-  cacheTag(teamTag(teamId));
+  cacheTag(teamTag(teamId), STATS_TAG);
   cacheLife("hours");
   return rows.map((r) => r.season);
 }
 
 export async function getTeamSummary(teamId: number, season: number): Promise<TeamSummary | undefined> {
   "use cache: remote";
-  cacheTag(teamTag(teamId));
+  cacheTag(teamTag(teamId), STATS_TAG);
   const past = isPastSeason(season);
   if (past) cacheLife("max");
   else cacheLife("minutes");

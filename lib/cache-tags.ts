@@ -6,6 +6,8 @@ export const GAMES_TAG = "games";
 
 export const LEADERBOARDS_TAG = "leaderboards";
 
+export const STATS_TAG = "stats";
+
 export function dayTag(date: string) {
   return `day:${date}`;
 }

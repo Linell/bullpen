@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheTag } from "next/cache";
 import { readRows } from "@/lib/db";
-import { teamStatsTag } from "@/lib/cache-tags";
+import { STATS_TAG, teamStatsTag } from "@/lib/cache-tags";
 import { seasonCacheLife } from "@/lib/stats/cache";
 import {
   NO_BATTING,
@@ -225,7 +225,7 @@ function toPitcherLeader(r: PitcherRow): PitcherLeader {
 
 export async function getTeamStats(teamId: number, season: number): Promise<TeamStats> {
   "use cache: remote";
-  cacheTag(teamStatsTag(teamId));
+  cacheTag(teamStatsTag(teamId), STATS_TAG);
   seasonCacheLife(season);
 
   const params = { teamId, season };
