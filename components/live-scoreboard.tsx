@@ -10,7 +10,7 @@ import { scoreboardToken } from "@/inngest/realtime-tokens";
 import { patchGame, type LiveGame } from "@/lib/live-game";
 import type { Game } from "@/lib/scoreboard";
 
-const TICKER_PLAYS = 15;
+const TICKER_PLAYS = 3;
 
 export function LiveScoreboard({ games }: { games: Game[] }) {
   const router = useRouter();
@@ -39,7 +39,8 @@ export function LiveScoreboard({ games }: { games: Game[] }) {
     if (message.topic !== "play") continue;
     const game = gamesByPk.get(message.data.gamePk);
     if (!game) continue;
-    for (const play of message.data.plays) plays.set(`${game.gamePk}-${play.atBatIndex}`, { ...play, game });
+    const latest = message.data.plays.at(-1);
+    if (latest) plays.set(`${game.gamePk}-${latest.atBatIndex}`, { ...latest, game });
   }
 
   return (
