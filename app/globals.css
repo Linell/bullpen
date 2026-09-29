@@ -40,6 +40,7 @@
     --animate-marquee: marquee 5s linear infinite;
     --animate-marquee2: marquee2 5s linear infinite;
     --animate-pop: pop 600ms ease-out;
+    --animate-scoring-sweep: scoring-sweep 1.2s linear infinite;
     --color-chart-active-dot: var(--chart-active-dot);
     --shadow: var(--shadow);
   @keyframes marquee {
@@ -60,6 +61,11 @@
         }
   100% {
     transform: scale(1);
+        }
+    }
+  @keyframes scoring-sweep {
+  to {
+    --scoring-angle: 360deg;
         }
     }
   @keyframes marquee2 {
@@ -154,4 +160,27 @@
   .scrollbar {
     scrollbar-color: var(--sb-thumb-color) var(--sb-track-color);
     }
+}
+
+@property --scoring-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.scoring-flash {
+  position: absolute;
+  inset: -8px;
+  padding: 5px;
+  border-radius: calc(var(--radius-base) + 6px);
+  pointer-events: none;
+  background: conic-gradient(from var(--scoring-angle), var(--chart-3), var(--chart-2), var(--chart-5), var(--chart-4), var(--chart-3));
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: var(--animate-scoring-sweep);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scoring-flash {
+    animation: none;
+  }
 }

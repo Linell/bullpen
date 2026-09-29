@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Diamond } from "@/components/diamond";
 import { PlayerLink } from "@/components/player-link";
 import { Pop } from "@/components/pop";
+import { ScoringAlert } from "@/components/scoring-alert";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatShortDate } from "@/lib/dates";
 import type { LivePlay } from "@/lib/live-game";
 import { gamePath } from "@/lib/routes";
+import { currentRuns } from "@/lib/scoring";
 import { gameTitle, type AtBat, type Game, type GameSide } from "@/lib/scoreboard";
 import { cn } from "@/lib/utils";
 
@@ -129,6 +131,12 @@ export function GameCard({ game, latestPlay }: { game: Game; latestPlay?: LivePl
           <span className="text-xs opacity-70">Makeup of {formatShortDate(game.makeupOf)}</span>
         )}
       </CardContent>
+      {status.state === "live" && (
+        <ScoringAlert
+          runs={currentRuns(game, latestPlay)}
+          teams={{ away: away.team.abbreviation, home: home.team.abbreviation }}
+        />
+      )}
       <Link href={gamePath(game.gamePk)} aria-label={gameTitle(game)} className="absolute inset-0 rounded-base" />
     </Card>
   );
