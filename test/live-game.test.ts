@@ -58,6 +58,22 @@ describe("diffFeeds", () => {
     expect(diffFeeds(final, newer)).toEqual({ game: undefined, plays: [] });
   });
 
+  it("sends the count and matchup", () => {
+    expect(diffFeeds(null, midGame()).game?.atBat).toEqual({
+      balls: 3,
+      strikes: 2,
+      batter: { id: 669701, name: "Josh Smith" },
+      pitcher: { id: 670329, name: "Rico Garcia" },
+    });
+  });
+
+  it("sends the game state when the count changed", () => {
+    const after = midGame();
+    after.liveData.linescore.strikes = 1;
+
+    expect(diffFeeds(midGame(), after).game?.atBat).toMatchObject({ balls: 3, strikes: 1 });
+  });
+
   it("sends the game state when the situation changed", () => {
     const after = midGame();
     after.liveData.linescore.outs = 2;
@@ -81,11 +97,17 @@ describe("patchGame", () => {
     completed: false,
     awayScore: 1,
     homeScore: 0,
+    atBat: { balls: 1, strikes: 2, batter: { id: 3, name: "C" }, pitcher: { id: 4, name: "D" } },
     linescore: [],
   };
 
   it("applies the latest push over the rendered game", () => {
-    expect(patchGame(game, live)).toMatchObject({ status: live.status, away: { score: 1 }, home: { score: 0 } });
+    expect(patchGame(game, live)).toMatchObject({
+      status: live.status,
+      atBat: live.atBat,
+      away: { score: 1 },
+      home: { score: 0 },
+    });
   });
 
   it("keeps the rendered game without a push", () => {

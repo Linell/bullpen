@@ -12,6 +12,13 @@ export type Situation = {
   bases: [first: boolean, second: boolean, third: boolean];
 };
 
+export type AtBat = {
+  balls: number;
+  strikes: number;
+  batter?: PlayerRef;
+  pitcher?: PlayerRef;
+};
+
 export type GameStatus =
   | { state: "scheduled"; note?: string }
   | { state: "live"; inning: string; note?: string; situation?: Situation }
@@ -39,6 +46,7 @@ export type Game = {
   venue?: string;
   status: GameStatus;
   completed: boolean;
+  atBat?: AtBat;
   away: GameSide;
   home: GameSide;
 };

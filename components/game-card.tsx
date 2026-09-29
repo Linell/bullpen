@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatShortDate } from "@/lib/dates";
 import type { LivePlay } from "@/lib/live-game";
 import { gamePath } from "@/lib/routes";
-import { gameTitle, type Game, type GameSide } from "@/lib/scoreboard";
+import { gameTitle, type AtBat, type Game, type GameSide } from "@/lib/scoreboard";
 import { cn } from "@/lib/utils";
 
 export function Probable({ side, season }: { side: GameSide; season: number }) {
@@ -18,6 +18,23 @@ export function Probable({ side, season }: { side: GameSide; season: number }) {
     <PlayerLink playerId={side.probable.id} role="pitching" season={season} className="relative z-10">
       {side.probable.name}
     </PlayerLink>
+  );
+}
+
+function Matchup({ atBat, season }: { atBat: AtBat; season: number }) {
+  const { batter, pitcher } = atBat;
+  if (!batter || !pitcher) return null;
+
+  return (
+    <span className="truncate text-xs">
+      <PlayerLink playerId={batter.id} role="hitting" season={season} className="relative z-10">
+        {batter.name}
+      </PlayerLink>
+      <span className="opacity-60"> vs </span>
+      <PlayerLink playerId={pitcher.id} role="pitching" season={season} className="relative z-10">
+        {pitcher.name}
+      </PlayerLink>
+    </span>
   );
 }
 
@@ -60,6 +77,7 @@ export function GameCard({ game, latestPlay }: { game: Game; latestPlay?: LivePl
   const { away, home, status } = game;
   const isFinal = status.state === "final";
   const isScheduled = status.state === "scheduled";
+  const atBat = status.state === "live" && status.situation ? game.atBat : undefined;
 
   return (
     <Card
@@ -74,6 +92,11 @@ export function GameCard({ game, latestPlay }: { game: Game; latestPlay?: LivePl
           <div className="flex items-center gap-2">
             <StatusBadge game={game} />
             {status.state === "live" && status.situation && <Diamond situation={status.situation} />}
+            {atBat && (
+              <span className="text-xs font-heading tabular-nums">
+                {atBat.balls}-{atBat.strikes}
+              </span>
+            )}
             {game.doubleHeader && <Badge variant="neutral">Game {game.gameNumber}</Badge>}
             {game.postseason && <Badge variant="neutral">{game.postseason}</Badge>}
           </div>
@@ -93,6 +116,7 @@ export function GameCard({ game, latestPlay }: { game: Game; latestPlay?: LivePl
             showProbable={isScheduled}
           />
         </div>
+        {atBat && <Matchup atBat={atBat} season={game.season} />}
         {latestPlay && (
           <p
             key={latestPlay.atBatIndex}

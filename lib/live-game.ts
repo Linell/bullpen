@@ -1,12 +1,13 @@
 import type { LinescoreRow } from "@/lib/linescore";
 import type { Half } from "@/lib/play-by-play";
 import { isCompleted } from "@/lib/schedule";
-import { score, toStatus, type Game, type GameStatus } from "@/lib/scoreboard";
+import { score, toStatus, type AtBat, type Game, type GameStatus } from "@/lib/scoreboard";
 
 export type LiveGame = {
   gamePk: number;
   status: GameStatus;
   completed: boolean;
+  atBat?: AtBat;
   awayScore?: number;
   homeScore?: number;
   linescore: LinescoreRow[];
@@ -27,6 +28,8 @@ export type LivePlays = { gamePk: number; plays: LivePlay[] };
 
 export type FeedDiff = { game?: LiveGame; plays: LivePlay[] };
 
+type Person = { id: number; fullName: string };
+
 type Runs = { runs?: number; hits?: number; errors?: number };
 
 type Feed = {
@@ -37,7 +40,10 @@ type Feed = {
       currentInning?: number;
       inningHalf?: string;
       outs?: number;
-      offense?: { first?: unknown; second?: unknown; third?: unknown };
+      balls?: number;
+      strikes?: number;
+      offense?: { first?: unknown; second?: unknown; third?: unknown; batter?: Person };
+      defense?: { pitcher?: Person };
       teams?: { home?: Runs; away?: Runs };
       innings?: { num: number; away?: Runs; home?: Runs }[];
     };
@@ -64,6 +70,18 @@ function linescoreRows(feed: Feed): LinescoreRow[] {
   ]);
 }
 
+function atBat(feed: Feed): AtBat | undefined {
+  const ls = feed.liveData.linescore;
+  if (ls?.balls == null || ls.strikes == null) return undefined;
+  const person = (p?: Person) => p && { id: p.id, name: p.fullName };
+  return {
+    balls: ls.balls,
+    strikes: ls.strikes,
+    batter: person(ls.offense?.batter),
+    pitcher: person(ls.defense?.pitcher),
+  };
+}
+
 function gameState(feed: Feed): LiveGame {
   const ls = feed.liveData.linescore;
   const { abstractGameState, codedGameState, detailedState } = feed.gameData.status;
@@ -80,6 +98,7 @@ function gameState(feed: Feed): LiveGame {
     gamePk: feed.gamePk,
     status,
     completed: isCompleted(codedGameState),
+    atBat: atBat(feed),
     awayScore: score(status, ls?.teams?.away?.runs ?? null),
     homeScore: score(status, ls?.teams?.home?.runs ?? null),
     linescore: linescoreRows(feed),
@@ -123,6 +142,7 @@ export function patchGame(game: Game, live: LiveGame | undefined): Game {
     ...game,
     status: live.status,
     completed: live.completed,
+    atBat: live.atBat,
     away: { ...game.away, score: live.awayScore },
     home: { ...game.home, score: live.homeScore },
   };
