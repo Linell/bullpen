@@ -55,8 +55,8 @@ describe("sync-schedule", () => {
     expect(result).toEqual({ ...window, games: 3, changed: 1, completed: 2, probablesChanged: 0 });
     expect(ctx.step.sendEvent).toHaveBeenCalledTimes(2);
     expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-completed", [
-      expect.objectContaining({ data: { gamePk: 101, reason: "live" }, id: "game-completed-101" }),
-      expect.objectContaining({ data: { gamePk: 102, reason: "live" }, id: "game-completed-102" }),
+      expect.objectContaining({ data: { gamePk: 101 }, id: "game-completed-101" }),
+      expect.objectContaining({ data: { gamePk: 102 }, id: "game-completed-102" }),
     ]);
   });
 
@@ -198,40 +198,14 @@ describe("ingest-game-feed", () => {
   it("emits game-feed.stored when the feed is stored", async () => {
     const t = new InngestTestEngine({ function: ingestGameFeed });
     const { ctx, result } = await t.execute({
-      events: [{ name: "mlb/game.completed", data: { gamePk: 101, reason: "live" } }],
+      events: [{ name: "mlb/game.completed", data: { gamePk: 101 } }],
       steps: [mockStep("load-game-feed", stored), mockSend("emit-game-feed-stored")],
     });
 
     expect(result).toEqual(stored);
     expect(ctx.step.sendEvent).toHaveBeenCalledWith(
       "emit-game-feed-stored",
-      expect.objectContaining({ data: { gamePk: 101, reason: "live" }, id: "game-feed-stored-101-20260921_230000" }),
-    );
-  });
-
-  it("tags the feed as a backfill when the completion came from a backfill", async () => {
-    const t = new InngestTestEngine({ function: ingestGameFeed });
-    const { ctx } = await t.execute({
-      events: [{ name: "mlb/game.completed", data: { gamePk: 101, reason: "backfill" } }],
-      steps: [mockStep("load-game-feed", stored), mockSend("emit-game-feed-stored")],
-    });
-
-    expect(ctx.step.sendEvent).toHaveBeenCalledWith(
-      "emit-game-feed-stored",
-      expect.objectContaining({ data: { gamePk: 101, reason: "backfill" } }),
-    );
-  });
-
-  it("tags the feed as a backfill when the completion has no reason", async () => {
-    const t = new InngestTestEngine({ function: ingestGameFeed });
-    const { ctx } = await t.execute({
-      events: [{ name: "mlb/game.completed", data: { gamePk: 101 } }],
-      steps: [mockStep("load-game-feed", stored), mockSend("emit-game-feed-stored")],
-    });
-
-    expect(ctx.step.sendEvent).toHaveBeenCalledWith(
-      "emit-game-feed-stored",
-      expect.objectContaining({ data: { gamePk: 101, reason: "backfill" } }),
+      expect.objectContaining({ data: { gamePk: 101 }, id: "game-feed-stored-101-20260921_230000" }),
     );
   });
 
@@ -257,7 +231,7 @@ describe("ingest-game-feed", () => {
     expect(result).toEqual(stored);
     expect(ctx.step.sendEvent).toHaveBeenCalledWith(
       "emit-game-feed-stored",
-      expect.objectContaining({ data: { gamePk: 101, reason: "live" }, id: "game-feed-stored-101-20260921_230000" }),
+      expect.objectContaining({ data: { gamePk: 101 }, id: "game-feed-stored-101-20260921_230000" }),
     );
   });
 });

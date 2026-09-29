@@ -6,25 +6,21 @@ import { gameChannel, scoreboardChannel } from "../channels";
 import { inngest } from "../client";
 import { gameCompleted, gameFeedStored, gameUpdated } from "../events";
 
-const lane =
-  "event.name == 'mlb/game.updated' || event.data.reason == 'live' ? 'live-' + string(event.data.gamePk) : 'backfill'";
-
 export const ingestGameFeed = inngest.createFunction(
   {
     id: "ingest-game-feed",
     triggers: [gameCompleted, gameUpdated],
-    concurrency: [{ limit: 6 }, { key: lane, limit: 1 }],
+    concurrency: [{ limit: 6 }, { key: "event.data.gamePk", limit: 1 }],
   },
   async ({ event, step }) => {
     const { gamePk } = event.data;
-    const reason = event.name === gameCompleted.name ? (event.data.reason ?? "backfill") : "live";
 
     const { feedTs, status, diff } = await step.run("load-game-feed", async () => {
       const feed = await fetchFeed(gamePk);
       return withConnection(async (conn) => {
-        const previous = reason === "live" ? await readFeed(conn, gamePk) : null;
+        const previous = await readFeed(conn, gamePk);
         const stored = await storeFeed(conn, feed);
-        const diff = reason === "live" && stored.status === "stored" ? diffFeeds(previous, feed) : null;
+        const diff = stored.status === "stored" ? diffFeeds(previous, feed) : null;
         return { ...stored, diff };
       });
     });
@@ -32,7 +28,7 @@ export const ingestGameFeed = inngest.createFunction(
     if (status === "stored") {
       await step.sendEvent(
         "emit-game-feed-stored",
-        gameFeedStored.create({ gamePk, reason }, { id: `game-feed-stored-${gamePk}-${feedTs}` }),
+        gameFeedStored.create({ gamePk }, { id: `game-feed-stored-${gamePk}-${feedTs}` }),
       );
     }
 
