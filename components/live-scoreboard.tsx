@@ -4,13 +4,10 @@ import { useRealtime } from "inngest/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { GameGrid } from "@/components/game-grid";
-import { PlaysTicker, type TickerPlay } from "@/components/plays-ticker";
 import { SCOREBOARD_TOPICS, scoreboardChannel } from "@/inngest/channels";
 import { scoreboardToken } from "@/inngest/realtime-tokens";
-import { patchGame, type LiveGame } from "@/lib/live-game";
+import { patchGame, type LiveGame, type LivePlay } from "@/lib/live-game";
 import type { Game } from "@/lib/scoreboard";
-
-const TICKER_PLAYS = 3;
 
 export function LiveScoreboard({ games }: { games: Game[] }) {
   const router = useRouter();
@@ -32,21 +29,18 @@ export function LiveScoreboard({ games }: { games: Game[] }) {
   }, [derived, derivedToday, router]);
 
   const liveGames = new Map<number, LiveGame>();
-  const plays = new Map<string, TickerPlay>();
+  const latestPlays = new Map<number, LivePlay>();
   for (const message of messages.all) {
     if (message.kind === "run") continue;
     if (message.topic === "game") liveGames.set(message.data.gamePk, message.data);
-    if (message.topic !== "play") continue;
-    const game = gamesByPk.get(message.data.gamePk);
-    if (!game) continue;
-    const latest = message.data.plays.at(-1);
-    if (latest) plays.set(`${game.gamePk}-${latest.atBatIndex}`, { ...latest, game });
+    const latest = message.topic === "play" && message.data.plays.at(-1);
+    if (latest) latestPlays.set(message.data.gamePk, latest);
   }
 
   return (
-    <>
-      <PlaysTicker plays={[...plays.values()].slice(-TICKER_PLAYS).reverse()} />
-      <GameGrid games={games.map((game) => patchGame(game, liveGames.get(game.gamePk)))} />
-    </>
+    <GameGrid
+      games={games.map((game) => patchGame(game, liveGames.get(game.gamePk)))}
+      latestPlays={latestPlays}
+    />
   );
 }

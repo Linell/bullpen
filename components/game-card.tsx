@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatShortDate } from "@/lib/dates";
+import type { LivePlay } from "@/lib/live-game";
 import { gamePath } from "@/lib/routes";
 import { gameTitle, type Game, type GameSide } from "@/lib/scoreboard";
 import { cn } from "@/lib/utils";
@@ -55,7 +56,7 @@ function TeamRow({
   );
 }
 
-export function GameCard({ game }: { game: Game }) {
+export function GameCard({ game, latestPlay }: { game: Game; latestPlay?: LivePlay }) {
   const { away, home, status } = game;
   const isFinal = status.state === "final";
   const isScheduled = status.state === "scheduled";
@@ -92,6 +93,14 @@ export function GameCard({ game }: { game: Game }) {
             showProbable={isScheduled}
           />
         </div>
+        {latestPlay && (
+          <p
+            key={latestPlay.atBatIndex}
+            className="line-clamp-2 text-xs opacity-70 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-1 motion-safe:duration-500"
+          >
+            {latestPlay.description}
+          </p>
+        )}
         {game.makeupOf && (
           <span className="text-xs opacity-70">Makeup of {formatShortDate(game.makeupOf)}</span>
         )}

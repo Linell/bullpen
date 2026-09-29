@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { GameCard } from "@/components/game-card";
 import { GameRow } from "@/components/game-row";
+import type { LivePlay } from "@/lib/live-game";
 import type { Game } from "@/lib/scoreboard";
 
 function GameSection({ title, children }: { title: string; children: ReactNode }) {
@@ -26,7 +27,7 @@ function GameRows({ title, games }: { title: string; games: Game[] }) {
   );
 }
 
-export function GameGrid({ games }: { games: Game[] }) {
+export function GameGrid({ games, latestPlays }: { games: Game[]; latestPlays?: Map<number, LivePlay> }) {
   const live = games.filter((game) => game.status.state === "live");
   const upcoming = games.filter((game) => game.status.state === "scheduled");
   const done = games.filter((game) => game.status.state !== "live" && game.status.state !== "scheduled");
@@ -37,7 +38,7 @@ export function GameGrid({ games }: { games: Game[] }) {
         <GameSection title="Live now">
           <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {live.map((game) => (
-              <GameCard key={game.id} game={game} />
+              <GameCard key={game.id} game={game} latestPlay={latestPlays?.get(game.gamePk)} />
             ))}
           </div>
         </GameSection>
