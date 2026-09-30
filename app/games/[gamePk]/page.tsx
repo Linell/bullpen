@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
+import { BoxScore } from "@/components/box-score";
 import { GameHeaderSkeleton } from "@/components/game-header";
 import { LiveGameHeader } from "@/components/live-game-header";
 import { Matchup } from "@/components/matchup";
@@ -8,6 +9,7 @@ import { PlayByPlay } from "@/components/play-by-play";
 import { Starters } from "@/components/starters";
 import { Card, CardContent } from "@/components/ui/card";
 import { CardSkeleton } from "@/components/ui/skeleton";
+import { getBoxScore } from "@/lib/box-score";
 import { getGameDetail } from "@/lib/game-detail";
 import { GAME_PK_RE } from "@/lib/game-pk";
 import { gameTitle } from "@/lib/scoreboard";
@@ -30,7 +32,7 @@ export async function generateMetadata(props: PageProps<"/games/[gamePk]">): Pro
 
 export default function GamePage({ params }: PageProps<"/games/[gamePk]">) {
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 pt-6 pb-24">
+    <main className="mx-auto flex w-full max-w-(--breakpoint-2xl) flex-1 flex-col gap-6 px-6 pt-6 pb-24">
       <Suspense fallback={<GameFallback />}>
         <GameContent params={params} />
       </Suspense>
@@ -41,6 +43,7 @@ export default function GamePage({ params }: PageProps<"/games/[gamePk]">) {
 async function GameContent({ params }: GameParams) {
   const { game, decisions, linescore, halfInnings, awayForm, homeForm, headToHead, starters } =
     await loadGame({ params });
+  const boxScore = await getBoxScore(game.gamePk);
   const { away, home } = game;
   const isLive = game.status.state === "live";
   const isScheduled = game.status.state === "scheduled";
@@ -80,22 +83,27 @@ async function GameContent({ params }: GameParams) {
           starters={starters}
         />
       )}
-      {halfInnings.length > 0 ? (
-        <PlayByPlay
-          halfInnings={halfInnings}
-          away={away.team}
-          home={home.team}
-          season={game.season}
-        />
-      ) : hasStarted ? (
-        <Card>
-          <CardContent>
-            {isLive
-              ? "Plays appear here as each plate appearance finishes."
-              : "No play-by-play for this game yet."}
-          </CardContent>
-        </Card>
-      ) : null}
+      {hasStarted && boxScore && (
+        <BoxScore away={away.team} home={home.team} season={game.season} boxScore={boxScore} />
+      )}
+      <div className="w-full max-w-3xl empty:hidden">
+        {halfInnings.length > 0 ? (
+          <PlayByPlay
+            halfInnings={halfInnings}
+            away={away.team}
+            home={home.team}
+            season={game.season}
+          />
+        ) : hasStarted ? (
+          <Card>
+            <CardContent>
+              {isLive
+                ? "Plays appear here as each plate appearance finishes."
+                : "No play-by-play for this game yet."}
+            </CardContent>
+          </Card>
+        ) : null}
+      </div>
       {hasStarted && matchup}
     </>
   );
