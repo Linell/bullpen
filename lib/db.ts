@@ -50,6 +50,7 @@ export async function openDb(url: string) {
 }
 
 async function openInstance(url: string) {
+  // Vercel's HOME is read-only; DuckDB caches extensions there.
   if (process.env.VERCEL) process.env.HOME = os.tmpdir();
   return DuckDBInstance.fromCache(url);
 }

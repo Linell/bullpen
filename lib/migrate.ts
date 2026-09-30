@@ -1,6 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import type { DuckDBConnection } from "@duckdb/node-api";
+// Relative .ts imports: scripts/migrate.ts runs in bare node.
 import { writeAllSeasonRollups } from "./season-rollups.ts";
 import { inTransaction } from "./statements.ts";
 

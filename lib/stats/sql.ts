@@ -2,6 +2,7 @@ import { COMPLETED_STATES_SQL } from "../schedule.ts";
 
 export const COMPLETED_REGULAR_GAME = `game_type = 'R' AND coded_state IN (${COMPLETED_STATES_SQL})`;
 
+// R regular; F/D/L/W wild card, division, LCS, World Series.
 export const TRACKED_GAME = `game_type IN ('R', 'F', 'D', 'L', 'W')`;
 
 export const TRACKED_SEASON = `season = $season::INTEGER AND ${TRACKED_GAME}`;
@@ -17,6 +18,7 @@ export const BATTER_SPLITS = `unnest([
   CASE WHEN men_on_base IN ('RISP', 'Loaded') THEN 'risp' WHEN men_on_base = 'Empty' THEN 'bases_empty' END
 ])`;
 
+// TOTALS sum across days; COUNTS add averages that don't.
 export const BATTED_BALL_TOTALS = `
   count(launch_speed) AS batted_balls,
   count(*) FILTER (launch_speed >= 95) AS hard_hits,

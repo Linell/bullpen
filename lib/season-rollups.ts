@@ -33,6 +33,7 @@ const SEASON_GAMES = `SELECT game_pk FROM games WHERE season = $season::INTEGER`
 const LATEST_FIRST = `ORDER BY source_date DESC, source_game_number DESC, game_pk DESC`;
 
 const PLAYERS = [
+  // Re-pick touched players' latest bio from any season.
   `DELETE FROM players
   WHERE source_game_pk IN (${SEASON_GAMES})
     OR player_id IN (SELECT player_id FROM game_player_bios WHERE game_pk IN (${SEASON_GAMES}))`,
@@ -61,6 +62,7 @@ const TEAMS = [
 const GAME_STARTERS = [
   `DELETE FROM game_starters
   WHERE game_pk IN (${SEASON_GAMES} UNION SELECT game_pk FROM plays WHERE season = $season::INTEGER)`,
+  // Top half: home team pitching.
   `INSERT INTO game_starters BY NAME
   SELECT
     game_pk,

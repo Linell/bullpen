@@ -1,5 +1,6 @@
 CREATE OR REPLACE TEMP TABLE feed AS
 WITH parsed AS (
+  -- Only the feed fields we read, typed once.
   SELECT game_pk, season, json_transform(json, '{
     "gameData": {
       "datetime": {"officialDate": "DATE"},
@@ -166,6 +167,7 @@ WITH play_start AS (
     game_pk,
     at_bat_index,
     coalesce(lag(count.outs) OVER half_inning_in_order, 0) AS outs_before_play,
+    -- The fielding team's prior PA, to credit its pitcher.
     lag(matchup) OVER fielding_team_in_order AS previous_matchup,
     list_last(list_filter(playEvents, lambda event: event.details.eventType = 'pitching_substitution')).index
       AS pitching_change_index
@@ -187,6 +189,7 @@ events_with_count_before AS (
     coalesce(lag(event.count.balls) OVER play_events_in_order, 0) AS balls_before,
     coalesce(lag(event.count.strikes) OVER play_events_in_order, 0) AS strikes_before,
     coalesce(lag(event.count.outs) OVER play_events_in_order, outs_before_play) AS outs_before,
+    -- Pitches before a mid-PA pitching change: old pitcher.
     CASE
       WHEN event.index < pitching_change_index THEN coalesce(previous_matchup, matchup)
       ELSE matchup
@@ -200,6 +203,7 @@ events_with_count_before AS (
 ),
 pitches_with_abs_challenge AS (
   SELECT *,
+    -- 'MJ' = ABS challenge.
     CASE
       WHEN event.reviewDetails.reviewType = 'MJ' THEN event.reviewDetails
       WHEN is_last_pitch AND play_review.reviewType = 'MJ' THEN play_review
