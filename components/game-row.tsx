@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Probable } from "@/components/game-card";
+import { TeamLink } from "@/components/team/team-link";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -8,10 +9,12 @@ import { gamePath } from "@/lib/routes";
 import { gameTitle, seriesGameLabel, type Game, type GameSide } from "@/lib/scoreboard";
 import { cn } from "@/lib/utils";
 
-function Side({ side, dimmed }: { side: GameSide; dimmed: boolean }) {
+function Side({ side, season, dimmed }: { side: GameSide; season: number; dimmed: boolean }) {
   return (
     <span className={cn("flex items-baseline gap-1.5", dimmed && "opacity-60")}>
-      {side.team.abbreviation}
+      <TeamLink teamId={side.team.id} season={season} className="relative z-10">
+        {side.team.abbreviation}
+      </TeamLink>
       {side.score !== undefined && <span className="tabular-nums">{side.score}</span>}
     </span>
   );
@@ -26,9 +29,9 @@ export function GameRow({ game }: { game: Game }) {
       <div className="flex items-center gap-3">
         <StatusBadge game={game} />
         <span className="flex shrink-0 items-baseline gap-2 font-heading">
-          <Side side={away} dimmed={isFinal && (away.score ?? 0) < (home.score ?? 0)} />
+          <Side side={away} season={game.season} dimmed={isFinal && (away.score ?? 0) < (home.score ?? 0)} />
           <span className="font-base opacity-60">@</span>
-          <Side side={home} dimmed={isFinal && (home.score ?? 0) < (away.score ?? 0)} />
+          <Side side={home} season={game.season} dimmed={isFinal && (home.score ?? 0) < (away.score ?? 0)} />
         </span>
         {game.doubleHeader && <Badge variant="neutral">G{game.gameNumber}</Badge>}
         {game.series && (

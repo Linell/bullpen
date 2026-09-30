@@ -3,6 +3,7 @@ import { Diamond } from "@/components/diamond";
 import { PlayerLink } from "@/components/player-link";
 import { Pop } from "@/components/pop";
 import { ScoringAlert } from "@/components/scoring-alert";
+import { TeamLink } from "@/components/team/team-link";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -58,11 +59,19 @@ function TeamRow({
 
   return (
     <div className={cn("flex items-center gap-3", dimmed && "opacity-60")}>
-      <span className="flex h-9 w-12 items-center justify-center rounded-base border-2 border-border bg-background text-sm font-heading">
+      <TeamLink
+        teamId={side.team.id}
+        season={season}
+        className="relative z-10 flex h-9 w-12 items-center justify-center rounded-base border-2 border-border bg-background text-sm font-heading"
+      >
         {side.team.abbreviation}
-      </span>
+      </TeamLink>
       <div className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate font-heading">{side.team.name}</span>
+        <span className="truncate font-heading">
+          <TeamLink teamId={side.team.id} season={season} className="relative z-10">
+            {side.team.name}
+          </TeamLink>
+        </span>
         {(record || showProbable) && (
           <span className="truncate text-xs opacity-70">
             {record}
