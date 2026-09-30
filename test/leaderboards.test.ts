@@ -1,9 +1,10 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
-vi.mock("next/cache", () => ({ cacheTag: () => {}, cacheLife: () => {} }));
+vi.mock("next/cache", () => ({ cacheTag: vi.fn(), cacheLife: () => {} }));
 
 process.env.DUCKDB_URL = ":memory:";
 
+const { cacheTag } = await import("next/cache");
 const { refreshAllSeasonRollups } = await import("./season-rollups");
 const { readRows, withConnection } = await import("@/lib/db");
 const { migrate } = await import("@/lib/migrate");
@@ -197,6 +198,17 @@ beforeAll(async () => {
         (${SOFTTOSSER}, 'Sid Softtosser', ${TODAY}, '2026-09-28', 1)`);
   });
   await withConnection(refreshAllSeasonRollups);
+});
+
+describe("leaderboard caching", () => {
+  it("tags each season the range touches", async () => {
+    vi.mocked(cacheTag).mockClear();
+    await longestHomeRuns({ from: "2025-12-30", to: "2026-01-02", limit: 10 });
+    await pitchingLeaders(TODAY_RANGE);
+
+    expect(cacheTag).toHaveBeenNthCalledWith(1, "season-rollups:2025", "season-rollups:2026");
+    expect(cacheTag).toHaveBeenNthCalledWith(2, "season-rollups:2026");
+  });
 });
 
 describe("event leaderboards", () => {

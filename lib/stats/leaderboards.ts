@@ -1,6 +1,6 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
-import { LEADERBOARDS_TAG } from "@/lib/cache-tags";
+import { seasonRollupsTag } from "@/lib/cache-tags";
 import { readRows } from "@/lib/db";
 import type { PlayerRef } from "@/lib/player-ref";
 import {
@@ -271,6 +271,10 @@ function toWhiffLeader(r: WhiffRow): WhiffLeader {
   };
 }
 
+function rollupTags({ from, to }: LeaderboardQuery) {
+  return [...new Set([from, to].map((date) => seasonRollupsTag(Number(date.slice(0, 4)))))];
+}
+
 async function readLeaders<Row, Leader>(query: string, params: LeaderboardQuery, toLeader: (row: Row) => Leader) {
   const rows = await readRows<Row>(query, params);
   return rows.map(toLeader);
@@ -278,49 +282,49 @@ async function readLeaders<Row, Leader>(query: string, params: LeaderboardQuery,
 
 export async function longestHomeRuns(query: LeaderboardQuery): Promise<EventLeader[]> {
   "use cache: remote";
-  cacheTag(LEADERBOARDS_TAG);
+  cacheTag(...rollupTags(query));
   cacheLife("hours");
   return readLeaders(LONGEST_HOME_RUNS_QUERY, query, toEventLeader);
 }
 
 export async function fastestPitches(query: LeaderboardQuery): Promise<EventLeader[]> {
   "use cache: remote";
-  cacheTag(LEADERBOARDS_TAG);
+  cacheTag(...rollupTags(query));
   cacheLife("hours");
   return readLeaders(FASTEST_PITCHES_QUERY, query, toEventLeader);
 }
 
 export async function hardestHitBalls(query: LeaderboardQuery): Promise<EventLeader[]> {
   "use cache: remote";
-  cacheTag(LEADERBOARDS_TAG);
+  cacheTag(...rollupTags(query));
   cacheLife("hours");
   return readLeaders(HARDEST_HIT_BALLS_QUERY, query, toEventLeader);
 }
 
 export async function barrelRates(query: LeaderboardQuery): Promise<BarrelLeader[]> {
   "use cache: remote";
-  cacheTag(LEADERBOARDS_TAG);
+  cacheTag(...rollupTags(query));
   cacheLife("hours");
   return readLeaders(BARREL_RATES_QUERY, query, toBarrelLeader);
 }
 
 export async function whiffRates(query: LeaderboardQuery): Promise<WhiffLeader[]> {
   "use cache: remote";
-  cacheTag(LEADERBOARDS_TAG);
+  cacheTag(...rollupTags(query));
   cacheLife("hours");
   return readLeaders(WHIFF_RATES_QUERY, query, toWhiffLeader);
 }
 
 export async function hittingLeaders(query: LeaderboardQuery): Promise<HittingLeader[]> {
   "use cache: remote";
-  cacheTag(LEADERBOARDS_TAG);
+  cacheTag(...rollupTags(query));
   cacheLife("hours");
   return readLeaders(HITTING_QUERY, query, toHittingLeader);
 }
 
 export async function pitchingLeaders(query: LeaderboardQuery): Promise<PitchingLeader[]> {
   "use cache: remote";
-  cacheTag(LEADERBOARDS_TAG);
+  cacheTag(...rollupTags(query));
   cacheLife("hours");
   return readLeaders(PITCHING_QUERY, query, toPitchingLeader);
 }

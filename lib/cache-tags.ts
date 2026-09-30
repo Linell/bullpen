@@ -4,11 +4,9 @@ import { isCompleted } from "@/lib/schedule";
 
 export const GAMES_TAG = "games";
 
-export const LEADERBOARDS_TAG = "leaderboards";
-
 export const STATS_TAG = "stats";
 
-export const BACKFILL_TAGS = [GAMES_TAG, LEADERBOARDS_TAG, STATS_TAG];
+export const BACKFILL_TAGS = [GAMES_TAG, STATS_TAG];
 
 export function dayTag(date: string) {
   return `day:${date}`;

@@ -132,7 +132,7 @@ describe("backfill-season", () => {
     expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-probables-changed", [
       expect.objectContaining({ data: { gamePk: 31 }, id: "game-probables-changed-31-1700000000000" }),
     ]);
-    expect(revalidateTag).toHaveBeenCalledTimes(3);
+    expect(revalidateTag).toHaveBeenCalledTimes(2);
   });
 
   it("re-fetches postponed games so completed makeups are ingested", async () => {
@@ -316,9 +316,9 @@ describe("invalidate-game-cache", () => {
       ],
     });
 
-    expect(result).toEqual({ gamePks: 1, tags: 6 });
-    expect(revalidateTag).toHaveBeenCalledTimes(6);
-    for (const tag of [...gameTags, ...playerTags, "leaderboards"]) expect(revalidateTag).toHaveBeenCalledWith(tag, "max");
+    expect(result).toEqual({ gamePks: 1, tags: 5 });
+    expect(revalidateTag).toHaveBeenCalledTimes(5);
+    for (const tag of [...gameTags, ...playerTags]) expect(revalidateTag).toHaveBeenCalledWith(tag, "max");
     expect(ctx.step.realtime.publish).toHaveBeenCalledWith(
       "publish-scoreboard-derived",
       expect.objectContaining({ channel: "scoreboard", topic: "derived" }),

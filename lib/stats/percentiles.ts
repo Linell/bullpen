@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheTag } from "next/cache";
 import { readRows } from "@/lib/db";
-import { playerStatsTag, STATS_TAG } from "@/lib/cache-tags";
+import { seasonRollupsTag, STATS_TAG } from "@/lib/cache-tags";
 import { seasonCacheLife } from "@/lib/stats/cache";
 
 export const PA_PER_TEAM_GAME = 2.1;
@@ -94,7 +94,7 @@ async function percentileBoard<T extends Record<string, Percentile | null>>(
 
 export async function hittingPercentiles(playerId: number, season: number) {
   "use cache: remote";
-  cacheTag(playerStatsTag(playerId), STATS_TAG);
+  cacheTag(seasonRollupsTag(season), STATS_TAG);
   seasonCacheLife(season);
 
   return percentileBoard<HittingPercentiles>(HITTING_QUERY, playerId, season);
@@ -102,7 +102,7 @@ export async function hittingPercentiles(playerId: number, season: number) {
 
 export async function pitchingPercentiles(playerId: number, season: number) {
   "use cache: remote";
-  cacheTag(playerStatsTag(playerId), STATS_TAG);
+  cacheTag(seasonRollupsTag(season), STATS_TAG);
   seasonCacheLife(season);
 
   return percentileBoard<PitchingPercentiles>(PITCHING_QUERY, playerId, season);
