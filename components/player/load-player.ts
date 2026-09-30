@@ -1,7 +1,7 @@
 import "server-only";
 import { notFound } from "next/navigation";
 import { PLAYER_ID_RE } from "@/lib/player-id";
-import { playerPath, type PlayerRole } from "@/lib/routes";
+import type { PlayerRole } from "@/lib/routes";
 import { resolveSeason } from "@/lib/season";
 import { playerSummary, type PlayerSummary } from "@/lib/stats/player";
 import { getTeamSeasons } from "@/lib/team-summary";
@@ -30,7 +30,7 @@ export async function loadPlayerSeason(
 ): Promise<LoadedPlayerSeason> {
   const summary = await loadPlayer(playerIdParam);
   const seasons = roleSeasons(summary, role).toReversed();
-  const { season, isCurrentSeason } = resolveSeason(seasons, seasonParam, playerPath(summary.playerId, { role }));
+  const { season, isCurrentSeason } = resolveSeason(seasons, seasonParam);
   return { summary, role, seasons, season, isLatestSeason: isCurrentSeason };
 }
 

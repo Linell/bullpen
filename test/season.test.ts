@@ -13,22 +13,22 @@ function digestOf(run: () => unknown) {
 
 describe("resolveSeason", () => {
   it("defaults to the current season", () => {
-    expect(resolveSeason(seasons, undefined, "/standings")).toEqual({ season: 2026, isCurrentSeason: true });
-    expect(resolveSeason(seasons, [], "/standings")).toEqual({ season: 2026, isCurrentSeason: true });
+    expect(resolveSeason(seasons, undefined)).toEqual({ season: 2026, isCurrentSeason: true });
+    expect(resolveSeason(seasons, [])).toEqual({ season: 2026, isCurrentSeason: true });
   });
 
   it("resolves a past season", () => {
-    expect(resolveSeason(seasons, ["2024"], "/standings")).toEqual({ season: 2024, isCurrentSeason: false });
+    expect(resolveSeason(seasons, ["2024"])).toEqual({ season: 2024, isCurrentSeason: false });
   });
 
-  it("redirects the current season to the season-less path", () => {
-    expect(digestOf(() => resolveSeason(seasons, ["2026"], "/standings"))).toMatch(/^NEXT_REDIRECT;.*;\/standings;/);
+  it("resolves the current season by number too", () => {
+    expect(resolveSeason(seasons, ["2026"])).toEqual({ season: 2026, isCurrentSeason: true });
   });
 
   it("404s on unknown or malformed seasons", () => {
     for (const param of [["2019"], ["abcd"], ["2024", "extra"], ["24"]]) {
-      expect(digestOf(() => resolveSeason(seasons, param, "/standings"))).toMatch(/404/);
+      expect(digestOf(() => resolveSeason(seasons, param))).toMatch(/404/);
     }
-    expect(digestOf(() => resolveSeason([], undefined, "/standings"))).toMatch(/404/);
+    expect(digestOf(() => resolveSeason([], undefined))).toMatch(/404/);
   });
 });

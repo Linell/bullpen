@@ -93,7 +93,7 @@ type StandingsSeason = { seasons: number[]; season: number; isCurrentSeason: boo
 
 export async function loadStandingsSeason(seasonParam?: string[]): Promise<StandingsSeason> {
   const seasons = await getStandingsSeasons();
-  const { season, isCurrentSeason } = resolveSeason(seasons, seasonParam, standingsPath());
+  const { season, isCurrentSeason } = resolveSeason(seasons, seasonParam);
   return { seasons, season, isCurrentSeason };
 }
 

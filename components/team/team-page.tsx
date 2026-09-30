@@ -27,7 +27,7 @@ export async function loadTeamSeason(teamIdParam: string, seasonParam?: string[]
   if (!TEAM_ID_RE.test(teamIdParam)) notFound();
   const teamId = Number(teamIdParam);
   const seasons = await getTeamSeasons(teamId);
-  const { season, isCurrentSeason } = resolveSeason(seasons, seasonParam, teamPath(teamId));
+  const { season, isCurrentSeason } = resolveSeason(seasons, seasonParam);
   return { teamId, seasons, season, isCurrentSeason };
 }
 

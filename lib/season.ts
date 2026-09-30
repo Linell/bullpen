@@ -1,7 +1,7 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { SEASON_RE } from "@/lib/team-id";
 
-export function resolveSeason(seasons: number[], seasonParam: string[] | undefined, currentSeasonPath: string) {
+export function resolveSeason(seasons: number[], seasonParam: string[] | undefined) {
   const [currentSeason] = seasons;
   if (currentSeason === undefined) notFound();
   if (!seasonParam?.length) return { season: currentSeason, isCurrentSeason: true };
@@ -9,6 +9,5 @@ export function resolveSeason(seasons: number[], seasonParam: string[] | undefin
   const segment = seasonParam.join("/");
   const season = Number(segment);
   if (!SEASON_RE.test(segment) || !seasons.includes(season)) notFound();
-  if (season === currentSeason) redirect(currentSeasonPath);
-  return { season, isCurrentSeason: false };
+  return { season, isCurrentSeason: season === currentSeason };
 }
