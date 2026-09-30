@@ -1,6 +1,7 @@
 import "server-only";
 import { type DuckDBConnection, listValue } from "@duckdb/node-api";
-import { inTransaction, readSql, runStatements } from "@/lib/db";
+import { readSql } from "@/lib/db";
+import { inTransaction, runStatements } from "@/lib/statements";
 
 type FeedHeader = {
   gamePk?: unknown;

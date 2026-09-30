@@ -8,6 +8,7 @@ process.env.DUCKDB_URL = ":memory:";
 const { openDb } = await import("@/lib/db");
 const { migrate } = await import("@/lib/migrate");
 const { refreshSeasonRollups } = await import("@/lib/season-rollups");
+const { openDbMigratedBefore } = await import("./migrations");
 
 const HOME = 111;
 const AWAY = 147;
@@ -86,5 +87,23 @@ describe("refreshSeasonRollups", () => {
 
     expect(await rowsPerSeason("team_season_batting")).toEqual(once);
     expect(await fastestPerDay()).toHaveLength(2);
+  });
+});
+
+describe("migrate", () => {
+  it("fills the rollups of every stored season", async () => {
+    conn = await openDbMigratedBefore("016_");
+    await addGame(NEXT_DAY, [100, 101]);
+    await addGame(LAST_SEASON, [95]);
+    await migrate(conn);
+
+    expect(await rowsPerSeason("event_leaders")).toEqual([
+      { season: 2025, n: 1 },
+      { season: 2026, n: 2 },
+    ]);
+    expect(await rowsPerSeason("player_season_counts")).toEqual([
+      { season: 2025, n: 2 },
+      { season: 2026, n: 2 },
+    ]);
   });
 });

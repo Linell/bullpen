@@ -1,9 +1,10 @@
-import { mkdtemp, readFile, readdir } from "node:fs/promises";
+import { mkdtemp } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { openDb } from "@/lib/db";
-import { migrate, SQL_DIR } from "@/lib/migrate";
+import { migrate } from "@/lib/migrate";
+import { openDbMigratedBefore } from "./migrations";
 
 describe("migrate", () => {
   it("applies each migration once", async () => {
@@ -21,13 +22,7 @@ describe("migrate", () => {
   });
 
   it("keeps the stored players and teams when they become per-game rows", async () => {
-    const conn = await openDb(":memory:");
-    await conn.run("CREATE TABLE schema_migrations (file VARCHAR PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL)");
-    const earlier = (await readdir(SQL_DIR)).filter((file) => /^\d+_/.test(file) && file < "011_").sort();
-    for (const file of earlier) {
-      await conn.run(await readFile(path.join(SQL_DIR, file), "utf8"));
-      await conn.run("INSERT INTO schema_migrations VALUES ($file, now())", { file });
-    }
+    const conn = await openDbMigratedBefore("011_");
     await conn.run(`INSERT INTO players (player_id, full_name, bat_side, source_game_pk, source_date, source_game_number)
       VALUES (547180, 'Bryce Harper', 'L', 30, '2026-09-20', 2)`);
     await conn.run(`INSERT INTO teams (team_id, season, name, abbreviation, source_game_pk, source_date, source_game_number)

@@ -5,7 +5,7 @@ vi.mock("next/cache", () => ({ cacheTag: vi.fn(), cacheLife: () => {} }));
 process.env.DUCKDB_URL = ":memory:";
 
 const { cacheTag } = await import("next/cache");
-const { refreshAllSeasonRollups } = await import("./season-rollups");
+const { writeAllSeasonRollups } = await import("@/lib/season-rollups");
 const { readRows, withConnection } = await import("@/lib/db");
 const { migrate } = await import("@/lib/migrate");
 const { barrelRates, fastestPitches, hardestHitBalls, hittingLeaders, longestHomeRuns, pitchingLeaders, whiffRates } =
@@ -197,7 +197,7 @@ beforeAll(async () => {
         (${FLAMETHROWER}, 'Fay Flamethrower', ${POSTSEASON}, '2026-09-28', 1),
         (${SOFTTOSSER}, 'Sid Softtosser', ${TODAY}, '2026-09-28', 1)`);
   });
-  await withConnection(refreshAllSeasonRollups);
+  await withConnection(writeAllSeasonRollups);
 });
 
 describe("leaderboard caching", () => {

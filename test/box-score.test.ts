@@ -4,7 +4,7 @@ vi.mock("next/cache", () => ({ cacheTag: () => {}, cacheLife: () => {} }));
 
 process.env.DUCKDB_URL = ":memory:";
 
-const { refreshAllSeasonRollups } = await import("./season-rollups");
+const { writeAllSeasonRollups } = await import("@/lib/season-rollups");
 const { withConnection, readRows } = await import("@/lib/db");
 const { migrate } = await import("@/lib/migrate");
 const { getBoxScore } = await import("@/lib/box-score");
@@ -80,7 +80,7 @@ beforeAll(async () => {
     { game_pk: FINAL, season: 2026, at_bat_index: 0, inning: 1, half: "top", batter_id: 10, pitcher_id: 20 },
     { game_pk: FINAL, season: 2026, at_bat_index: 60, inning: 7, half: "bottom", batter_id: 10, pitcher_id: 21 },
   ]);
-  await withConnection(refreshAllSeasonRollups);
+  await withConnection(writeAllSeasonRollups);
 });
 
 describe("getBoxScore", () => {

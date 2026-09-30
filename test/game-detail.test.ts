@@ -4,7 +4,7 @@ vi.mock("next/cache", () => ({ cacheTag: () => {}, cacheLife: () => {} }));
 
 process.env.DUCKDB_URL = ":memory:";
 
-const { refreshAllSeasonRollups } = await import("./season-rollups");
+const { writeAllSeasonRollups } = await import("@/lib/season-rollups");
 const { withConnection } = await import("@/lib/db");
 const { migrate } = await import("@/lib/migrate");
 const { getGameDetail } = await import("@/lib/game-detail");
@@ -52,7 +52,7 @@ beforeAll(async () => {
         game_pk, source_date, source_game_number)
       VALUES (${COLE}, 'Gerrit Cole', 'Cole, G', 'R', 1, '2026-09-20', 1)`);
   });
-  await withConnection(refreshAllSeasonRollups);
+  await withConnection(writeAllSeasonRollups);
 });
 
 describe("getGameDetail", () => {

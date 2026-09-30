@@ -1,4 +1,4 @@
-import { shiftDate } from "@/lib/dates";
+import { shiftDate } from "./dates.ts";
 
 export const RANGES = { today: "Today", week: "7 days", month: "30 days", season: "Season" } as const;
 

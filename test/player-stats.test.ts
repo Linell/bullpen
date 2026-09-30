@@ -4,7 +4,7 @@ vi.mock("next/cache", () => ({ cacheTag: () => {}, cacheLife: () => {} }));
 
 process.env.DUCKDB_URL = ":memory:";
 
-const { refreshAllSeasonRollups } = await import("./season-rollups");
+const { writeAllSeasonRollups } = await import("@/lib/season-rollups");
 const { withConnection } = await import("@/lib/db");
 const { migrate } = await import("@/lib/migrate");
 const { playerCacheTags } = await import("@/lib/cache-tags");
@@ -169,7 +169,7 @@ beforeAll(async () => {
       VALUES (${HITTER}, 'Hal Hitter', 'L', 'R', ${ON_ROAD}, '2026-09-21', 1),
         (${PITCHER}, 'Pat Pitcher', 'R', 'R', ${AT_HOME}, '2026-09-20', 1)`);
   });
-  await withConnection(refreshAllSeasonRollups);
+  await withConnection(writeAllSeasonRollups);
 });
 
 describe("hitter stats", () => {

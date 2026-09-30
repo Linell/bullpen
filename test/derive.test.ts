@@ -6,7 +6,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { openDb } from "@/lib/db";
 import { migrate } from "@/lib/migrate";
 import { deriveGame, deriveGames, rawFeedGamePks, storeFeed, storeFeeds } from "@/lib/feeds";
-import { refreshAllSeasonRollups } from "./season-rollups";
+import { writeAllSeasonRollups } from "@/lib/season-rollups";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Feed = any;
@@ -73,7 +73,7 @@ describe("derive.sql", () => {
     await conn.run(`INSERT INTO games (game_pk, season, official_date, game_type, game_number, abstract_state,
         coded_state, detailed_state, home_team_id, away_team_id, start_utc, updated_at)
       VALUES ${played.map(gameRow).join(",")}`);
-    await refreshAllSeasonRollups(conn);
+    await writeAllSeasonRollups(conn);
   });
 
   it("has the fixtures it needs", () => {
@@ -471,7 +471,7 @@ describe("derive.sql across seasons", () => {
       await storeFeed(conn, f);
       await deriveGame(conn, f.gamePk);
     }
-    await refreshAllSeasonRollups(conn);
+    await writeAllSeasonRollups(conn);
 
     const homeId = feed.gameData.teams.home.id;
     const teams = await rows(conn, "SELECT season, name FROM teams WHERE team_id = $homeId ORDER BY season", {
@@ -532,7 +532,7 @@ describe("derive.sql run concurrently", () => {
   }
 
   async function snapshot(conn: DuckDBConnection) {
-    await refreshAllSeasonRollups(conn);
+    await writeAllSeasonRollups(conn);
     const counts = await Promise.all(TABLES.map(async (table) => (await rows(conn, `SELECT count(*) AS n FROM ${table}`))[0].n));
     return {
       counts: Object.fromEntries(TABLES.map((table, i) => [table, counts[i]])),
@@ -572,7 +572,7 @@ describe("derive.sql out of order", () => {
       await storeFeed(conn, f);
       await deriveGame(conn, f.gamePk);
     }
-    await refreshAllSeasonRollups(conn);
+    await writeAllSeasonRollups(conn);
 
     const [player] = await rows(conn, "SELECT full_name, source_game_pk FROM players WHERE player_id = $playerId", {
       playerId: newer.gameData.players[playerKey].id,

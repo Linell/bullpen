@@ -1,6 +1,8 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import type { DuckDBConnection } from "@duckdb/node-api";
+import { writeAllSeasonRollups } from "./season-rollups.ts";
+import { inTransaction } from "./statements.ts";
 
 export const SQL_DIR = path.join(process.cwd(), "sql");
 const MIGRATION_FILE = /^\d+_.*\.sql$/;
@@ -12,16 +14,14 @@ export async function migrate(conn: DuckDBConnection) {
   const reader = await conn.runAndReadAll("SELECT file FROM schema_migrations");
   const applied = new Set(reader.getRowObjectsJS().map((row) => row.file));
   const files = (await readdir(SQL_DIR)).filter((f) => MIGRATION_FILE.test(f)).sort();
+  const pending = files.filter((f) => !applied.has(f));
+  if (pending.length === 0) return;
 
-  for (const file of files.filter((f) => !applied.has(f))) {
-    await conn.run("BEGIN TRANSACTION");
-    try {
+  await inTransaction(conn, async () => {
+    for (const file of pending) {
       await conn.run(await readFile(path.join(SQL_DIR, file), "utf8"));
       await conn.run("INSERT INTO schema_migrations VALUES ($file, now())", { file });
-      await conn.run("COMMIT");
-    } catch (err) {
-      await conn.run("ROLLBACK");
-      throw err;
     }
-  }
+    await writeAllSeasonRollups(conn);
+  });
 }
