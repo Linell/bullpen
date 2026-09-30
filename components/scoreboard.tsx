@@ -10,6 +10,7 @@ import { getGames } from "@/lib/games";
 
 export async function Scoreboard({ date, isToday = false }: { date: string; isToday?: boolean }) {
   const games = await getGames(date);
+  const hasUnfinishedGames = games.some((game) => !game.completed);
   const rounds = [...new Set(games.map((game) => game.postseason).filter(Boolean))];
 
   return (
@@ -25,7 +26,7 @@ export async function Scoreboard({ date, isToday = false }: { date: string; isTo
         <Card>
           <CardContent>{isToday ? "No games today." : "No games on this date."}</CardContent>
         </Card>
-      ) : isToday ? (
+      ) : hasUnfinishedGames ? (
         <LiveScoreboard games={games} />
       ) : (
         <GameGrid games={games} />
