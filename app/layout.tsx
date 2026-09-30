@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans } from "next/font/google";
 
+import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { themeScript } from "@/components/theme-toggle";
 
@@ -12,7 +13,7 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Bullpen",
+  title: { default: "Bullpen", template: "%s · Bullpen" },
   description: "Baseball data straight from the hose.",
 };
 
@@ -29,6 +30,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col font-sans">
         <SiteHeader />
         {children}
+        <footer className="mx-auto w-full max-w-(--breakpoint-2xl) px-6 py-6 text-sm opacity-70">
+          <Link href="/glossary" className="hover:underline">
+            Glossary
+          </Link>
+        </footer>
       </body>
     </html>
   );
