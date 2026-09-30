@@ -2,7 +2,6 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
-  partialPrefetching: true,
   cacheLife: {
     live: { stale: 300, revalidate: 60, expire: 86400 },
   },
