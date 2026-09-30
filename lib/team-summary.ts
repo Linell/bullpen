@@ -44,7 +44,7 @@ export type TeamSummary = {
   standings: StandingsRow[];
 };
 
-type TeamRow = {
+export type TeamRow = {
   team_id: number;
   name: string;
   abbreviation: string | null;
@@ -57,7 +57,7 @@ type StandingsQueryRow = TeamRow & WinLoss;
 const GAME_LIMIT = 10;
 const PYTHAG_EXPONENT = 1.83;
 
-const COMPLETED_FILTER = `g.coded_state IN ('F', 'O', 'Q', 'R')`;
+export const COMPLETED_FILTER = `g.coded_state IN ('F', 'O', 'Q', 'R')`;
 
 const TEAM_GAME_FILTER = `g.season = $season::INTEGER AND $teamId::INTEGER IN (g.home_team_id, g.away_team_id)`;
 
@@ -71,7 +71,7 @@ const SEASONS_QUERY = `
    LIMIT 1)
   ORDER BY season DESC`;
 
-const SEASON_TEAMS = `
+export const SEASON_TEAMS = `
   season_teams AS (
     SELECT * FROM teams
     WHERE season <= $season::INTEGER
@@ -113,7 +113,7 @@ const STANDINGS_QUERY = `
   GROUP BY ALL
   ORDER BY wins - losses DESC, wins DESC, m.name`;
 
-function toTeamInfo(row: TeamRow): TeamInfo {
+export function toTeamInfo(row: TeamRow): TeamInfo {
   return {
     id: row.team_id,
     name: row.name,
@@ -149,7 +149,7 @@ function toRecord(results: TeamResult[]): TeamRecord {
   };
 }
 
-function pct({ wins, losses }: WinLoss) {
+export function pct({ wins, losses }: WinLoss) {
   return wins + losses > 0 ? wins / (wins + losses) : 0;
 }
 

@@ -5,15 +5,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { StandingsRow } from "@/lib/team-summary";
 import { cn } from "@/lib/utils";
 
-const cell = "h-auto px-2 py-1.5 text-right tabular-nums";
-const teamCell = "h-auto px-2 py-1.5";
+export const cell = "h-auto px-2 py-1.5 text-right tabular-nums";
+export const teamCell = "h-auto px-2 py-1.5";
 
-function formatPct(pct: number) {
+export function formatPct(pct: number) {
   return pct.toFixed(3).replace(/^0/, "");
 }
 
-function formatGamesBack(gamesBack: number) {
-  return gamesBack === 0 ? "—" : String(gamesBack);
+export function formatGamesBack(gamesBack: number) {
+  if (gamesBack === 0) return "—";
+  return gamesBack > 0 ? String(gamesBack) : `+${-gamesBack}`;
 }
 
 export function DivisionStandings({

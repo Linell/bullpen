@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { leadersPath } from "@/lib/routes";
+import { leadersPath, standingsPath } from "@/lib/routes";
 
 export function SiteHeader() {
   return (
@@ -12,6 +12,9 @@ export function SiteHeader() {
           className="rounded-base border-2 border-border bg-main px-3 py-1 text-xl font-heading text-main-foreground shadow-shadow"
         >
           Bullpen
+        </Link>
+        <Link href={standingsPath()} className={buttonVariants({ variant: "neutral", size: "xs" })}>
+          Standings
         </Link>
         <Link href={leadersPath()} className={buttonVariants({ variant: "neutral", size: "xs" })}>
           Leaders
