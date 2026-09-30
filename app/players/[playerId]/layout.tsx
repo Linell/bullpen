@@ -20,7 +20,7 @@ export default function PlayerLayout({ params, children }: LayoutProps<"/players
 async function PlayerHeaderSection({ params }: PlayerParams) {
   const { playerId } = await params;
   const summary = await loadPlayer(playerId);
-  const teamSeason = await teamLinkSeason(summary);
+  const linkSeason = await teamLinkSeason(summary);
   await connection();
-  return <PlayerHeader summary={summary} teamSeason={teamSeason} today={todayOfficialDate()} />;
+  return <PlayerHeader summary={summary} teamLinkSeason={linkSeason} today={todayOfficialDate()} />;
 }

@@ -17,11 +17,11 @@ function Fact({ label, value }: { label: string; value: ReactNode }) {
 
 export function PlayerHeader({
   summary,
-  teamSeason,
+  teamLinkSeason,
   today,
 }: {
   summary: PlayerSummary;
-  teamSeason?: number;
+  teamLinkSeason?: number;
   today: string;
 }) {
   const { playerId, fullName, latest, batSide, pitchHand, birthDate, height, weight } = summary;
@@ -37,7 +37,7 @@ export function PlayerHeader({
               <p className="flex flex-wrap gap-x-2 text-sm opacity-70">
                 {latest.jerseyNumber && <span>#{latest.jerseyNumber}</span>}
                 {latest.position && <span>{latest.position}</span>}
-                <TeamLink teamId={latest.teamId} season={teamSeason}>
+                <TeamLink teamId={latest.teamId} season={teamLinkSeason}>
                   {latest.teamName ?? "Team"}
                 </TeamLink>
               </p>
