@@ -4,7 +4,8 @@ process.env.DUCKDB_URL = ":memory:";
 
 const { readRows, withConnection } = await import("@/lib/db");
 const { migrate } = await import("@/lib/migrate");
-const { gameCacheTags, teamStatsTag } = await import("@/lib/cache-tags");
+const { teamStatsTag } = await import("@/lib/cache-tags");
+const { gameCacheTags } = await import("@/lib/game-cache-tags");
 
 const HOME = 110;
 const AWAY = 141;

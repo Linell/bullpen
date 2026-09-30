@@ -1,5 +1,5 @@
 import { revalidateTag } from "next/cache";
-import { gameCacheTags, playerCacheTags } from "@/lib/cache-tags";
+import { gameCacheTags, playerCacheTags } from "@/lib/game-cache-tags";
 import { gameChannel, scoreboardChannel } from "../channels";
 import { inngest } from "../client";
 import { gameScheduleChanged, gameCompleted, gameProbablesChanged, gameTablesDerived } from "../events";
