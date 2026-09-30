@@ -39,7 +39,7 @@ export const gameChanged = eventType("mlb/game.changed", {
 });
 
 export const gameFeedStored = eventType("mlb/game-feed.stored", {
-  schema: z.object({ gamePk, season }),
+  schema: z.object({ gamePk }),
 });
 
 export const gameTablesRebuildRequested = eventType("mlb/game-tables.rebuild.requested", {
@@ -51,7 +51,7 @@ export const gameProbablesChanged = eventType("mlb/game-probables.changed", {
 });
 
 export const gameTablesDerived = eventType("mlb/game-tables.derived", {
-  schema: z.object({ gamePk, season }),
+  schema: z.object({ gamePk }),
 });
 
 export const seasonRollupsRebuildRequested = eventType("mlb/season-rollups.rebuild.requested", {

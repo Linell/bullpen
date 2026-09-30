@@ -58,7 +58,7 @@ async function rows(conn: DuckDBConnection, sql: string, values: Record<string, 
 
 describe("derive.sql", () => {
   let conn: DuckDBConnection;
-  const firstRun = new Map<number, { plays: number; pitches: number }>();
+  const firstRun = new Map<number, { plays: number; pitches: number; seasons: number[] }>();
   let firstGamePageCounts: Record<string, any>[];
 
   beforeAll(async () => {
@@ -85,7 +85,7 @@ describe("derive.sql", () => {
   });
 
   it.each(played.map((f) => [f.gamePk, f]))("derives game %i", async (gamePk, feed) => {
-    expect(firstRun.get(gamePk)).toEqual(expected(feed));
+    expect(firstRun.get(gamePk)).toEqual({ ...expected(feed), seasons: [2026] });
 
     const [last] = await rows(
       conn,
@@ -119,7 +119,7 @@ describe("derive.sql", () => {
   });
 
   it("derives no rows for a postponed game", () => {
-    expect(firstRun.get(POSTPONED)).toEqual({ plays: 0, pitches: 0 });
+    expect(firstRun.get(POSTPONED)).toEqual({ plays: 0, pitches: 0, seasons: [2026] });
   });
 
   it.each(played.map((f) => [f.gamePk, f]))("totals the linescore of game %i", async (gamePk, feed) => {
@@ -447,6 +447,7 @@ describe("derive.sql", () => {
     const totals = [...firstRun.values()].reduce((sum, run) => ({
       plays: sum.plays + run.plays,
       pitches: sum.pitches + run.pitches,
+      seasons: [...new Set([...sum.seasons, ...run.seasons])].sort(),
     }));
     expect(await deriveGames(batch, gamePks)).toEqual(totals);
     expect(await gamePageCounts(batch)).toEqual(firstGamePageCounts);

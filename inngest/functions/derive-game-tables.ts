@@ -1,7 +1,7 @@
 import { withConnection } from "@/lib/db";
 import { deriveGame } from "@/lib/feeds";
 import { inngest } from "../client";
-import { gameFeedStored, gameTablesDerived } from "../events";
+import { gameFeedStored, gameTablesDerived, seasonRollupsRebuildRequested } from "../events";
 
 export const deriveGameTables = inngest.createFunction(
   {
@@ -11,16 +11,16 @@ export const deriveGameTables = inngest.createFunction(
     debounce: { key: "event.data.gamePk", period: "30s", timeout: "2m" },
   },
   async ({ event, step }) => {
-    const { gamePk, season } = event.data;
+    const { gamePk } = event.data;
 
-    const { plays, pitches } = await step.run("derive-game", () =>
+    const { plays, pitches, seasons } = await step.run("derive-game", () =>
       withConnection((conn) => deriveGame(conn, gamePk)),
     );
 
-    await step.sendEvent(
-      "emit-game-tables-derived",
-      gameTablesDerived.create({ gamePk, season }, { id: `game-tables-derived-${gamePk}-${event.ts}` }),
-    );
+    await step.sendEvent("emit-game-tables-derived", [
+      gameTablesDerived.create({ gamePk }, { id: `game-tables-derived-${gamePk}-${event.ts}` }),
+      ...seasons.map((season) => seasonRollupsRebuildRequested.create({ season })),
+    ]);
 
     return { gamePk, plays, pitches };
   },

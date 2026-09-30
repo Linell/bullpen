@@ -1,6 +1,5 @@
-import type { DuckDBConnection } from "@duckdb/node-api";
 import { withConnection } from "@/lib/db";
-import { deriveGames, rawFeedSeasons, storeFeeds } from "@/lib/feeds";
+import { deriveGames, storeFeeds } from "@/lib/feeds";
 import { fetchFeed } from "@/lib/mlb";
 import { inngest } from "../client";
 import { gamesBackfillRequested, seasonRollupsRebuildRequested } from "../events";
@@ -26,7 +25,7 @@ export const backfillGames = inngest.createFunction(
 
     const { plays, pitches, seasons } =
       stored.length > 0
-        ? await step.run("derive-games", () => withConnection((conn) => deriveAndListSeasons(conn, stored)))
+        ? await step.run("derive-games", () => withConnection((conn) => deriveGames(conn, stored)))
         : { plays: 0, pitches: 0, seasons: [] };
 
     if (seasons.length > 0) {
@@ -39,11 +38,6 @@ export const backfillGames = inngest.createFunction(
     return { games: gamePks.length, stored: stored.length, failed, plays, pitches };
   },
 );
-
-async function deriveAndListSeasons(conn: DuckDBConnection, gamePks: number[]) {
-  const counts = await deriveGames(conn, gamePks);
-  return { ...counts, seasons: await rawFeedSeasons(conn, gamePks) };
-}
 
 async function fetchAndStoreFeeds(gamePks: number[]) {
   const results = await Promise.allSettled(gamePks.map(fetchFeed));

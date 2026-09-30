@@ -12,10 +12,10 @@ type FeedHeader = {
 let deriveSql: Promise<string> | undefined;
 
 export async function storeFeed(conn: DuckDBConnection, feed: unknown) {
-  const { gamePk, season, feedTs } = readFeedHeader(feed);
+  const { gamePk, feedTs } = readFeedHeader(feed);
   const stored = await storeFeeds(conn, [feed]);
   const status = stored.length > 0 ? ("stored" as const) : ("unchanged" as const);
-  return { status, gamePk, season, feedTs };
+  return { status, gamePk, feedTs };
 }
 
 export async function storeFeeds(conn: DuckDBConnection, feeds: unknown[]): Promise<number[]> {
@@ -55,14 +55,6 @@ export async function deriveGames(conn: DuckDBConnection, gamePks: number[]) {
   return inTransaction(conn, () => derive(conn, gamePks));
 }
 
-export async function rawFeedSeasons(conn: DuckDBConnection, gamePks: number[]): Promise<number[]> {
-  const reader = await conn.runAndReadAll(
-    "SELECT DISTINCT season FROM raw_game_feeds WHERE list_contains($gamePks::INTEGER[], game_pk) ORDER BY season",
-    { gamePks: listValue(gamePks) },
-  );
-  return reader.getRowObjectsJS().map((row) => Number(row.season));
-}
-
 export async function rawFeedGamePks(conn: DuckDBConnection): Promise<number[]> {
   const reader = await conn.runAndReadAll("SELECT game_pk FROM raw_game_feeds ORDER BY game_pk");
   return reader.getRowObjectsJS().map((row) => Number(row.game_pk));
@@ -89,9 +81,10 @@ async function derive(conn: DuckDBConnection, gamePks: number[]) {
   const counts = await conn.runAndReadAll(
     `SELECT
        (SELECT count(*) FROM plays WHERE list_contains($game_pks::INTEGER[], game_pk)) AS plays,
-       (SELECT count(*) FROM pitches WHERE list_contains($game_pks::INTEGER[], game_pk)) AS pitches`,
+       (SELECT count(*) FROM pitches WHERE list_contains($game_pks::INTEGER[], game_pk)) AS pitches,
+       (SELECT list(DISTINCT season ORDER BY season) FROM raw_game_feeds WHERE list_contains($game_pks::INTEGER[], game_pk)) AS seasons`,
     { game_pks: listValue(gamePks) },
   );
-  const [row] = counts.getRowObjects();
-  return { plays: Number(row.plays), pitches: Number(row.pitches) };
+  const [row] = counts.getRowObjectsJS();
+  return { plays: Number(row.plays), pitches: Number(row.pitches), seasons: (row.seasons ?? []) as number[] };
 }
