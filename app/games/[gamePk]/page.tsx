@@ -45,7 +45,8 @@ export default function GamePage({ params }: PageProps<"/games/[gamePk]">) {
 
 async function GameContent({ params }: GameParams) {
   const gamePk = await gamePkFrom({ params });
-  const boxScore = getBoxScore(gamePk);
+  // Kick off now to fetch alongside loadGame
+  const boxScorePromise = getBoxScore(gamePk);
   const { game, decisions, linescore, halfInnings, awayForm, homeForm, headToHead, starters } =
     await loadGame(gamePk);
   const { away, home } = game;
@@ -68,9 +69,9 @@ async function GameContent({ params }: GameParams) {
     <>
       <h1 className="sr-only">{gameTitle(game)}</h1>
       <LiveGameHeader game={game} decisions={decisions} linescore={linescore} lastAtBatIndex={lastAtBatIndex} />
-      {isScheduled && (
+      {(isScheduled || hasStarted) && (
         <Starters
-          title="Probable starters"
+          title={hasStarted ? "Starters" : "Probable starters"}
           away={away.team}
           home={home.team}
           season={game.season}
@@ -79,17 +80,8 @@ async function GameContent({ params }: GameParams) {
       )}
       {!hasStarted && matchup}
       {hasStarted && (
-        <Starters
-          title="Starters"
-          away={away.team}
-          home={home.team}
-          season={game.season}
-          starters={starters}
-        />
-      )}
-      {hasStarted && (
         <Suspense fallback={<CardSkeleton className="h-64" />}>
-          <GameBoxScore away={away.team} home={home.team} season={game.season} boxScore={boxScore} />
+          <GameBoxScore away={away.team} home={home.team} season={game.season} boxScore={boxScorePromise} />
         </Suspense>
       )}
       <div className="w-full max-w-3xl empty:hidden">
