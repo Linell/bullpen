@@ -1,10 +1,11 @@
 import { listValue } from "@duckdb/node-api";
-import { dayTag, gameTag, playerStatsTag, teamStatsTag, teamTag } from "@/lib/cache-tags";
+import { dayTag, gameTag, playerStatsTag, standingsTag, teamStatsTag, teamTag } from "@/lib/cache-tags";
 import { readRows } from "@/lib/db";
 import { isCompleted } from "@/lib/schedule";
 
 type GameTagRow = {
   game_pk: number;
+  season: number;
   official_date: string;
   home_team_id: number;
   away_team_id: number;
@@ -14,7 +15,7 @@ type GameTagRow = {
 export async function gameCacheTags(gamePks: number[]) {
   if (gamePks.length === 0) return [];
   const rows = await readRows<GameTagRow>(
-    `SELECT game_pk, strftime(official_date, '%Y-%m-%d') AS official_date, home_team_id, away_team_id, coded_state
+    `SELECT game_pk, season, strftime(official_date, '%Y-%m-%d') AS official_date, home_team_id, away_team_id, coded_state
      FROM games WHERE game_pk IN (${gamePks.join(",")})`,
     {},
   );
@@ -25,6 +26,7 @@ export async function gameCacheTags(gamePks: number[]) {
     tags.add(teamTag(row.home_team_id));
     tags.add(teamTag(row.away_team_id));
     if (isCompleted(row.coded_state)) {
+      tags.add(standingsTag(row.season));
       tags.add(teamStatsTag(row.home_team_id));
       tags.add(teamStatsTag(row.away_team_id));
     }

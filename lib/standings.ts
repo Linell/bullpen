@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { readRows } from "@/lib/db";
-import { ALL_STATS_TAG } from "@/lib/cache-tags";
+import { ALL_STATS_TAG, standingsTag } from "@/lib/cache-tags";
 import { seasonCacheLife } from "@/lib/stats/cache";
 import {
   COMPLETED_FILTER,
@@ -125,7 +125,7 @@ export async function getStandingsSeasons(): Promise<number[]> {
 
 export async function getStandings(season: number): Promise<LeagueStandings[]> {
   "use cache: remote";
-  cacheTag(ALL_STATS_TAG);
+  cacheTag(standingsTag(season), ALL_STATS_TAG);
   seasonCacheLife(season, "live");
 
   const rows = await readRows<StandingsQueryRow>(STANDINGS_QUERY, { season });

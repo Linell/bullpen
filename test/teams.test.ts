@@ -4,7 +4,7 @@ process.env.DUCKDB_URL = ":memory:";
 
 const { readRows, withConnection } = await import("@/lib/db");
 const { migrate } = await import("@/lib/migrate");
-const { teamStatsTag } = await import("@/lib/cache-tags");
+const { standingsTag, teamStatsTag } = await import("@/lib/cache-tags");
 const { gameCacheTags } = await import("@/lib/game-cache-tags");
 
 const HOME = 110;
@@ -44,14 +44,16 @@ describe.each(["team_plays", "team_pitches"])("%s", (view) => {
 });
 
 describe("gameCacheTags", () => {
-  it("tags team stats for a completed game", async () => {
-    expect(await gameCacheTags([FINAL])).toEqual(expect.arrayContaining([teamStatsTag(HOME), teamStatsTag(AWAY)]));
+  it("tags team stats and standings for a completed game", async () => {
+    expect(await gameCacheTags([FINAL])).toEqual(
+      expect.arrayContaining([teamStatsTag(HOME), teamStatsTag(AWAY), standingsTag(2026)]),
+    );
   });
 
-  it("leaves team stats alone for an unfinished game", async () => {
+  it("leaves team stats and standings alone for an unfinished game", async () => {
     const tags = await gameCacheTags([SCHEDULED]);
     expect(tags).toContain(`team:${HOME}`);
-    expect(tags.filter((tag) => tag.startsWith("team-stats:"))).toEqual([]);
+    expect(tags.filter((tag) => tag.startsWith("team-stats:") || tag.startsWith("standings:"))).toEqual([]);
   });
 
   it("returns no tags for no games", async () => {
