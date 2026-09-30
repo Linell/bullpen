@@ -90,7 +90,7 @@ const BATTING_QUERY = `
     b.at_bats, b.runs, b.hits, b.rbi, b.walks, b.strikeouts
   FROM player_game_batting b
   JOIN game_players gp ON gp.game_pk = b.game_pk AND gp.player_id = b.player_id AND gp.team_id = b.team_id
-  LEFT JOIN players p ON p.player_id = b.player_id
+  LEFT JOIN game_player_bios p ON p.game_pk = b.game_pk AND p.player_id = b.player_id
   WHERE b.game_pk = $gamePk::INTEGER
   ORDER BY gp.batting_order NULLS LAST, b.player_id`;
 
@@ -107,7 +107,7 @@ const PITCHING_QUERY = `
     pi.is_win, pi.is_loss, pi.is_save, pi.is_hold, pi.is_blown_save
   FROM player_game_pitching pi
   JOIN games g ON g.game_pk = pi.game_pk
-  LEFT JOIN players p ON p.player_id = pi.player_id
+  LEFT JOIN game_player_bios p ON p.game_pk = pi.game_pk AND p.player_id = pi.player_id
   LEFT JOIN first_seen fs ON fs.pitcher_id = pi.player_id
   WHERE pi.game_pk = $gamePk::INTEGER
   ORDER BY pi.is_starter DESC, fs.at_bat_index NULLS LAST, pi.player_id`;

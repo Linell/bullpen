@@ -60,9 +60,9 @@ const GAME_QUERY = `
     s.player_id AS save_id, s.full_name AS save
   FROM (${GAMES_SELECT} WHERE g.game_pk = $gamePk::INTEGER) game
   LEFT JOIN game_decisions d USING (game_pk)
-  LEFT JOIN players w ON w.player_id = d.winner_id
-  LEFT JOIN players l ON l.player_id = d.loser_id
-  LEFT JOIN players s ON s.player_id = d.save_id`;
+  LEFT JOIN game_player_bios w ON w.game_pk = d.game_pk AND w.player_id = d.winner_id
+  LEFT JOIN game_player_bios l ON l.game_pk = d.game_pk AND l.player_id = d.loser_id
+  LEFT JOIN game_player_bios s ON s.game_pk = d.game_pk AND s.player_id = d.save_id`;
 
 const LINESCORE_QUERY = `
   SELECT inning, half::VARCHAR AS half, runs, hits, errors
@@ -78,8 +78,8 @@ const PLAYS_QUERY = `
     coalesce(m.last_name, m.full_name, 'Player ' || p.pitcher_id::VARCHAR) AS pitcher_last_name,
     p.description, p.is_scoring_play, p.away_score_after, p.home_score_after
   FROM plays p
-  LEFT JOIN players b ON b.player_id = p.batter_id
-  LEFT JOIN players m ON m.player_id = p.pitcher_id
+  LEFT JOIN game_player_bios b ON b.game_pk = p.game_pk AND b.player_id = p.batter_id
+  LEFT JOIN game_player_bios m ON m.game_pk = p.game_pk AND m.player_id = p.pitcher_id
   WHERE p.game_pk = $gamePk::INTEGER
   ORDER BY p.at_bat_index`;
 
