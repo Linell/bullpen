@@ -1,4 +1,4 @@
-import { RetryAfterError } from "inngest";
+import { NonRetriableError, RetryAfterError } from "inngest";
 
 const GAME_TYPES = ["R", "F", "D", "L", "W"];
 
@@ -65,7 +65,9 @@ async function get<T>(path: string, params: Record<string, string> = {}): Promis
       throw new RetryAfterError(`MLB Stats API rate limited ${url}`, when);
     }
   }
-  if (!res.ok) throw new Error(`MLB Stats API ${res.status} for ${url}`);
+  const message = `MLB Stats API ${res.status} for ${url}`;
+  if (res.status >= 400 && res.status < 500 && ![408, 429].includes(res.status)) throw new NonRetriableError(message);
+  if (!res.ok) throw new Error(message);
   return (await res.json()) as T;
 }
 
@@ -108,7 +110,7 @@ export async function fetchSeasonDates(
 ): Promise<{ startDate: string; endDate: string }> {
   const json = await get<SeasonResponse>(`/api/v1/seasons/${season}`, { sportId: "1" });
   const s = json.seasons[0];
-  if (!s) throw new Error(`MLB season ${season} not found`);
+  if (!s) throw new NonRetriableError(`MLB season ${season} not found`);
   return {
     startDate: s.regularSeasonStartDate,
     endDate: s.postSeasonEndDate ?? s.regularSeasonEndDate,
