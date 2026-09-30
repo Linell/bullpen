@@ -1,5 +1,6 @@
 import { InngestTestEngine } from "@inngest/test";
 import { revalidateTag } from "next/cache";
+import { NonRetriableError } from "inngest";
 import { describe, expect, it, vi } from "vitest";
 import { backfillGames } from "@/inngest/functions/backfill-games";
 import { backfillSeason } from "@/inngest/functions/backfill-season";
@@ -10,8 +11,12 @@ import { rebuildGameTables } from "@/inngest/functions/rebuild-game-tables";
 import { rebuildSeasonTables } from "@/inngest/functions/rebuild-season-tables";
 import { syncSchedule } from "@/inngest/functions/sync-schedule";
 import { seasonBackfillRequested } from "@/inngest/events";
+import { withConnection } from "@/lib/db";
+import { fetchFeed } from "@/lib/mlb";
 
 vi.mock("next/cache", () => ({ revalidateTag: vi.fn() }));
+vi.mock("@/lib/db", () => ({ withConnection: vi.fn() }));
+vi.mock("@/lib/mlb", async (importOriginal) => ({ ...(await importOriginal()), fetchFeed: vi.fn() }));
 
 function mockStep(id: string, output: unknown) {
   return { id, handler: () => output };
@@ -186,16 +191,19 @@ describe("ingest-game-feed", () => {
     );
   });
 
-  it("sends nothing when the feed is unchanged", async () => {
+  it("still emits game-feed.stored when the feed is unchanged, so a retried store still derives", async () => {
     const unchanged = { ...stored, status: "unchanged" };
     const t = new InngestTestEngine({ function: ingestGameFeed });
     const { ctx, result } = await t.execute({
       events: [{ name: "mlb/game.completed", data: { gamePk: 101 } }],
-      steps: [mockStep("fetch-and-store-feed", unchanged)],
+      steps: [mockStep("fetch-and-store-feed", unchanged), mockSend("emit-game-feed-stored")],
     });
 
     expect(result).toEqual(unchanged);
-    expect(ctx.step.sendEvent).not.toHaveBeenCalled();
+    expect(ctx.step.sendEvent).toHaveBeenCalledWith(
+      "emit-game-feed-stored",
+      expect.objectContaining({ data: { gamePk: 101 }, id: "game-feed-stored-101-20260921_230000" }),
+    );
   });
 
   it("runs on game-feed.updated", async () => {
@@ -273,18 +281,23 @@ describe("derive-game-tables", () => {
 });
 
 describe("backfill-games", () => {
-  it("derives only the feeds it stored and asks to rebuild their seasons' tables", async () => {
+  const requested = (refetch: boolean) => ({
+    name: "mlb/games.backfill.requested",
+    data: { gamePks: [101, 102, 103], refetch },
+  });
+
+  it("derives every requested game and asks to rebuild their seasons' tables", async () => {
     const t = new InngestTestEngine({ function: backfillGames });
     const { ctx, result } = await t.execute({
-      events: [{ name: "mlb/games.backfill.requested", data: { gamePks: [101, 102, 103], refetch: true } }],
+      events: [requested(true)],
       steps: [
-        mockStep("store-feeds", { stored: [101], failed: [103] }),
+        mockStep("store-feeds", { failed: [103] }),
         mockStep("derive-games", { plays: 70, pitches: 280, seasons: [2025, 2026] }),
         mockSend("emit-season-tables-rebuild-requested"),
       ],
     });
 
-    expect(result).toEqual({ games: 3, stored: 1, failed: [103], plays: 70, pitches: 280 });
+    expect(result).toEqual({ games: 3, failed: [103], plays: 70, pitches: 280 });
     expect(ctx.step.run).toHaveBeenCalledTimes(2);
     expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-season-tables-rebuild-requested", [
       expect.objectContaining({ name: "mlb/season-tables.rebuild.requested", data: { season: 2025 } }),
@@ -295,15 +308,39 @@ describe("backfill-games", () => {
   it("derives stored feeds without refetching them", async () => {
     const t = new InngestTestEngine({ function: backfillGames });
     const { ctx, result } = await t.execute({
-      events: [{ name: "mlb/games.backfill.requested", data: { gamePks: [101, 102], refetch: false } }],
+      events: [requested(false)],
       steps: [
         mockStep("derive-games", { plays: 140, pitches: 560, seasons: [2026] }),
         mockSend("emit-season-tables-rebuild-requested"),
       ],
     });
 
-    expect(result).toEqual({ games: 2, stored: 2, failed: [], plays: 140, pitches: 560 });
+    expect(result).toEqual({ games: 3, failed: [], plays: 140, pitches: 560 });
     expect(ctx.step.run).toHaveBeenCalledTimes(1);
+  });
+
+  it("stores the fetched feeds and lists games that failed for good", async () => {
+    vi.mocked(withConnection).mockReset();
+    vi.mocked(fetchFeed).mockReset().mockResolvedValue({}).mockRejectedValueOnce(new NonRetriableError("404"));
+    const t = new InngestTestEngine({ function: backfillGames });
+    const { result } = await t.executeStep("store-feeds", { events: [requested(true)] });
+
+    expect(result).toEqual({ failed: [101] });
+    expect(withConnection).toHaveBeenCalledOnce();
+  });
+
+  it("stores the fetched feeds, then retries the step on a transient failure", async () => {
+    vi.mocked(withConnection).mockReset();
+    vi.mocked(fetchFeed)
+      .mockReset()
+      .mockResolvedValue({})
+      .mockRejectedValueOnce(new NonRetriableError("404"))
+      .mockRejectedValueOnce(new Error("503"));
+    const t = new InngestTestEngine({ function: backfillGames });
+    const { error } = await t.executeStep("store-feeds", { events: [requested(true)] });
+
+    expect(error).toMatchObject({ message: "503" });
+    expect(withConnection).toHaveBeenCalledOnce();
   });
 });
 

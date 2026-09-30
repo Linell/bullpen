@@ -26,13 +26,12 @@ export const ingestGameFeed = inngest.createFunction(
       });
     });
 
-    if (status === "stored") {
-      // Timestamp ids dedupe re-sends of the same feed.
-      await step.sendEvent(
-        "emit-game-feed-stored",
-        gameFeedStored.create({ gamePk }, { id: `game-feed-stored-${gamePk}-${feedTs}` }),
-      );
-    }
+    // Sent even when unchanged: a retry after the store committed sees "unchanged" but still needs a derive.
+    // Timestamp ids dedupe re-sends of the same feed.
+    await step.sendEvent(
+      "emit-game-feed-stored",
+      gameFeedStored.create({ gamePk }, { id: `game-feed-stored-${gamePk}-${feedTs}` }),
+    );
 
     if (diff?.game) {
       await step.realtime.publish("publish-scoreboard-game", scoreboardChannel.game, diff.game);

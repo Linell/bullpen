@@ -1,5 +1,6 @@
 import { withConnection } from "@/lib/db";
 import { deriveGames, storeFeeds } from "@/lib/feeds";
+import { NonRetriableError, RetryAfterError } from "inngest";
 import { fetchFeed } from "@/lib/mlb";
 import { inngest } from "../client";
 import { gamesBackfillRequested, seasonTablesRebuildRequested } from "../events";
@@ -19,14 +20,12 @@ export const backfillGames = inngest.createFunction(
   async ({ event, step }) => {
     const { gamePks, refetch } = event.data;
 
-    const { stored, failed } = refetch
-      ? await step.run("store-feeds", () => fetchAndStoreFeeds(gamePks))
-      : { stored: gamePks, failed: [] };
+    const { failed } = refetch ? await step.run("store-feeds", () => fetchAndStoreFeeds(gamePks)) : { failed: [] };
 
-    const { plays, pitches, seasons } =
-      stored.length > 0
-        ? await step.run("derive-games", () => withConnection((conn) => deriveGames(conn, stored)))
-        : { plays: 0, pitches: 0, seasons: [] };
+    // Derives every game, so a retry after the store committed still derives its feeds.
+    const { plays, pitches, seasons } = await step.run("derive-games", () =>
+      withConnection((conn) => deriveGames(conn, gamePks)),
+    );
 
     if (seasons.length > 0) {
       await step.sendEvent(
@@ -35,14 +34,22 @@ export const backfillGames = inngest.createFunction(
       );
     }
 
-    return { games: gamePks.length, stored: stored.length, failed, plays, pitches };
+    return { games: gamePks.length, failed, plays, pitches };
   },
 );
 
 async function fetchAndStoreFeeds(gamePks: number[]) {
   const results = await Promise.allSettled(gamePks.map(fetchFeed));
   const feeds = results.flatMap((result) => (result.status === "fulfilled" ? [result.value] : []));
+  await withConnection((conn) => storeFeeds(conn, feeds));
+
+  // Transient errors (429, 5xx) retry the step; stored feeds come back unchanged.
+  const errors = results.flatMap((result) => (result.status === "rejected" ? [result.reason] : []));
+  const transient =
+    errors.find((error) => error instanceof RetryAfterError) ??
+    errors.find((error) => !(error instanceof NonRetriableError));
+  if (transient) throw transient;
+
   const failed = gamePks.filter((_, i) => results[i].status === "rejected");
-  const stored = await withConnection((conn) => storeFeeds(conn, feeds));
-  return { stored, failed };
+  return { failed };
 }

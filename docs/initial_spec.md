@@ -129,13 +129,13 @@ All functions open a short-lived database connection per step with `withConnecti
   - Returns `{ season, startDate, endDate, games, rescheduled, changed, completed, failed, probablesChanged }`, where `failed` lists the games whose feeds couldn't be fetched.
 - **`backfill-games`**
   - Triggered by `mlb/games.backfill.requested`, with concurrency `{ limit: 2 }`.
-  - Step `store-feeds`, only when `refetch`: fetches the batch's feeds in parallel and upserts the newer ones in one insert. Returns only the stored and failed ids, so the feeds stay out of Inngest state.
-  - Step `derive-games`: runs `derive.sql` for every stored game in one transaction.
-  - Returns `{ games, stored, failed, plays, pitches }`.
+  - Step `store-feeds`, only when `refetch`: fetches the batch's feeds in parallel and upserts the newer ones in one insert. A transient fetch error (429, 5xx) then fails the step so Inngest retries it, and already stored feeds come back unchanged. Returns only the ids that failed for good, so the feeds stay out of Inngest state.
+  - Step `derive-games`: runs `derive.sql` for every game in the batch in one transaction, so a retry after the store committed still derives.
+  - Returns `{ games, failed, plays, pitches }`.
 - **`ingest-game-feed`**
   - Triggered by `mlb/game.completed` or `mlb/game-feed.updated`, with concurrency `[{ limit: 6 }, { key: "event.data.gamePk", limit: 1 }]`: each game's feeds load one at a time, and at most six run at once.
   - Step `fetch-and-store-feed`: fetch the feed and upsert `raw_game_feeds`, skipped unless `feed_ts` is newer than the stored one. `feed_ts` is `YYYYMMDD_HHMMSS`, so text comparison orders it, and a late older feed never replaces a newer one. Only a summary is returned, which keeps the 670 KB feed out of Inngest state.
-  - Step `emit-game-feed-stored`: emits `mlb/game-feed.stored` only when the feed was stored, so an unchanged or older feed causes no derive. To re-run a derive that ran out of retries, replay the run from the Inngest dashboard or send `mlb/game-tables.rebuild.requested`, whose ids use `event.ts`.
+  - Step `emit-game-feed-stored`: emits `mlb/game-feed.stored` even when the feed was unchanged, since a retry after the store committed sees it as unchanged. The feed-version id drops a repeat of the same feed. To re-run a derive that ran out of retries, replay the run from the Inngest dashboard or send `mlb/game-tables.rebuild.requested`, whose ids use `event.ts`.
   - Inngest retries handle MLB errors, a 429 with `Retry-After` becomes a `RetryAfterError`, and any other 4xx a `NonRetriableError`.
   - Returns `{ gamePk, feedTs, status }`.
 - **`derive-game-tables`**
@@ -162,7 +162,7 @@ All live in `.env.local`, which is gitignored.
 
 - **`derive.sql`**: run it on saved feed fixtures, including a doubleheader, a postponed game, a suspended game and an extra-innings game. Row counts and final scores should match the box score. Re-deriving leaves the row counts unchanged, a failed derive keeps the previous rows, and an older feed never replaces a newer one. Deriving every game at once on separate connections gives the same rows as deriving them one at a time, and an older game derived last never replaces a newer bio or team.
 - **Schedule**: parsing, which rows count as changed, and which games count as completed, including a forfeit and a postponed game.
-- **Functions**: `@inngest/test` runs each function that sends events, with its steps mocked, and checks the events and their ids. `sync-schedule` sends nothing when nothing changed, `ingest-game-feed` emits only for a stored feed, and runs on `mlb/game-feed.updated`. `backfill-season` and `rebuild-game-tables` invoke `backfill-games` in batches of 25 and revalidate once, and `backfill-games` derives only the feeds it stored.
+- **Functions**: `@inngest/test` runs each function that sends events, with its steps mocked, and checks the events and their ids. `sync-schedule` sends nothing when nothing changed, `ingest-game-feed` emits even for an unchanged feed, and runs on `mlb/game-feed.updated`. `backfill-season` and `rebuild-game-tables` invoke `backfill-games` in batches of 25 and revalidate once, and `backfill-games` derives every game in its batch and retries its store step on a transient fetch error.
 
 ## Alternatives
 
