@@ -4,12 +4,12 @@ import { diffFeeds } from "@/lib/live-game";
 import { fetchFeed } from "@/lib/mlb";
 import { gameChannel, scoreboardChannel } from "../channels";
 import { inngest } from "../client";
-import { gameCompleted, gameFeedStored, gameUpdated } from "../events";
+import { gameCompleted, gameFeedStored, gameFeedUpdated } from "../events";
 
 export const ingestGameFeed = inngest.createFunction(
   {
     id: "ingest-game-feed",
-    triggers: [gameCompleted, gameUpdated],
+    triggers: [gameCompleted, gameFeedUpdated],
     concurrency: [{ limit: 6 }, { key: "event.data.gamePk", limit: 1 }],
   },
   async ({ event, step }) => {

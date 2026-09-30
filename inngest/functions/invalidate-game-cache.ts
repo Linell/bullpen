@@ -2,12 +2,12 @@ import { revalidateTag } from "next/cache";
 import { gameCacheTags, playerCacheTags } from "@/lib/cache-tags";
 import { gameChannel, scoreboardChannel } from "../channels";
 import { inngest } from "../client";
-import { gameChanged, gameCompleted, gameProbablesChanged, gameTablesDerived } from "../events";
+import { gameScheduleChanged, gameCompleted, gameProbablesChanged, gameTablesDerived } from "../events";
 
 export const invalidateGameCache = inngest.createFunction(
   {
     id: "invalidate-game-cache",
-    triggers: [gameChanged, gameCompleted, gameProbablesChanged, gameTablesDerived],
+    triggers: [gameScheduleChanged, gameCompleted, gameProbablesChanged, gameTablesDerived],
     batchEvents: { maxSize: 5, timeout: "5s" },
   },
   async ({ events, step }) => {

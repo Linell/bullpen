@@ -4,7 +4,7 @@ import { fetchFeedTimestamp } from "@/lib/mlb";
 import { readLiveGamePks } from "@/lib/schedule";
 import { inngest } from "../client";
 import { everyMinuteOfBaseballHours } from "../cron";
-import { gameUpdated } from "../events";
+import { gameFeedUpdated } from "../events";
 
 const WATCH_MS = 50_000;
 const POLL_MS = 5_000;
@@ -39,7 +39,7 @@ async function watchFeeds(gamePks: number[]) {
     if (changed.length > 0) {
       await inngest.send(
         changed.map(({ gamePk, timeStamp }) =>
-          gameUpdated.create({ gamePk }, { id: `game-updated-${gamePk}-${timeStamp}` }),
+          gameFeedUpdated.create({ gamePk }, { id: `game-feed-updated-${gamePk}-${timeStamp}` }),
         ),
       );
     }

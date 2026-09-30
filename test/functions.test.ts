@@ -50,7 +50,7 @@ describe("sync-schedule", () => {
         upserted([101]),
         recorded(),
         mockSend("emit-game-completed"),
-        mockSend("emit-game-changed"),
+        mockSend("emit-game-schedule-changed"),
       ],
     });
 
@@ -81,16 +81,16 @@ describe("sync-schedule", () => {
         fetched(row(401, "Preview", "S"), row(402, "Preview", "S")),
         upserted([401, 402]),
         recorded([402]),
-        mockSend("emit-game-changed"),
+        mockSend("emit-game-schedule-changed"),
         mockSend("emit-game-probables-changed"),
       ],
     });
 
     expect(result).toEqual({ ...window, games: 2, changed: 2, completed: 0, probablesChanged: 1 });
     expect(ctx.step.sendEvent).toHaveBeenCalledTimes(2);
-    expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-changed", [
-      expect.objectContaining({ data: { gamePk: 401 }, id: "game-changed-401-1700000000000" }),
-      expect.objectContaining({ data: { gamePk: 402 }, id: "game-changed-402-1700000000000" }),
+    expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-schedule-changed", [
+      expect.objectContaining({ data: { gamePk: 401 }, id: "game-schedule-changed-401-1700000000000" }),
+      expect.objectContaining({ data: { gamePk: 402 }, id: "game-schedule-changed-402-1700000000000" }),
     ]);
     expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-probables-changed", [
       expect.objectContaining({ data: { gamePk: 402 }, id: "game-probables-changed-402-1700000000000" }),
@@ -223,10 +223,10 @@ describe("ingest-game-feed", () => {
     expect(ctx.step.sendEvent).not.toHaveBeenCalled();
   });
 
-  it("runs on game.updated", async () => {
+  it("runs on game-feed.updated", async () => {
     const t = new InngestTestEngine({ function: ingestGameFeed });
     const { ctx, result } = await t.execute({
-      events: [{ name: "mlb/game.updated", data: { gamePk: 101 } }],
+      events: [{ name: "mlb/game-feed.updated", data: { gamePk: 101 } }],
       steps: [mockStep("load-game-feed", stored), mockSend("emit-game-feed-stored")],
     });
 
@@ -324,7 +324,7 @@ describe("invalidate-game-cache", () => {
     const t = new InngestTestEngine({ function: invalidateGameCache });
     const { ctx, result } = await t.execute({
       events: [
-        { name: "mlb/game.changed", data: { gamePk: 101 } },
+        { name: "mlb/game-schedule.changed", data: { gamePk: 101 } },
         { name: "mlb/game.completed", data: { gamePk: 101 } },
         { name: "mlb/game-tables.derived", data: { gamePk: 101 } },
       ],

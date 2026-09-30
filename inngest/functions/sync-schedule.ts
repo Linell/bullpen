@@ -5,7 +5,7 @@ import { recordProbables } from "@/lib/probables";
 import { findCompletedGamePks, parseSchedule, upsertGames } from "@/lib/schedule";
 import { inngest } from "../client";
 import { everyMinuteOfBaseballHours } from "../cron";
-import { gameChanged, gameCompleted, gameProbablesChanged } from "../events";
+import { gameScheduleChanged, gameCompleted, gameProbablesChanged } from "../events";
 
 export const syncSchedule = inngest.createFunction(
   {
@@ -41,8 +41,8 @@ export const syncSchedule = inngest.createFunction(
 
     if (changedGamePks.length > 0) {
       await step.sendEvent(
-        "emit-game-changed",
-        changedGamePks.map((gamePk) => gameChanged.create({ gamePk }, { id: `game-changed-${gamePk}-${event.ts}` })),
+        "emit-game-schedule-changed",
+        changedGamePks.map((gamePk) => gameScheduleChanged.create({ gamePk }, { id: `game-schedule-changed-${gamePk}-${event.ts}` })),
       );
     }
 
