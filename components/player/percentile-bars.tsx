@@ -4,8 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import type { GlossaryTerm } from "@/lib/glossary";
 import type { Percentile } from "@/lib/stats/percentiles";
 
-export type PercentileBar = { key: string; label: ReactNode; value: string; percentile: number | null };
-export type PercentileGroup = { title: string; bars: PercentileBar[] };
+type PercentileBar = { key: string; label: ReactNode; value: string; percentile: number | null };
+type PercentileGroup = { title: string; bars: PercentileBar[] };
 
 const LOW = "hsl(0 75% 50%)";
 const AVERAGE = "hsl(220 10% 62%)";

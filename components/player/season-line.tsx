@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-export type SeasonStat = { key: string; label: ReactNode; value: string };
+type SeasonStat = { key: string; label: ReactNode; value: string };
 
 export function StatList({ stats, className }: { stats: SeasonStat[]; className?: string }) {
   return (

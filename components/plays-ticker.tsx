@@ -5,7 +5,7 @@ import { gamePath } from "@/lib/routes";
 import type { Game } from "@/lib/scoreboard";
 import { cn } from "@/lib/utils";
 
-export type TickerPlay = LivePlay & { game: Game };
+type TickerPlay = LivePlay & { game: Game };
 
 export function PlaysTicker({ plays }: { plays: TickerPlay[] }) {
   if (plays.length === 0) return null;
