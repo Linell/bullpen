@@ -5,41 +5,71 @@ An [Inngest](https://www.inngest.com) example: an event-driven ETL pipeline that
 ## How it works
 
 ```
- cron (every minute, in season)  you
-        │                         │  mlb/season.backfill.requested
-        ▼                         ▼
-  sync-schedule            backfill-season         Load the schedule into `games`
-        └──────────┬──────────────┘
-                   │  mlb/game.completed           one event per finished game
-                   ▼
-           ingest-game-feed                        Load one raw feed into `raw_game_feeds`
-                   │  mlb/game-feed.stored
-                   ▼
-          derive-game-tables                       Run sql/derive.sql for one game
-                   ▲
-                   │  mlb/game-feed.stored         one event per stored feed
-          rebuild-game-tables                      Re-derive every game without refetching
-                   ▲
-                   │  mlb/game-tables.rebuild.requested
-                  you
+cron: every minute, in baseball hours
+ │
+ ├─▶ sync-schedule                                  upsert `games`, record probables
+ │     ├─ mlb/game-schedule.changed ───┬─▶ invalidate-game-cache    revalidate tags ("max")
+ │     ├─ mlb/game-probables.changed ──┤
+ │     └─ mlb/game.completed ──────────┴─┬─▶ ingest-game-feed       store the raw feed, publish game + play
+ │                                       │     │ mlb/game-feed.stored
+ └─▶ watch-live-games                    │     ▼
+       └─ mlb/game-feed.updated ─────────┘   derive-game-tables     derive one game, expire its tags, publish stats
+                                               │ mlb/season-tables.rebuild.requested
+                                               ▼
+                                             rebuild-season-tables  rebuild one season's tables
+
+you ─ mlb/season.backfill.requested ────▶ backfill-season ─────┐  step.invoke, 25 games per run
+you ─ mlb/game-tables.rebuild.requested ▶ rebuild-game-tables ─┤  (mlb/games.backfill.requested)
+                                                               ▼
+                                                        backfill-games  store + derive a batch
+                                                               │ mlb/season-tables.rebuild.requested
+                                                               ▼
+                                                        rebuild-season-tables
 ```
 
+Realtime publishes go to the `scoreboard` and `game:{gamePk}` channels: `game` and `play` from `ingest-game-feed` as a live feed changes, and `stats` from `derive-game-tables` once derived tables and caches are fresh, which makes open pages refresh.
+
 - **Events carry ids, not data.** A game feed is ~670 KB, so events say *which* game changed and each function fetches or reads what it needs.
-- **Raw first.** `raw_game_feeds` stores the untouched JSON. The other tables are derived from it in SQL, so they can be rebuilt without refetching.
-- **Every step is idempotent.** Unchanged feeds aren't re-stored, and re-deriving a game replaces its rows. `ingest-game-feed` emits `mlb/game-feed.stored` even when the feed didn't change, so a feed that was stored but never announced still gets derived. The event id `game-feed-stored-{gamePk}-{feedTs}` makes Inngest drop repeats of the same feed version for 24 hours.
-- **Games derive independently.** A derive only replaces its own game's rows, so up to three run at once. `players` and `teams` are views that pick the newest per-game bio and team row, so the order games finish in doesn't matter. Live games go through ingest and derive one game per run, and one run per game at a time. Backfills and rebuilds skip those functions: `backfill-games` stores and derives 25 games per run, two runs at a time, and the caches are cleared once when the whole backfill ends.
+- **Raw first.** `raw_game_feeds` stores the untouched JSON. Everything else is derived from it in SQL, so it can be rebuilt without refetching.
+- **Every step is idempotent.** Unchanged feeds aren't re-stored, and re-deriving a game replaces its rows. The event id `game-feed-stored-{gamePk}-{feedTs}` makes Inngest drop repeats of the same feed version for 24 hours.
+- **Games derive independently.** A derive only replaces its own game's rows, so up to three run at once, one per game. Backfills and rebuilds skip ingest and derive: `backfill-games` stores and derives 25 games per run, and caches are revalidated once when the whole backfill ends.
 - **Adding a consumer doesn't touch the producer.** Anything else that should happen when a feed lands is another function triggered by `mlb/game-feed.stored`.
+
+## Data flow
+
+1. **`raw_game_feeds`**: one untouched feed per game.
+2. **`sql/derive.sql`**: per-game tables (`plays`, `pitches`, `play_events`, `linescores`, `game_players`, `game_teams`, `game_player_bios`, `player_game_batting`, …). Each derive deletes and re-inserts one game's rows.
+3. **`lib/season-tables.ts`**: per-season tables built from those: `players`, `teams`, `game_starters`, and rollups like `player_season_counts`, `team_season_*` and the daily `event_leaders`. Each derive refreshes its game day's rollups; the whole season rebuilds (debounced) after.
+4. **`lib/stats/`, `lib/standings.ts`, …**: cached readers the pages call.
+
+`sql/schema.sql` is a snapshot of the fully migrated schema, the quickest way to see every table. `pnpm test -u` updates it after a migration.
+
+## Caching
+
+Readers use `"use cache: remote"` and tag their results:
+
+| Tag | Purged by |
+| --- | --- |
+| `game:{gamePk}`, `day:{date}`, `team:{teamId}` | `invalidate-game-cache`, `derive-game-tables` |
+| `team-stats:{teamId}`, `standings:{season}` | the same, once the game is completed |
+| `player-stats:{playerId}` | `derive-game-tables`, for everyone who played |
+| `season-tables:{season}` | `rebuild-season-tables` |
+| `games`, `stats` (`ALL_DATA_TAGS`) | `backfill-season`, `rebuild-game-tables` |
+
+Most purges use `revalidateTag(tag, "max")`: the next visitor gets the stale page while it refreshes in the background. `derive-game-tables` uses `{ expire: 0 }` instead, because it tells open pages to refresh right after, and they must not get the stale copy. Tags aside, scores, game pages, standings and team records use the custom `"live"` cache life from `next.config.ts` (revalidate every 60s) until they're final, current-season stats use `"hours"`, and completed games and past seasons use `"max"`.
+
+## Layout
 
 | Path | What's there |
 | --- | --- |
-| `inngest/events.ts` | Typed event definitions (Zod schemas, validated on send and trigger) |
+| `inngest/events.ts`, `inngest/channels.ts` | Typed events (Zod schemas, validated on send and trigger) and realtime channels |
 | `inngest/functions/` | One file per function |
 | `app/api/inngest/route.ts` | The endpoint Inngest calls to run functions |
-| `app/page.tsx`, `components/` | The scoreboard page, which reads `games` on each request |
-| `lib/` | MLB API client, DuckDB access, schedule and feed loading. Plain TypeScript, except that `lib/mlb.ts` throws Inngest's `RetryAfterError` when MLB rate limits us |
-| `sql/`, `scripts/migrate.ts` | Schema migrations, `derive.sql`, and the script that applies migrations |
+| `app/`, `components/` | Pages and UI |
+| `lib/` | MLB API client, DuckDB access, loading, and cached readers |
+| `sql/`, `scripts/migrate.ts` | Migrations, `derive.sql`, the schema snapshot, and the migrate script |
 | `test/` | Vitest tests, including function tests with `@inngest/test` |
-| `docs/` | The design spec |
+| `docs/` | The original design spec and proposals |
 
 ## Running it
 
@@ -76,6 +106,12 @@ After changing `sql/derive.sql`, rebuild the derived tables from the stored feed
 
 ```json
 { "name": "mlb/game-tables.rebuild.requested", "data": {} }
+```
+
+After changing `lib/season-tables.ts`, rebuild one season's tables:
+
+```json
+{ "name": "mlb/season-tables.rebuild.requested", "data": { "season": 2026 } }
 ```
 
 If a derive exhausts its retries, fix the cause, then replay that run from the Inngest dashboard or send `mlb/game-tables.rebuild.requested`, which gets new event ids on every request.

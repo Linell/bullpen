@@ -1,5 +1,7 @@
 # Bullpen: MLB ingest and scoreboard spec
 
+The original design. The README describes the pipeline as it is now.
+
 ## Problem
 
 - We can't see which MLB games are live today, or their scores. Today's scoreboard and game pages update live.
@@ -10,8 +12,8 @@
 
 Five Inngest functions and five typed events feed a MotherDuck database. Raw game JSON is the source of truth, and analytics tables are derived from it in SQL.
 
-- **`sync-schedule`** runs every minute during baseball months and hours. One schedule request returns every game's status and score. It updates `games`, emits `mlb/game.completed` for each completed game and `mlb/game.changed` for each changed row, which only invalidates caches.
-- **`watch-live-games`** runs on the same cron and, for about 50 seconds, polls each live game's feed timestamp every 5 seconds. It emits `mlb/game.updated` when a feed changes.
+- **`sync-schedule`** runs every minute during baseball months and hours. One schedule request returns every game's status and score. It updates `games`, emits `mlb/game.completed` for each completed game and `mlb/game-schedule.changed` for each changed row, which only invalidates caches.
+- **`watch-live-games`** runs on the same cron and, for about 50 seconds, polls each live game's feed timestamp every 5 seconds. It emits `mlb/game-feed.updated` when a feed changes.
 - **`backfill-season`** does the same for a whole season when a person asks for it.
 - **`ingest-game-feed`** fetches a completed or live game's feed, stores the raw JSON if it is newer, and emits `mlb/game-feed.stored`.
 - **`derive-game-tables`** runs `derive.sql` to rebuild that game's rows.
@@ -19,7 +21,7 @@ Five Inngest functions and five typed events feed a MotherDuck database. Raw gam
 
 Live and backfill share one ingest path. Re-running anything is safe: unchanged feeds aren't re-stored, deriving a game replaces its rows, and deterministic event ids stop Inngest from repeating work.
 
-Live UI updates use Inngest Realtime. For a live feed, `ingest-game-feed` diffs the new feed against the stored one and publishes the game state and new plays to the `scoreboard` and `game:{gamePk}` channels. `invalidate-game-cache` publishes `derived` after derived tables change, and pages refresh on it. A server action mints read-only tokens for those channels only.
+Live UI updates use Inngest Realtime. For a live feed, `ingest-game-feed` diffs the new feed against the stored one and publishes the game state and new plays to the `scoreboard` and `game:{gamePk}` channels. `derive-game-tables` publishes `stats` after derived tables change, and pages refresh on it. A server action mints read-only tokens for those channels only.
 
 ## Out of scope
 
@@ -83,8 +85,8 @@ All events are defined with `eventType` and a Zod schema, so they are validated 
 - `mlb/game-tables.rebuild.requested` `{}`: sent by a person.
 - `mlb/games.backfill.requested` `{ gamePks: number[], refetch: boolean }`: invoked by `backfill-season` (`refetch: true`) and `rebuild-game-tables` (`refetch: false`) for each batch of 25 games.
 - `mlb/game.completed` `{ gamePk: number }`: a live game finished.
-- `mlb/game.updated` `{ gamePk: number }`: a live game's feed changed.
-- `mlb/game.changed` `{ gamePk: number }`: a `games` row changed.
+- `mlb/game-feed.updated` `{ gamePk: number }`: a live game's feed changed.
+- `mlb/game-schedule.changed` `{ gamePk: number }`: a `games` row changed.
 - `mlb/game-feed.stored` `{ gamePk: number }`: a live game's feed was stored.
 
 Events carry ids only. Feeds exceed the free tier's 256 KB event limit.
@@ -94,7 +96,7 @@ Every emitted event has a deterministic id, `<event>-<key>[-<discriminator>]`. T
 | Emitted by | Event | Id |
 | --- | --- | --- |
 | `sync-schedule` | `mlb/game.completed` | `game-completed-{gamePk}` |
-| `sync-schedule` | `mlb/game.updated` | `game-updated-{gamePk}-{event.ts}` |
+| `watch-live-games` | `mlb/game-feed.updated` | `game-feed-updated-{gamePk}-{feedTs}` |
 | `ingest-game-feed` | `mlb/game-feed.stored` | `game-feed-stored-{gamePk}-{feedTs}` |
 
 `event.ts` is when the person sent the request, or the scheduled minute for a cron run, so it is stable across retries of that run but new for each request or run.
@@ -123,7 +125,7 @@ All functions open a short-lived database connection per step with `withConnecti
   - Step `fetch-schedule`: one schedule call over that range. Returns the parsed rows, about 1 MB for a full season, well under Inngest's 4 MB step limit.
   - Step `upsert-games`: upsert only the `games` rows that changed.
   - Steps `backfill-games-1`, `backfill-games-2`, …: `step.invoke` of `backfill-games` for every 25 completed games, all started at once and queued by its concurrency. Re-sending the request re-checks every game.
-  - Step `revalidate-tags`: clears the `games`, `leaderboards` and `stats` cache tags once every batch is done.
+  - Step `revalidate-tags`: clears the `games` and `stats` cache tags once every batch is done.
   - Returns `{ season, games, changed, completed, failed }`, where `failed` lists the games whose feeds couldn't be fetched.
 - **`backfill-games`**
   - Triggered by `mlb/games.backfill.requested`, with concurrency `{ limit: 2 }`.
@@ -131,8 +133,8 @@ All functions open a short-lived database connection per step with `withConnecti
   - Step `derive-games`: runs `derive.sql` for every stored game in one transaction.
   - Returns `{ games, stored, failed, plays, pitches }`.
 - **`ingest-game-feed`**
-  - Triggered by `mlb/game.completed` or `mlb/game.updated`, with concurrency `[{ limit: 6 }, { key: "event.data.gamePk", limit: 1 }]`: each game's feeds load one at a time, and at most six run at once.
-  - Step `load-game-feed`: fetch the feed and upsert `raw_game_feeds`, skipped unless `feed_ts` is newer than the stored one. `feed_ts` is `YYYYMMDD_HHMMSS`, so text comparison orders it, and a late older feed never replaces a newer one. Only a summary is returned, which keeps the 670 KB feed out of Inngest state.
+  - Triggered by `mlb/game.completed` or `mlb/game-feed.updated`, with concurrency `[{ limit: 6 }, { key: "event.data.gamePk", limit: 1 }]`: each game's feeds load one at a time, and at most six run at once.
+  - Step `fetch-and-store-feed`: fetch the feed and upsert `raw_game_feeds`, skipped unless `feed_ts` is newer than the stored one. `feed_ts` is `YYYYMMDD_HHMMSS`, so text comparison orders it, and a late older feed never replaces a newer one. Only a summary is returned, which keeps the 670 KB feed out of Inngest state.
   - Step `emit-game-feed-stored`: emits `mlb/game-feed.stored` only when the feed was stored, so an unchanged or older feed causes no derive. To re-run a derive that ran out of retries, replay the run from the Inngest dashboard or send `mlb/game-tables.rebuild.requested`, whose ids use `event.ts`.
   - Inngest retries handle MLB errors, and a 429 with `Retry-After` becomes a `RetryAfterError`.
   - Returns `{ gamePk, feedTs, status }`.
@@ -145,7 +147,7 @@ All functions open a short-lived database connection per step with `withConnecti
   - Triggered by `mlb/game-tables.rebuild.requested`.
   - Step `list-raw-feeds`: every `game_pk` in `raw_game_feeds`.
   - Steps `backfill-games-1`, `backfill-games-2`, …: `step.invoke` of `backfill-games` with `refetch: false` for every 25 stored feeds.
-  - Step `revalidate-tags`: clears the `games`, `leaderboards` and `stats` cache tags once.
+  - Step `revalidate-tags`: clears the `games` and `stats` cache tags once.
   - Returns `{ feeds }`.
 
 ### Config
@@ -160,7 +162,7 @@ All live in `.env.local`, which is gitignored.
 
 - **`derive.sql`**: run it on saved feed fixtures, including a doubleheader, a postponed game, a suspended game and an extra-innings game. Row counts and final scores should match the box score. Re-deriving leaves the row counts unchanged, a failed derive keeps the previous rows, and an older feed never replaces a newer one. Deriving every game at once on separate connections gives the same rows as deriving them one at a time, and an older game derived last never replaces a newer bio or team.
 - **Schedule**: parsing, which rows count as changed, and which games count as completed, including a forfeit and a postponed game.
-- **Functions**: `@inngest/test` runs each function that sends events, with its steps mocked, and checks the events and their ids. `sync-schedule` sends nothing when nothing changed, `ingest-game-feed` emits only for a stored feed, and runs on `mlb/game.updated`. `backfill-season` and `rebuild-game-tables` invoke `backfill-games` in batches of 25 and revalidate once, and `backfill-games` derives only the feeds it stored.
+- **Functions**: `@inngest/test` runs each function that sends events, with its steps mocked, and checks the events and their ids. `sync-schedule` sends nothing when nothing changed, `ingest-game-feed` emits only for a stored feed, and runs on `mlb/game-feed.updated`. `backfill-season` and `rebuild-game-tables` invoke `backfill-games` in batches of 25 and revalidate once, and `backfill-games` derives only the feeds it stored.
 
 ## Alternatives
 
