@@ -3,7 +3,7 @@ import { cacheTag } from "next/cache";
 import { readRows } from "@/lib/db";
 import { ALL_STATS_TAG, teamStatsTag } from "@/lib/cache-tags";
 import { COMPLETED_STATES_SQL } from "@/lib/schedule";
-import { seasonCacheLife } from "@/lib/stats/cache";
+import { isPastSeason, seasonCacheLife } from "@/lib/stats/cache";
 import type { WinLoss } from "@/lib/team-summary";
 
 export type RunDiffPoint = {
@@ -192,11 +192,7 @@ function toAbsChallenges(row: AbsChallengesRow): AbsChallenges {
   };
 }
 
-export async function getTeamTrends(
-  teamId: number,
-  season: number,
-  { isCurrentSeason }: { isCurrentSeason: boolean },
-): Promise<TeamTrends> {
+export async function getTeamTrends(teamId: number, season: number): Promise<TeamTrends> {
   "use cache: remote";
   cacheTag(teamStatsTag(teamId), ALL_STATS_TAG);
   seasonCacheLife(season, "hours");
@@ -207,7 +203,7 @@ export async function getTeamTrends(
     readRows<SituationalRow>(SITUATIONAL_QUERY, params),
     readRows<InningRunsRow>(RUNS_BY_INNING_QUERY, params),
     readRows<AbsChallengesRow>(ABS_CHALLENGES_QUERY, params),
-    isCurrentSeason ? readRows<WorkloadRow>(BULLPEN_WORKLOAD_QUERY, params) : undefined,
+    isPastSeason(season) ? undefined : readRows<WorkloadRow>(BULLPEN_WORKLOAD_QUERY, params),
   ]);
 
   return {

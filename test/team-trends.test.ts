@@ -1,5 +1,8 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
+vi.useFakeTimers({ toFake: ["Date"] });
+vi.setSystemTime(new Date("2026-09-25T12:00:00Z"));
+
 vi.mock("next/cache", () => ({ cacheTag: () => {}, cacheLife: () => {} }));
 
 process.env.DUCKDB_URL = ":memory:";
@@ -111,7 +114,7 @@ beforeAll(async () => {
 
 describe("getTeamTrends", () => {
   it("tracks cumulative and rolling run differential across completed regular-season games", async () => {
-    const { runDiffByGame } = await getTeamTrends(HOME, 2026, { isCurrentSeason: false });
+    const { runDiffByGame } = await getTeamTrends(HOME, 2026);
 
     expect(runDiffByGame).toEqual([
       { gamePk: 1, date: "2026-09-18", runDiff: 1, cumulative: 1, rolling10: 1 },
@@ -121,7 +124,7 @@ describe("getTeamTrends", () => {
   });
 
   it("limits the rolling run differential to the last ten games", async () => {
-    const { runDiffByGame } = await getTeamTrends(STREAKY, 2026, { isCurrentSeason: false });
+    const { runDiffByGame } = await getTeamTrends(STREAKY, 2026);
     const last = runDiffByGame.at(-1);
 
     expect(last?.cumulative).toBe(78);
@@ -129,7 +132,7 @@ describe("getTeamTrends", () => {
   });
 
   it("builds situational records from scores and play-by-play", async () => {
-    const { situational } = await getTeamTrends(HOME, 2026, { isCurrentSeason: false });
+    const { situational } = await getTeamTrends(HOME, 2026);
 
     expect(situational).toEqual({
       oneRun: { wins: 1, losses: 1 },
@@ -142,7 +145,7 @@ describe("getTeamTrends", () => {
   });
 
   it("splits runs scored and allowed by inning with extras grouped", async () => {
-    const { runsByInning } = await getTeamTrends(HOME, 2026, { isCurrentSeason: false });
+    const { runsByInning } = await getTeamTrends(HOME, 2026);
 
     expect(runsByInning).toEqual([
       { inning: 1, scored: 4, allowed: 1 },
@@ -156,7 +159,7 @@ describe("getTeamTrends", () => {
   });
 
   it("counts ABS challenges by the team and against it", async () => {
-    const { absChallenges } = await getTeamTrends(HOME, 2026, { isCurrentSeason: false });
+    const { absChallenges } = await getTeamTrends(HOME, 2026);
 
     expect(absChallenges).toEqual({
       challenges: 2,
@@ -168,7 +171,7 @@ describe("getTeamTrends", () => {
   });
 
   it("reports reliever pitch counts relative to the latest game for the current season", async () => {
-    const { bullpenWorkload } = await getTeamTrends(HOME, 2026, { isCurrentSeason: true });
+    const { bullpenWorkload } = await getTeamTrends(HOME, 2026);
 
     expect(bullpenWorkload).toEqual([
       { pitcherId: RELIEVER, name: "Weaver", last3Days: 3, last7Days: 4 },
@@ -177,7 +180,9 @@ describe("getTeamTrends", () => {
   });
 
   it("skips bullpen workload for past seasons", async () => {
-    const { bullpenWorkload } = await getTeamTrends(HOME, 2026, { isCurrentSeason: false });
+    vi.setSystemTime(new Date("2027-03-01T12:00:00Z"));
+    const { bullpenWorkload } = await getTeamTrends(HOME, 2026);
+    vi.setSystemTime(new Date("2026-09-25T12:00:00Z"));
 
     expect(bullpenWorkload).toBeUndefined();
   });

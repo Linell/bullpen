@@ -92,7 +92,7 @@ async function TeamStats({ team }: { team: Promise<TeamSeason> }) {
 
 async function TeamTrends({ team }: { team: Promise<TeamSeason> }) {
   const { teamId, season, isCurrentSeason } = await team;
-  const trends = await getTeamTrends(teamId, season, { isCurrentSeason });
+  const trends = await getTeamTrends(teamId, season);
   return <TeamTrendsSection trends={trends} linkSeason={isCurrentSeason ? undefined : season} />;
 }
 
