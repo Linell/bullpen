@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { IntentLink } from "@/components/intent-link";
 import type { ReactNode } from "react";
 import { playerPath, type PlayerRole } from "@/lib/routes";
 import { cn } from "@/lib/utils";
@@ -17,8 +17,8 @@ export function PlayerLink({
   children: ReactNode;
 }) {
   return (
-    <Link href={playerPath(playerId, { role, season })} className={cn("hover:underline", className)}>
+    <IntentLink href={playerPath(playerId, { role, season })} className={cn("hover:underline", className)}>
       {children}
-    </Link>
+    </IntentLink>
   );
 }
