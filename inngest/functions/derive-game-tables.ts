@@ -1,8 +1,11 @@
+import { revalidateTag } from "next/cache";
 import { withConnection } from "@/lib/db";
 import { deriveGame } from "@/lib/feeds";
+import { gameCacheTags, playerCacheTags } from "@/lib/game-cache-tags";
 import { refreshGameDayRollups } from "@/lib/season-rollups";
+import { gameChannel, scoreboardChannel } from "../channels";
 import { inngest } from "../client";
-import { gameFeedStored, gameTablesDerived, seasonRollupsRebuildRequested } from "../events";
+import { gameFeedStored, seasonRollupsRebuildRequested } from "../events";
 
 export const deriveGameTables = inngest.createFunction(
   {
@@ -23,11 +26,26 @@ export const deriveGameTables = inngest.createFunction(
       withConnection((conn) => refreshGameDayRollups(conn, gamePk)),
     );
 
-    await step.sendEvent("emit-game-tables-derived", [
-      gameTablesDerived.create({ gamePk }),
-      ...seasons.map((season) => seasonRollupsRebuildRequested.create({ season })),
+    const tags = await step.run("load-game-tags", async () => [
+      ...(await gameCacheTags([gamePk])),
+      ...(await playerCacheTags([gamePk])),
     ]);
 
-    return { gamePk, plays, pitches };
+    await step.run("expire-game-tags", () => {
+      // Clients refresh on the stats publish, so never serve stale.
+      for (const tag of tags) revalidateTag(tag, { expire: 0 });
+    });
+
+    await step.realtime.publish("publish-scoreboard-stats", scoreboardChannel.stats, { gamePk });
+    await step.realtime.publish("publish-game-stats", gameChannel({ gamePk }).stats, { gamePk });
+
+    if (seasons.length > 0) {
+      await step.sendEvent(
+        "emit-season-rollups-rebuild-requested",
+        seasons.map((season) => seasonRollupsRebuildRequested.create({ season })),
+      );
+    }
+
+    return { gamePk, plays, pitches, tags: tags.length };
   },
 );

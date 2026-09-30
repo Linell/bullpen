@@ -262,20 +262,36 @@ describe("rebuild-game-tables", () => {
 });
 
 describe("derive-game-tables", () => {
-  it("announces the derived game and asks to rebuild its season's rollups", async () => {
+  it("expires the game's tags, tells clients to refresh, and asks to rebuild its season's rollups", async () => {
+    vi.mocked(revalidateTag).mockClear();
+    const tags = ["game:101", "day:2026-09-24", "team:110", "player-stats:500"];
     const t = new InngestTestEngine({ function: deriveGameTables });
     const { ctx, result } = await t.execute({
       events: [{ name: "mlb/game-feed.stored", data: { gamePk: 101 }, ts: 1700000000000 }],
       steps: [
         mockStep("derive-game", { plays: 70, pitches: 280, seasons: [2026] }),
         mockStep("refresh-game-day-rollups", undefined),
-        mockSend("emit-game-tables-derived"),
+        mockStep("load-game-tags", tags),
+        mockStep("publish-scoreboard-stats", { gamePk: 101 }),
+        mockStep("publish-game-stats", { gamePk: 101 }),
+        mockSend("emit-season-rollups-rebuild-requested"),
       ],
     });
 
-    expect(result).toEqual({ gamePk: 101, plays: 70, pitches: 280 });
-    expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-tables-derived", [
-      expect.objectContaining({ name: "mlb/game-tables.derived", data: { gamePk: 101 } }),
+    expect(result).toEqual({ gamePk: 101, plays: 70, pitches: 280, tags: 4 });
+    expect(revalidateTag).toHaveBeenCalledTimes(4);
+    for (const tag of tags) expect(revalidateTag).toHaveBeenCalledWith(tag, { expire: 0 });
+    expect(ctx.step.realtime.publish).toHaveBeenCalledWith(
+      "publish-scoreboard-stats",
+      expect.objectContaining({ channel: "scoreboard", topic: "stats" }),
+      { gamePk: 101 },
+    );
+    expect(ctx.step.realtime.publish).toHaveBeenCalledWith(
+      "publish-game-stats",
+      expect.objectContaining({ channel: "game:101", topic: "stats" }),
+      { gamePk: 101 },
+    );
+    expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-season-rollups-rebuild-requested", [
       expect.objectContaining({ name: "mlb/season-rollups.rebuild.requested", data: { season: 2026 } }),
     ]);
   });
@@ -317,35 +333,22 @@ describe("backfill-games", () => {
 });
 
 describe("invalidate-game-cache", () => {
-  it("expires derived games' tags outright, lets the rest serve stale, and announces derived games", async () => {
+  it("revalidates each batched game's tags once, serving stale while they refresh", async () => {
     vi.mocked(revalidateTag).mockClear();
-    const gameTags = ["game:102", "day:2026-09-24", "team:120"];
-    const refreshedTags = ["game:101", "day:2026-09-24", "team:110", "player-stats:500"];
+    const tags = ["game:101", "game:102", "day:2026-09-24", "team:120"];
     const t = new InngestTestEngine({ function: invalidateGameCache });
-    const { ctx, result } = await t.execute({
+    const { result } = await t.execute({
       events: [
         { name: "mlb/game-schedule.changed", data: { gamePk: 101 } },
-        { name: "mlb/game-tables.derived", data: { gamePk: 101 } },
-        { name: "mlb/game-tables.derived", data: { gamePk: 101 } },
+        { name: "mlb/game-probables.changed", data: { gamePk: 101 } },
         { name: "mlb/game.completed", data: { gamePk: 102 } },
       ],
-      steps: [
-        mockStep("load-game-tags", gameTags),
-        mockStep("load-refreshed-tags", refreshedTags),
-        mockStep("publish-scoreboard-stats", { gamePks: [101] }),
-        mockStep("publish-game-stats-101", { gamePk: 101 }),
-      ],
+      steps: [mockStep("load-game-tags", tags)],
     });
 
-    expect(result).toEqual({ gamePks: 2, tags: 6 });
-    expect(revalidateTag).toHaveBeenCalledTimes(6);
-    for (const tag of ["game:102", "team:120"]) expect(revalidateTag).toHaveBeenCalledWith(tag, "max");
-    for (const tag of refreshedTags) expect(revalidateTag).toHaveBeenCalledWith(tag, { expire: 0 });
-    expect(ctx.step.realtime.publish).toHaveBeenCalledWith(
-      "publish-scoreboard-stats",
-      expect.objectContaining({ channel: "scoreboard", topic: "stats" }),
-      { gamePks: [101] },
-    );
+    expect(result).toEqual({ gamePks: 2, tags: 4 });
+    expect(revalidateTag).toHaveBeenCalledTimes(4);
+    for (const tag of tags) expect(revalidateTag).toHaveBeenCalledWith(tag, "max");
   });
 });
 

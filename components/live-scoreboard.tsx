@@ -23,7 +23,7 @@ export function LiveScoreboard({ games }: { games: Game[] }) {
   const gamesByPk = new Map(games.map((game) => [game.gamePk, game]));
 
   const stats = messages.byTopic.stats;
-  const statsChangedToday = stats?.data.gamePks.some((gamePk) => gamesByPk.has(gamePk)) ?? false;
+  const statsChangedToday = stats ? gamesByPk.has(stats.data.gamePk) : false;
   useEffect(() => {
     if (statsChangedToday) router.refresh();
   }, [stats, statsChangedToday, router]);

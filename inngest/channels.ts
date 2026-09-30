@@ -8,7 +8,7 @@ export const scoreboardChannel = realtime.channel({
   topics: {
     game: { schema: staticSchema<LiveGame>() },
     play: { schema: staticSchema<LivePlays>() },
-    stats: { schema: staticSchema<{ gamePks: number[] }>() },
+    stats: { schema: staticSchema<{ gamePk: number }>() },
   },
 });
 
