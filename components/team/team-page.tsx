@@ -1,6 +1,6 @@
 import "server-only";
 import { Suspense } from "react";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { GameCardSkeleton } from "@/components/game-card";
 import { SeasonSwitcher } from "@/components/season-switcher";
 import { DivisionStandings } from "@/components/team/division-standings";
@@ -34,7 +34,6 @@ export async function loadTeamSeason(teamIdParam: string, seasonParam?: string):
   if (seasonParam !== undefined && (!SEASON_RE.test(seasonParam) || !seasons.includes(season))) {
     notFound();
   }
-  if (seasonParam !== undefined && season === currentSeason) redirect(teamPath(teamId));
 
   return { teamId, seasons, season, isCurrentSeason: season === currentSeason };
 }

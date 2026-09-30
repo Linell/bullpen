@@ -1,7 +1,7 @@
 import "server-only";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { PLAYER_ID_RE } from "@/lib/player-id";
-import { playerPath, type PlayerRole } from "@/lib/routes";
+import { type PlayerRole } from "@/lib/routes";
 import { playerSummary, type PlayerSummary } from "@/lib/stats/player";
 import { SEASON_RE } from "@/lib/team-id";
 import { getTeamSeasons } from "@/lib/team-summary";
@@ -38,7 +38,6 @@ export async function loadPlayerSeason(
   if (seasonSegment !== undefined && (!SEASON_RE.test(seasonSegment) || !seasons.includes(season))) {
     notFound();
   }
-  if (seasonSegment !== undefined && season === latestSeason) redirect(playerPath(summary.playerId, { role }));
 
   return { summary, role, seasons, season, isLatestSeason: season === latestSeason };
 }
