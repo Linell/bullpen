@@ -4,6 +4,7 @@ vi.mock("next/cache", () => ({ cacheTag: () => {}, cacheLife: () => {} }));
 
 process.env.DUCKDB_URL = ":memory:";
 
+const { refreshAllSeasonRollups } = await import("./season-rollups");
 const { withConnection } = await import("@/lib/db");
 const { migrate } = await import("@/lib/migrate");
 const { getTeamTrends } = await import("@/lib/team-trends");
@@ -105,6 +106,7 @@ beforeAll(async () => {
         source_game_number)
       VALUES (${RELIEVER}, 'Luke Weaver', 'Weaver', 1, '2026-09-18', 1)`);
   });
+  await withConnection(refreshAllSeasonRollups);
 });
 
 describe("getTeamTrends", () => {

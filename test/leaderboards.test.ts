@@ -4,6 +4,7 @@ vi.mock("next/cache", () => ({ cacheTag: () => {}, cacheLife: () => {} }));
 
 process.env.DUCKDB_URL = ":memory:";
 
+const { refreshAllSeasonRollups } = await import("./season-rollups");
 const { readRows, withConnection } = await import("@/lib/db");
 const { migrate } = await import("@/lib/migrate");
 const { barrelRates, fastestPitches, hardestHitBalls, hittingLeaders, longestHomeRuns, pitchingLeaders, whiffRates } =
@@ -195,6 +196,7 @@ beforeAll(async () => {
         (${FLAMETHROWER}, 'Fay Flamethrower', ${POSTSEASON}, '2026-09-28', 1),
         (${SOFTTOSSER}, 'Sid Softtosser', ${TODAY}, '2026-09-28', 1)`);
   });
+  await withConnection(refreshAllSeasonRollups);
 });
 
 describe("event leaderboards", () => {

@@ -6,6 +6,7 @@ vi.setSystemTime(new Date("2026-09-25T12:00:00Z"));
 
 process.env.DUCKDB_URL = ":memory:";
 
+const { refreshAllSeasonRollups } = await import("./season-rollups");
 const { withConnection } = await import("@/lib/db");
 const { migrate } = await import("@/lib/migrate");
 const { getTeamSeasons, getTeamSummary } = await import("@/lib/team-summary");
@@ -67,6 +68,7 @@ beforeAll(async () => {
         division_name, game_pk, source_date, source_game_number)
       VALUES ${teams.map(teamRow).join(",")}`);
   });
+  await withConnection(refreshAllSeasonRollups);
 });
 
 describe("getTeamSeasons", () => {

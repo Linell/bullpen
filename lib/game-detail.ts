@@ -105,7 +105,7 @@ const FORM_QUERY = `
     FROM games
     WHERE game_pk = $gamePk::INTEGER
   ) s ON s.team_id IN (game.home_team_id, game.away_team_id) AND game.season = s.season AND game.start_ms < s.start_ms
-  QUALIFY row_number() OVER (PARTITION BY s.team_id ORDER BY game.start_ms DESC) <= 10
+  QUALIFY rank() OVER (PARTITION BY s.team_id ORDER BY game.start_ms DESC, game.game_pk) <= 10
   ORDER BY game.start_ms DESC`;
 
 const HEAD_TO_HEAD_QUERY = `${GAMES_SELECT}

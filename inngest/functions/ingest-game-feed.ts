@@ -15,7 +15,7 @@ export const ingestGameFeed = inngest.createFunction(
   async ({ event, step }) => {
     const { gamePk } = event.data;
 
-    const { feedTs, status, diff } = await step.run("load-game-feed", async () => {
+    const { season, feedTs, status, diff } = await step.run("load-game-feed", async () => {
       const feed = await fetchFeed(gamePk);
       return withConnection(async (conn) => {
         const previous = await readFeed(conn, gamePk);
@@ -28,7 +28,7 @@ export const ingestGameFeed = inngest.createFunction(
     if (status === "stored") {
       await step.sendEvent(
         "emit-game-feed-stored",
-        gameFeedStored.create({ gamePk }, { id: `game-feed-stored-${gamePk}-${feedTs}` }),
+        gameFeedStored.create({ gamePk, season }, { id: `game-feed-stored-${gamePk}-${feedTs}` }),
       );
     }
 

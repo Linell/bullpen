@@ -11,7 +11,7 @@ export const deriveGameTables = inngest.createFunction(
     debounce: { key: "event.data.gamePk", period: "30s", timeout: "2m" },
   },
   async ({ event, step }) => {
-    const { gamePk } = event.data;
+    const { gamePk, season } = event.data;
 
     const { plays, pitches } = await step.run("derive-game", () =>
       withConnection((conn) => deriveGame(conn, gamePk)),
@@ -19,7 +19,7 @@ export const deriveGameTables = inngest.createFunction(
 
     await step.sendEvent(
       "emit-game-tables-derived",
-      gameTablesDerived.create({ gamePk }, { id: `game-tables-derived-${gamePk}-${event.ts}` }),
+      gameTablesDerived.create({ gamePk, season }, { id: `game-tables-derived-${gamePk}-${event.ts}` }),
     );
 
     return { gamePk, plays, pitches };

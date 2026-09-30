@@ -26,6 +26,10 @@ export function teamStatsTag(teamId: number) {
   return `team-stats:${teamId}`;
 }
 
+export function seasonRollupsTag(season: number) {
+  return `season-rollups:${season}`;
+}
+
 export function playerStatsTag(playerId: number) {
   return `player-stats:${playerId}`;
 }

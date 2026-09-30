@@ -6,6 +6,7 @@ import { backfillSeason } from "@/inngest/functions/backfill-season";
 import { ingestGameFeed } from "@/inngest/functions/ingest-game-feed";
 import { invalidateGameCache } from "@/inngest/functions/invalidate-game-cache";
 import { rebuildGameTables } from "@/inngest/functions/rebuild-game-tables";
+import { rebuildSeasonRollups } from "@/inngest/functions/rebuild-season-rollups";
 import { syncSchedule } from "@/inngest/functions/sync-schedule";
 import { seasonBackfillRequested } from "@/inngest/events";
 
@@ -193,7 +194,8 @@ describe("backfill-season", () => {
 });
 
 describe("ingest-game-feed", () => {
-  const stored = { gamePk: 101, feedTs: "20260921_230000", status: "stored" };
+  const ingested = { gamePk: 101, feedTs: "20260921_230000", status: "stored" };
+  const stored = { ...ingested, season: 2026 };
 
   it("emits game-feed.stored when the feed is stored", async () => {
     const t = new InngestTestEngine({ function: ingestGameFeed });
@@ -202,10 +204,10 @@ describe("ingest-game-feed", () => {
       steps: [mockStep("load-game-feed", stored), mockSend("emit-game-feed-stored")],
     });
 
-    expect(result).toEqual(stored);
+    expect(result).toEqual(ingested);
     expect(ctx.step.sendEvent).toHaveBeenCalledWith(
       "emit-game-feed-stored",
-      expect.objectContaining({ data: { gamePk: 101 }, id: "game-feed-stored-101-20260921_230000" }),
+      expect.objectContaining({ data: { gamePk: 101, season: 2026 }, id: "game-feed-stored-101-20260921_230000" }),
     );
   });
 
@@ -217,7 +219,7 @@ describe("ingest-game-feed", () => {
       steps: [mockStep("load-game-feed", unchanged)],
     });
 
-    expect(result).toEqual(unchanged);
+    expect(result).toEqual({ ...ingested, status: "unchanged" });
     expect(ctx.step.sendEvent).not.toHaveBeenCalled();
   });
 
@@ -228,10 +230,10 @@ describe("ingest-game-feed", () => {
       steps: [mockStep("load-game-feed", stored), mockSend("emit-game-feed-stored")],
     });
 
-    expect(result).toEqual(stored);
+    expect(result).toEqual(ingested);
     expect(ctx.step.sendEvent).toHaveBeenCalledWith(
       "emit-game-feed-stored",
-      expect.objectContaining({ data: { gamePk: 101 }, id: "game-feed-stored-101-20260921_230000" }),
+      expect.objectContaining({ data: { gamePk: 101, season: 2026 }, id: "game-feed-stored-101-20260921_230000" }),
     );
   });
 });
@@ -260,25 +262,33 @@ describe("rebuild-game-tables", () => {
 });
 
 describe("backfill-games", () => {
-  it("derives only the feeds it stored", async () => {
+  it("derives only the feeds it stored and asks to rebuild their seasons' rollups", async () => {
     const t = new InngestTestEngine({ function: backfillGames });
     const { ctx, result } = await t.execute({
       events: [{ name: "mlb/games.backfill.requested", data: { gamePks: [101, 102, 103], refetch: true } }],
       steps: [
         mockStep("store-feeds", { stored: [101], failed: [103] }),
-        mockStep("derive-games", { plays: 70, pitches: 280 }),
+        mockStep("derive-games", { plays: 70, pitches: 280, seasons: [2025, 2026] }),
+        mockSend("emit-season-rollups-rebuild-requested"),
       ],
     });
 
     expect(result).toEqual({ games: 3, stored: 1, failed: [103], plays: 70, pitches: 280 });
     expect(ctx.step.run).toHaveBeenCalledTimes(2);
+    expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-season-rollups-rebuild-requested", [
+      expect.objectContaining({ name: "mlb/season-rollups.rebuild.requested", data: { season: 2025 } }),
+      expect.objectContaining({ name: "mlb/season-rollups.rebuild.requested", data: { season: 2026 } }),
+    ]);
   });
 
   it("derives stored feeds without refetching them", async () => {
     const t = new InngestTestEngine({ function: backfillGames });
     const { ctx, result } = await t.execute({
       events: [{ name: "mlb/games.backfill.requested", data: { gamePks: [101, 102], refetch: false } }],
-      steps: [mockStep("derive-games", { plays: 140, pitches: 560 })],
+      steps: [
+        mockStep("derive-games", { plays: 140, pitches: 560, seasons: [2026] }),
+        mockSend("emit-season-rollups-rebuild-requested"),
+      ],
     });
 
     expect(result).toEqual({ games: 2, stored: 2, failed: [], plays: 140, pitches: 560 });
@@ -296,7 +306,7 @@ describe("invalidate-game-cache", () => {
       events: [
         { name: "mlb/game.changed", data: { gamePk: 101 } },
         { name: "mlb/game.completed", data: { gamePk: 101 } },
-        { name: "mlb/game-tables.derived", data: { gamePk: 101 } },
+        { name: "mlb/game-tables.derived", data: { gamePk: 101, season: 2026 } },
       ],
       steps: [
         mockStep("load-game-tags", gameTags),
@@ -314,5 +324,20 @@ describe("invalidate-game-cache", () => {
       expect.objectContaining({ channel: "scoreboard", topic: "derived" }),
       { gamePks: [101] },
     );
+  });
+});
+
+describe("rebuild-season-rollups", () => {
+  it("refreshes the season's rollups, then revalidates its tag", async () => {
+    vi.mocked(revalidateTag).mockClear();
+    const t = new InngestTestEngine({ function: rebuildSeasonRollups });
+    const { ctx, result } = await t.execute({
+      events: [{ name: "mlb/game-tables.derived", data: { gamePk: 101, season: 2026 } }],
+      steps: [mockStep("refresh-season-rollups", undefined)],
+    });
+
+    expect(result).toEqual({ season: 2026 });
+    expect(ctx.step.run).toHaveBeenCalledWith("refresh-season-rollups", expect.any(Function));
+    expect(revalidateTag).toHaveBeenCalledExactlyOnceWith("season-rollups:2026", "max");
   });
 });

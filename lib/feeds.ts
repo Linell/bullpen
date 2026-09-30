@@ -1,6 +1,6 @@
 import "server-only";
 import { type DuckDBConnection, listValue } from "@duckdb/node-api";
-import { readSql } from "@/lib/db";
+import { inTransaction, readSql, runStatements } from "@/lib/db";
 
 type FeedHeader = {
   gamePk?: unknown;
@@ -11,10 +11,10 @@ type FeedHeader = {
 let deriveSql: Promise<string> | undefined;
 
 export async function storeFeed(conn: DuckDBConnection, feed: unknown) {
-  const { gamePk, feedTs } = readFeedHeader(feed);
+  const { gamePk, season, feedTs } = readFeedHeader(feed);
   const stored = await storeFeeds(conn, [feed]);
   const status = stored.length > 0 ? ("stored" as const) : ("unchanged" as const);
-  return { status, gamePk, feedTs };
+  return { status, gamePk, season, feedTs };
 }
 
 export async function storeFeeds(conn: DuckDBConnection, feeds: unknown[]): Promise<number[]> {
@@ -54,6 +54,14 @@ export async function deriveGames(conn: DuckDBConnection, gamePks: number[]) {
   return inTransaction(conn, () => derive(conn, gamePks));
 }
 
+export async function rawFeedSeasons(conn: DuckDBConnection, gamePks: number[]): Promise<number[]> {
+  const reader = await conn.runAndReadAll(
+    "SELECT DISTINCT season FROM raw_game_feeds WHERE list_contains($gamePks::INTEGER[], game_pk) ORDER BY season",
+    { gamePks: listValue(gamePks) },
+  );
+  return reader.getRowObjectsJS().map((row) => Number(row.season));
+}
+
 export async function rawFeedGamePks(conn: DuckDBConnection): Promise<number[]> {
   const reader = await conn.runAndReadAll("SELECT game_pk FROM raw_game_feeds ORDER BY game_pk");
   return reader.getRowObjectsJS().map((row) => Number(row.game_pk));
@@ -75,12 +83,7 @@ async function derive(conn: DuckDBConnection, gamePks: number[]) {
     deriveSql = undefined;
     throw err;
   });
-  const statements = await conn.extractStatements(await deriveSql);
-  for (let i = 0; i < statements.count; i++) {
-    const statement = await statements.prepare(i);
-    if (statement.parameterCount > 0) statement.bind({ game_pks: listValue(gamePks) });
-    await statement.run();
-  }
+  await runStatements(conn, await deriveSql, { game_pks: listValue(gamePks) });
 
   const counts = await conn.runAndReadAll(
     `SELECT
@@ -90,16 +93,4 @@ async function derive(conn: DuckDBConnection, gamePks: number[]) {
   );
   const [row] = counts.getRowObjects();
   return { plays: Number(row.plays), pitches: Number(row.pitches) };
-}
-
-async function inTransaction<T>(conn: DuckDBConnection, work: () => Promise<T>) {
-  await conn.run("BEGIN TRANSACTION");
-  try {
-    const result = await work();
-    await conn.run("COMMIT");
-    return result;
-  } catch (err) {
-    await conn.run("ROLLBACK").catch(() => {});
-    throw err;
-  }
 }
