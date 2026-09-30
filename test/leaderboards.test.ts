@@ -5,7 +5,7 @@ vi.mock("next/cache", () => ({ cacheTag: vi.fn(), cacheLife: () => {} }));
 process.env.DUCKDB_URL = ":memory:";
 
 const { cacheTag } = await import("next/cache");
-const { refreshGameDayRollups, rebuildAllSeasonTables } = await import("@/lib/season-tables");
+const { refreshGameDayRollups, writeAllSeasonTables } = await import("@/lib/season-tables");
 const { readRows, withConnection } = await import("@/lib/db");
 const { migrate } = await import("@/lib/migrate");
 const { barrelRates, fastestPitches, hardestHitBalls, hittingLeaders, longestHomeRuns, pitchingLeaders, whiffRates } =
@@ -197,7 +197,7 @@ beforeAll(async () => {
         (${FLAMETHROWER}, 'Fay Flamethrower', ${POSTSEASON}, '2026-09-28', 1),
         (${SOFTTOSSER}, 'Sid Softtosser', ${TODAY}, '2026-09-28', 1)`);
   });
-  await withConnection(rebuildAllSeasonTables);
+  await withConnection(writeAllSeasonTables);
 });
 
 describe("leaderboard caching", () => {
@@ -222,7 +222,7 @@ describe("game day rollups", () => {
 
     const after = await Promise.all([longestHomeRuns(TODAY_RANGE), fastestPitches(TODAY_RANGE), barrelRates(TODAY_RANGE)]);
     expect(after).toEqual(before);
-    await withConnection((conn) => rebuildAllSeasonTables(conn));
+    await withConnection((conn) => writeAllSeasonTables(conn));
   });
 });
 
