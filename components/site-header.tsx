@@ -16,7 +16,7 @@ export function SiteHeader() {
         <Link href={standingsPath()} className={buttonVariants({ variant: "neutral", size: "xs" })}>
           Standings
         </Link>
-        <Link href={leadersPath()} className={buttonVariants({ variant: "neutral", size: "xs" })}>
+        <Link href={leadersPath()} prefetch className={buttonVariants({ variant: "neutral", size: "xs" })}>
           Leaders
         </Link>
       </div>

@@ -151,6 +151,7 @@ export function GameCard({ game, latestPlay }: { game: Game; latestPlay?: LivePl
       )}
       <Link
         href={gamePath(game.gamePk)}
+        prefetch
         aria-label={gameTitle(game)}
         title={game.venue}
         className="absolute inset-0 rounded-base"

@@ -47,6 +47,7 @@ export function GameRow({ game }: { game: Game }) {
       )}
       <Link
         href={gamePath(game.gamePk)}
+        prefetch
         aria-label={gameTitle(game)}
         title={game.venue}
         className="absolute inset-0 rounded-base"
