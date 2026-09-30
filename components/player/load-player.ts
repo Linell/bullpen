@@ -1,9 +1,9 @@
 import "server-only";
 import { notFound } from "next/navigation";
 import { PLAYER_ID_RE } from "@/lib/player-id";
-import { type PlayerRole } from "@/lib/routes";
+import { playerPath, type PlayerRole } from "@/lib/routes";
+import { resolveSeason } from "@/lib/season";
 import { playerSummary, type PlayerSummary } from "@/lib/stats/player";
-import { SEASON_RE } from "@/lib/team-id";
 import { getTeamSeasons } from "@/lib/team-summary";
 
 export type LoadedPlayerSeason = {
@@ -30,19 +30,11 @@ export async function loadPlayerSeason(
 ): Promise<LoadedPlayerSeason> {
   const summary = await loadPlayer(playerIdParam);
   const seasons = roleSeasons(summary, role).toReversed();
-  const [latestSeason] = seasons;
-  if (latestSeason === undefined) notFound();
-
-  const seasonSegment = seasonParam?.join("/");
-  const season = seasonSegment === undefined ? latestSeason : Number(seasonSegment);
-  if (seasonSegment !== undefined && (!SEASON_RE.test(seasonSegment) || !seasons.includes(season))) {
-    notFound();
-  }
-
-  return { summary, role, seasons, season, isLatestSeason: season === latestSeason };
+  const { season, isCurrentSeason } = resolveSeason(seasons, seasonParam, playerPath(summary.playerId, { role }));
+  return { summary, role, seasons, season, isLatestSeason: isCurrentSeason };
 }
 
-export function roleSeasons(summary: PlayerSummary, role: PlayerRole) {
+function roleSeasons(summary: PlayerSummary, role: PlayerRole) {
   return role === "hitting" ? summary.battingSeasons : summary.pitchingSeasons;
 }
 

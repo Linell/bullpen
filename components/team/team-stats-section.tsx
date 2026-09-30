@@ -91,7 +91,7 @@ function StatGroup({ title, children }: { title: string; children: ReactNode }) 
   );
 }
 
-export function TeamStatsSection({ stats, season }: { stats: TeamStats; season?: number }) {
+export function TeamStatsSection({ stats, linkSeason }: { stats: TeamStats; linkSeason?: number }) {
   const { batting, battingSplits, pitching, pitchMix, leaders } = stats;
 
   const splits: Split[] = [
@@ -151,7 +151,7 @@ export function TeamStatsSection({ stats, season }: { stats: TeamStats; season?:
           rows={leaders.hitters}
           rowKey={(r) => r.playerId}
           rowName={(r) => (
-            <PlayerLink playerId={r.playerId} role="hitting" season={season}>
+            <PlayerLink playerId={r.playerId} role="hitting" season={linkSeason}>
               {r.name}
             </PlayerLink>
           )}
@@ -163,7 +163,7 @@ export function TeamStatsSection({ stats, season }: { stats: TeamStats; season?:
           rows={leaders.pitchers}
           rowKey={(r) => r.playerId}
           rowName={(r) => (
-            <PlayerLink playerId={r.playerId} role="pitching" season={season}>
+            <PlayerLink playerId={r.playerId} role="pitching" season={linkSeason}>
               {r.name}
             </PlayerLink>
           )}

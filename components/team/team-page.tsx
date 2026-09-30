@@ -10,32 +10,25 @@ import { TeamStatsSection } from "@/components/team/team-stats-section";
 import { TeamTrendsSection } from "@/components/team/team-trends-section";
 import { CardSkeleton } from "@/components/ui/skeleton";
 import { teamPath } from "@/lib/routes";
-import { SEASON_RE, TEAM_ID_RE } from "@/lib/team-id";
+import { resolveSeason } from "@/lib/season";
+import { TEAM_ID_RE } from "@/lib/team-id";
 import { getTeamStats } from "@/lib/stats/team";
 import { getTeamSeasons, getTeamSummary } from "@/lib/team-summary";
 import { getTeamTrends } from "@/lib/team-trends";
 
-export type TeamSeason = {
+type TeamSeason = {
   teamId: number;
   seasons: number[];
   season: number;
   isCurrentSeason: boolean;
 };
 
-export async function loadTeamSeason(teamIdParam: string, seasonParam?: string): Promise<TeamSeason> {
+export async function loadTeamSeason(teamIdParam: string, seasonParam?: string[]): Promise<TeamSeason> {
   if (!TEAM_ID_RE.test(teamIdParam)) notFound();
   const teamId = Number(teamIdParam);
-
   const seasons = await getTeamSeasons(teamId);
-  const [currentSeason] = seasons;
-  if (currentSeason === undefined) notFound();
-
-  const season = seasonParam === undefined ? currentSeason : Number(seasonParam);
-  if (seasonParam !== undefined && (!SEASON_RE.test(seasonParam) || !seasons.includes(season))) {
-    notFound();
-  }
-
-  return { teamId, seasons, season, isCurrentSeason: season === currentSeason };
+  const { season, isCurrentSeason } = resolveSeason(seasons, seasonParam, teamPath(teamId));
+  return { teamId, seasons, season, isCurrentSeason };
 }
 
 async function loadTeamSummary({ teamId, season }: TeamSeason) {
@@ -51,7 +44,7 @@ export async function teamTitle(team: TeamSeason) {
 
 export function TeamPage({ team }: { team: Promise<TeamSeason> }) {
   return (
-    <main className="mx-auto flex w-full max-w-(--breakpoint-2xl) flex-1 flex-col gap-6 px-6 pt-6 pb-24">
+    <>
       <Suspense fallback={<TeamFallback />}>
         <TeamContent team={team} />
       </Suspense>
@@ -61,7 +54,7 @@ export function TeamPage({ team }: { team: Promise<TeamSeason> }) {
       <Suspense fallback={<CardSkeleton className="h-64" />}>
         <TeamTrends team={team} />
       </Suspense>
-    </main>
+    </>
   );
 }
 
@@ -94,13 +87,13 @@ async function TeamContent({ team }: { team: Promise<TeamSeason> }) {
 async function TeamStats({ team }: { team: Promise<TeamSeason> }) {
   const { teamId, season, isCurrentSeason } = await team;
   const stats = await getTeamStats(teamId, season);
-  return <TeamStatsSection stats={stats} season={isCurrentSeason ? undefined : season} />;
+  return <TeamStatsSection stats={stats} linkSeason={isCurrentSeason ? undefined : season} />;
 }
 
 async function TeamTrends({ team }: { team: Promise<TeamSeason> }) {
   const { teamId, season, isCurrentSeason } = await team;
   const trends = await getTeamTrends(teamId, season, { isCurrentSeason });
-  return <TeamTrendsSection trends={trends} season={isCurrentSeason ? undefined : season} />;
+  return <TeamTrendsSection trends={trends} linkSeason={isCurrentSeason ? undefined : season} />;
 }
 
 function TeamFallback() {

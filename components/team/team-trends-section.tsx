@@ -132,7 +132,7 @@ function AbsChallengesCard({ abs }: { abs: AbsChallenges }) {
   );
 }
 
-function BullpenWorkloadTable({ relievers, season }: { relievers: RelieverWorkload[]; season?: number }) {
+function BullpenWorkloadTable({ relievers, linkSeason }: { relievers: RelieverWorkload[]; linkSeason?: number }) {
   return (
     <Card size="sm">
       <CardContent className="flex flex-col gap-3">
@@ -154,7 +154,7 @@ function BullpenWorkloadTable({ relievers, season }: { relievers: RelieverWorklo
               {relievers.map((r) => (
                 <TableRow key={r.pitcherId}>
                   <TableHead scope="row" className={rowHeader}>
-                    <PlayerLink playerId={r.pitcherId} role="pitching" season={season}>
+                    <PlayerLink playerId={r.pitcherId} role="pitching" season={linkSeason}>
                       {r.name}
                     </PlayerLink>
                   </TableHead>
@@ -170,7 +170,7 @@ function BullpenWorkloadTable({ relievers, season }: { relievers: RelieverWorklo
   );
 }
 
-export function TeamTrendsSection({ trends, season }: { trends: TeamTrends; season?: number }) {
+export function TeamTrendsSection({ trends, linkSeason }: { trends: TeamTrends; linkSeason?: number }) {
   return (
     <section className="flex flex-col gap-4" aria-label="Team trends">
       <Card size="sm">
@@ -184,7 +184,7 @@ export function TeamTrendsSection({ trends, season }: { trends: TeamTrends; seas
         <InningRunsTable innings={trends.runsByInning} />
         <AbsChallengesCard abs={trends.absChallenges} />
       </div>
-      {trends.bullpenWorkload && <BullpenWorkloadTable relievers={trends.bullpenWorkload} season={season} />}
+      {trends.bullpenWorkload && <BullpenWorkloadTable relievers={trends.bullpenWorkload} linkSeason={linkSeason} />}
     </section>
   );
 }
