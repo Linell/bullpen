@@ -7,7 +7,11 @@ import { gameTablesRebuildRequested } from "../events";
 import { backfillBatches, backfillGames } from "./backfill-games";
 
 export const rebuildGameTables = inngest.createFunction(
-  { id: "rebuild-game-tables", triggers: [gameTablesRebuildRequested] },
+  {
+    id: "rebuild-game-tables",
+    triggers: [gameTablesRebuildRequested],
+    singleton: { mode: "skip" },
+  },
   async ({ step }) => {
     const gamePks = await step.run("list-raw-feeds", () => withConnection(rawFeedGamePks));
 
