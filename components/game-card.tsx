@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Diamond } from "@/components/diamond";
 import { PlayerLink } from "@/components/player-link";
 import { Pop } from "@/components/pop";
+import { Probable } from "@/components/probable";
 import { ScoringAlert } from "@/components/scoring-alert";
 import { TeamLink } from "@/components/team/team-link";
 import { StatusBadge } from "@/components/status-badge";
@@ -12,22 +13,10 @@ import { formatShortDate } from "@/lib/dates";
 import type { LivePlay } from "@/lib/live-game";
 import { gamePath } from "@/lib/routes";
 import { currentRuns } from "@/lib/scoring";
-import { formatPitcherLine, gameTitle, seriesGameLabel, type AtBat, type Game, type GameSide } from "@/lib/scoreboard";
+import { gameTitle, seriesGameLabel, type AtBat as AtBatData, type Game, type GameSide } from "@/lib/scoreboard";
 import { cn } from "@/lib/utils";
 
-export function Probable({ side, season }: { side: GameSide; season: number }) {
-  if (!side.probable) return "TBD";
-  return (
-    <>
-      <PlayerLink playerId={side.probable.id} role="pitching" season={season} className="relative z-10">
-        {side.probable.name}
-      </PlayerLink>
-      {side.probableLine && <span className="tabular-nums"> ({formatPitcherLine(side.probableLine)})</span>}
-    </>
-  );
-}
-
-function Matchup({ atBat, season }: { atBat: AtBat; season: number }) {
+function AtBat({ atBat, season }: { atBat: AtBatData; season: number }) {
   const { batter, pitcher } = atBat;
   if (!batter || !pitcher) return null;
 
@@ -130,7 +119,7 @@ export function GameCard({ game, latestPlay }: { game: Game; latestPlay?: LivePl
           />
         </div>
         {game.series?.result && <span className="text-xs font-heading">{game.series.result}</span>}
-        {atBat && <Matchup atBat={atBat} season={game.season} />}
+        {atBat && <AtBat atBat={atBat} season={game.season} />}
         {latestPlay && (
           <p
             key={latestPlay.atBatIndex}

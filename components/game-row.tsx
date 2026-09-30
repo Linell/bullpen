@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Probable } from "@/components/game-card";
+import { Probable } from "@/components/probable";
 import { TeamLink } from "@/components/team/team-link";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
