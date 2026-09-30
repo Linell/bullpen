@@ -12,16 +12,17 @@ import { CardSkeleton } from "@/components/ui/skeleton";
 import { teamPath } from "@/lib/routes";
 import { SEASON_RE, TEAM_ID_RE } from "@/lib/team-id";
 import { getTeamStats } from "@/lib/stats/team";
-import { getTeamSeasons, getTeamSummary, type TeamSummary } from "@/lib/team-summary";
+import { getTeamSeasons, getTeamSummary } from "@/lib/team-summary";
 import { getTeamTrends } from "@/lib/team-trends";
 
-export type LoadedTeam = {
-  summary: TeamSummary;
+export type TeamSeason = {
+  teamId: number;
   seasons: number[];
+  season: number;
   isCurrentSeason: boolean;
 };
 
-export async function loadTeam(teamIdParam: string, seasonParam?: string): Promise<LoadedTeam> {
+export async function loadTeamSeason(teamIdParam: string, seasonParam?: string): Promise<TeamSeason> {
   if (!TEAM_ID_RE.test(teamIdParam)) notFound();
   const teamId = Number(teamIdParam);
 
@@ -35,29 +36,40 @@ export async function loadTeam(teamIdParam: string, seasonParam?: string): Promi
   }
   if (seasonParam !== undefined && season === currentSeason) redirect(teamPath(teamId));
 
+  return { teamId, seasons, season, isCurrentSeason: season === currentSeason };
+}
+
+async function loadTeamSummary({ teamId, season }: TeamSeason) {
   const summary = await getTeamSummary(teamId, season);
   if (!summary) notFound();
-  return { summary, seasons, isCurrentSeason: season === currentSeason };
+  return summary;
 }
 
-export function teamTitle({ summary, isCurrentSeason }: LoadedTeam) {
-  return isCurrentSeason ? summary.team.name : `${summary.team.name} ${summary.season}`;
+export async function teamTitle(team: TeamSeason) {
+  const { name } = (await loadTeamSummary(team)).team;
+  return team.isCurrentSeason ? name : `${name} ${team.season}`;
 }
 
-export function TeamPage({ team }: { team: Promise<LoadedTeam> }) {
+export function TeamPage({ team }: { team: Promise<TeamSeason> }) {
   return (
     <main className="mx-auto flex w-full max-w-(--breakpoint-2xl) flex-1 flex-col gap-6 px-6 pt-6 pb-24">
       <Suspense fallback={<TeamFallback />}>
         <TeamContent team={team} />
       </Suspense>
+      <Suspense fallback={<CardSkeleton className="h-64" />}>
+        <TeamStats team={team} />
+      </Suspense>
+      <Suspense fallback={<CardSkeleton className="h-64" />}>
+        <TeamTrends team={team} />
+      </Suspense>
     </main>
   );
 }
 
-async function TeamContent({ team }: { team: Promise<LoadedTeam> }) {
-  const { summary, seasons, isCurrentSeason } = await team;
-  const { id } = summary.team;
-  const { season } = summary;
+async function TeamContent({ team }: { team: Promise<TeamSeason> }) {
+  const resolved = await team;
+  const { teamId, seasons, season } = resolved;
+  const summary = await loadTeamSummary(resolved);
   const [currentSeason] = seasons;
 
   return (
@@ -67,47 +79,27 @@ async function TeamContent({ team }: { team: Promise<LoadedTeam> }) {
         <SeasonSwitcher
           seasons={seasons}
           season={season}
-          href={(s) => teamPath(id, s === currentSeason ? undefined : s)}
+          href={(s) => teamPath(teamId, s === currentSeason ? undefined : s)}
         />
       )}
       <TeamSchedule recent={summary.recentGames} upcoming={summary.upcomingGames} />
       <DivisionStandings
         title={summary.team.division ?? "Division"}
-        teamId={id}
+        teamId={teamId}
         standings={summary.standings}
       />
-      <Suspense fallback={<CardSkeleton className="h-64" />}>
-        <TeamStats teamId={id} season={season} isCurrentSeason={isCurrentSeason} />
-      </Suspense>
-      <Suspense fallback={<CardSkeleton className="h-64" />}>
-        <TeamTrends teamId={id} season={season} isCurrentSeason={isCurrentSeason} />
-      </Suspense>
     </>
   );
 }
 
-async function TeamStats({
-  teamId,
-  season,
-  isCurrentSeason,
-}: {
-  teamId: number;
-  season: number;
-  isCurrentSeason: boolean;
-}) {
+async function TeamStats({ team }: { team: Promise<TeamSeason> }) {
+  const { teamId, season, isCurrentSeason } = await team;
   const stats = await getTeamStats(teamId, season);
   return <TeamStatsSection stats={stats} season={isCurrentSeason ? undefined : season} />;
 }
 
-async function TeamTrends({
-  teamId,
-  season,
-  isCurrentSeason,
-}: {
-  teamId: number;
-  season: number;
-  isCurrentSeason: boolean;
-}) {
+async function TeamTrends({ team }: { team: Promise<TeamSeason> }) {
+  const { teamId, season, isCurrentSeason } = await team;
   const trends = await getTeamTrends(teamId, season, { isCurrentSeason });
   return <TeamTrendsSection trends={trends} season={isCurrentSeason ? undefined : season} />;
 }

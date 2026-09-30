@@ -9,24 +9,27 @@ import { PlayByPlay } from "@/components/play-by-play";
 import { Starters } from "@/components/starters";
 import { Card, CardContent } from "@/components/ui/card";
 import { CardSkeleton } from "@/components/ui/skeleton";
-import { getBoxScore } from "@/lib/box-score";
+import { getBoxScore, type BoxScore as BoxScoreData } from "@/lib/box-score";
 import { getGameDetail } from "@/lib/game-detail";
 import { GAME_PK_RE } from "@/lib/game-pk";
-import { gameTitle } from "@/lib/scoreboard";
+import { gameTitle, type Team } from "@/lib/scoreboard";
 
 type GameParams = Pick<PageProps<"/games/[gamePk]">, "params">;
 
-async function loadGame({ params }: GameParams) {
+async function gamePkFrom({ params }: GameParams) {
   const { gamePk } = await params;
   if (!GAME_PK_RE.test(gamePk)) notFound();
+  return Number(gamePk);
+}
 
-  const detail = await getGameDetail(Number(gamePk));
+async function loadGame(gamePk: number) {
+  const detail = await getGameDetail(gamePk);
   if (!detail) notFound();
   return detail;
 }
 
 export async function generateMetadata(props: PageProps<"/games/[gamePk]">): Promise<Metadata> {
-  const { game } = await loadGame(props);
+  const { game } = await loadGame(await gamePkFrom(props));
   return { title: gameTitle(game) };
 }
 
@@ -41,9 +44,10 @@ export default function GamePage({ params }: PageProps<"/games/[gamePk]">) {
 }
 
 async function GameContent({ params }: GameParams) {
+  const gamePk = await gamePkFrom({ params });
+  const boxScore = getBoxScore(gamePk);
   const { game, decisions, linescore, halfInnings, awayForm, homeForm, headToHead, starters } =
-    await loadGame({ params });
-  const boxScore = await getBoxScore(game.gamePk);
+    await loadGame(gamePk);
   const { away, home } = game;
   const isLive = game.status.state === "live";
   const isScheduled = game.status.state === "scheduled";
@@ -83,8 +87,10 @@ async function GameContent({ params }: GameParams) {
           starters={starters}
         />
       )}
-      {hasStarted && boxScore && (
-        <BoxScore away={away.team} home={home.team} season={game.season} boxScore={boxScore} />
+      {hasStarted && (
+        <Suspense fallback={<CardSkeleton className="h-64" />}>
+          <GameBoxScore away={away.team} home={home.team} season={game.season} boxScore={boxScore} />
+        </Suspense>
       )}
       <div className="w-full max-w-3xl empty:hidden">
         {halfInnings.length > 0 ? (
@@ -107,6 +113,19 @@ async function GameContent({ params }: GameParams) {
       {hasStarted && matchup}
     </>
   );
+}
+
+async function GameBoxScore({
+  boxScore,
+  ...props
+}: {
+  away: Team;
+  home: Team;
+  season: number;
+  boxScore: Promise<BoxScoreData | undefined>;
+}) {
+  const data = await boxScore;
+  return data && <BoxScore {...props} boxScore={data} />;
 }
 
 function GameFallback() {
