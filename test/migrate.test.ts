@@ -1,12 +1,62 @@
 import { mkdtemp } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import type { DuckDBConnection } from "@duckdb/node-api";
 import { describe, expect, it } from "vitest";
 import { openDb } from "@/lib/db";
 import { migrate } from "@/lib/migrate";
 import { openDbMigratedBefore } from "./migrations";
 
+type EnumType = { type_name: string; labels: string[] };
+type Macro = { function_name: string; parameters: string[]; macro_definition: string };
+type Column = { table_name: string; column_name: string; data_type: string; is_nullable: boolean; column_default: string | null };
+type Key = { table_name: string; constraint_text: string };
+type View = { sql: string };
+
+async function readSchema(conn: DuckDBConnection) {
+  const read = async <T>(sql: string) => (await conn.runAndReadAll(sql)).getRowObjectsJS() as unknown as T[];
+  const [types, macros, columns, keys, views] = await Promise.all([
+    read<EnumType>("SELECT type_name, labels FROM duckdb_types() WHERE NOT internal ORDER BY type_name"),
+    read<Macro>(`SELECT function_name, parameters, macro_definition
+      FROM duckdb_functions() WHERE NOT internal ORDER BY function_name`),
+    read<Column>(`SELECT table_name, column_name, data_type, is_nullable, column_default
+      FROM duckdb_columns() WHERE NOT internal ORDER BY table_name, column_index`),
+    read<Key>("SELECT table_name, constraint_text FROM duckdb_constraints() WHERE constraint_type <> 'NOT NULL'"),
+    read<View>("SELECT sql FROM duckdb_views() WHERE NOT internal ORDER BY view_name"),
+  ]);
+
+  const columnLine = (c: Column) =>
+    [c.column_name, c.data_type, !c.is_nullable && "NOT NULL", c.column_default && `DEFAULT ${c.column_default}`]
+      .filter(Boolean)
+      .join(" ");
+  const tableNames = [...new Set(columns.map((c) => c.table_name))];
+  const tables = tableNames.map((table) => {
+    const lines = [
+      ...columns.filter((c) => c.table_name === table).map(columnLine),
+      ...keys.filter((k) => k.table_name === table).map((k) => k.constraint_text),
+    ];
+    return `CREATE TABLE ${table} (\n  ${lines.join(",\n  ")}\n);`;
+  });
+
+  const statements = [
+    ...types.map((t) => `CREATE TYPE ${t.type_name} AS ENUM (${t.labels.map((l) => `'${l}'`).join(", ")});`),
+    ...macros.map((m) => `CREATE MACRO ${m.function_name}(${m.parameters.join(", ")}) AS ${m.macro_definition};`),
+    ...tables,
+    ...views.map((v) => v.sql),
+  ];
+  return statements.join("\n\n") + "\n";
+}
+
 describe("migrate", () => {
+  it("matches the schema snapshot in sql/schema.sql", async () => {
+    const conn = await openDb(":memory:");
+    await migrate(conn);
+    const schema = await readSchema(conn);
+    conn.closeSync();
+
+    await expect(schema).toMatchFileSnapshot("../sql/schema.sql");
+  });
+
   it("applies each migration once", async () => {
     const url = path.join(await mkdtemp(path.join(os.tmpdir(), "bullpen-")), "test.duckdb");
     const conn = await openDb(url);
