@@ -5,7 +5,7 @@ vi.mock("next/cache", () => ({ cacheTag: vi.fn(), cacheLife: () => {} }));
 process.env.DUCKDB_URL = ":memory:";
 
 const { cacheTag } = await import("next/cache");
-const { writeAllSeasonRollups } = await import("@/lib/season-rollups");
+const { refreshGameDayRollups, writeAllSeasonRollups } = await import("@/lib/season-rollups");
 const { readRows, withConnection } = await import("@/lib/db");
 const { migrate } = await import("@/lib/migrate");
 const { barrelRates, fastestPitches, hardestHitBalls, hittingLeaders, longestHomeRuns, pitchingLeaders, whiffRates } =
@@ -201,13 +201,28 @@ beforeAll(async () => {
 });
 
 describe("leaderboard caching", () => {
-  it("tags each season the range touches", async () => {
+  it("tags each season the range touches and the range's last day", async () => {
     vi.mocked(cacheTag).mockClear();
     await longestHomeRuns({ from: "2025-12-30", to: "2026-01-02", limit: 10 });
     await pitchingLeaders(TODAY_RANGE);
 
-    expect(cacheTag).toHaveBeenNthCalledWith(1, "season-rollups:2025", "season-rollups:2026");
-    expect(cacheTag).toHaveBeenNthCalledWith(2, "season-rollups:2026");
+    expect(cacheTag).toHaveBeenNthCalledWith(1, "season-rollups:2025", "season-rollups:2026", "day:2026-01-02");
+    expect(cacheTag).toHaveBeenNthCalledWith(2, "season-rollups:2026", "day:2026-09-28");
+  });
+});
+
+describe("game day rollups", () => {
+  it("rebuilds one game's day to match the season rebuild", async () => {
+    const before = await Promise.all([longestHomeRuns(TODAY_RANGE), fastestPitches(TODAY_RANGE), barrelRates(TODAY_RANGE)]);
+
+    await withConnection(async (conn) => {
+      await conn.run("DELETE FROM event_leaders; DELETE FROM batted_ball_days; DELETE FROM pitch_outcome_days");
+      await refreshGameDayRollups(conn, LIVE);
+    });
+
+    const after = await Promise.all([longestHomeRuns(TODAY_RANGE), fastestPitches(TODAY_RANGE), barrelRates(TODAY_RANGE)]);
+    expect(after).toEqual(before);
+    await withConnection((conn) => writeAllSeasonRollups(conn));
   });
 });
 

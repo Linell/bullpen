@@ -1,6 +1,6 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
-import { seasonRollupsTag } from "@/lib/cache-tags";
+import { dayTag, seasonRollupsTag } from "@/lib/cache-tags";
 import { readRows } from "@/lib/db";
 import type { PlayerRef } from "@/lib/player-ref";
 import {
@@ -272,7 +272,7 @@ function toWhiffLeader(r: WhiffRow): WhiffLeader {
 }
 
 function rollupTags({ from, to }: LeaderboardQuery) {
-  return [...new Set([from, to].map((date) => seasonRollupsTag(Number(date.slice(0, 4)))))];
+  return [...new Set([from, to].map((date) => seasonRollupsTag(Number(date.slice(0, 4))))), dayTag(to)];
 }
 
 async function readLeaders<Row, Leader>(query: string, params: LeaderboardQuery, toLeader: (row: Row) => Leader) {

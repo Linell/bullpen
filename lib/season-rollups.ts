@@ -71,7 +71,14 @@ const GAME_STARTERS = [
   GROUP BY ALL`,
 ];
 
-function eventLeaders(board: EventBoard) {
+const SEASON_SCOPE = (alias = "") => `${alias}season = $season::INTEGER`;
+
+const GAME_DAY_SCOPE = (alias = "") =>
+  `${alias}official_date = (SELECT official_date FROM games WHERE game_pk = $gamePk::INTEGER)`;
+
+type Scope = typeof SEASON_SCOPE;
+
+function eventLeaders(board: EventBoard, scope: Scope) {
   const { credit, value, where } = EVENT_BOARDS[board];
   const opponent = credit === "batter" ? "pitcher" : "batter";
   return `INSERT INTO event_leaders BY NAME
@@ -83,7 +90,7 @@ function eventLeaders(board: EventBoard) {
   FROM pitches e
   JOIN games g ON g.game_pk = e.game_pk
   LEFT JOIN plays a ON a.game_pk = e.game_pk AND a.at_bat_index = e.at_bat_index
-  WHERE g.season = $season::INTEGER AND ${TRACKED_GAME} AND ${where}
+  WHERE ${scope("g.")} AND ${TRACKED_GAME} AND ${where}
   QUALIFY rank() OVER (
     PARTITION BY g.official_date ORDER BY ${value} DESC, e.game_pk, e.at_bat_index, e.pitch_index
   ) <= ${EVENT_LEADERS_PER_DAY}`;
@@ -108,10 +115,9 @@ function playerSeasonCounts(role: "batter" | "pitcher") {
   LEFT JOIN pitch_totals USING (player_id)`;
 }
 
-const ROLLUP_TABLES = [
-  "event_leaders",
-  "batted_ball_days",
-  "pitch_outcome_days",
+const DAY_ROLLUP_TABLES = ["event_leaders", "batted_ball_days", "pitch_outcome_days"];
+
+const SEASON_ROLLUP_TABLES = [
   "player_season_counts",
   "team_season_batting",
   "team_season_swing_decisions",
@@ -119,21 +125,28 @@ const ROLLUP_TABLES = [
   "team_season_pitches",
 ];
 
-const ROLLUPS = [
-  ...ROLLUP_TABLES.map((table) => `DELETE FROM ${table} WHERE season = $season::INTEGER`),
-  eventLeaders("longest_home_runs"),
-  eventLeaders("fastest_pitches"),
-  eventLeaders("hardest_hit_balls"),
-  `INSERT INTO batted_ball_days BY NAME
+function dayRollups(scope: Scope) {
+  return [
+    ...DAY_ROLLUP_TABLES.map((table) => `DELETE FROM ${table} WHERE ${scope()}`),
+    eventLeaders("longest_home_runs", scope),
+    eventLeaders("fastest_pitches", scope),
+    eventLeaders("hardest_hit_balls", scope),
+    `INSERT INTO batted_ball_days BY NAME
   SELECT season, official_date, batter_id AS player_id, ${BATTED_BALL_TOTALS}, sum(launch_speed) AS launch_speed_sum
   FROM plate_appearances
-  WHERE ${TRACKED_SEASON}
+  WHERE ${scope()} AND ${TRACKED_GAME}
   GROUP BY season, official_date, batter_id`,
-  `INSERT INTO pitch_outcome_days BY NAME
+    `INSERT INTO pitch_outcome_days BY NAME
   SELECT season, official_date, pitcher_id AS player_id, ${PITCH_TOTALS}, ${SWING_DECISION_COUNTS}
   FROM pitch_outcomes
-  WHERE ${TRACKED_SEASON}
+  WHERE ${scope()} AND ${TRACKED_GAME}
   GROUP BY season, official_date, pitcher_id`,
+  ];
+}
+
+const ROLLUPS = [
+  ...dayRollups(SEASON_SCOPE),
+  ...SEASON_ROLLUP_TABLES.map((table) => `DELETE FROM ${table} WHERE season = $season::INTEGER`),
   playerSeasonCounts("batter"),
   playerSeasonCounts("pitcher"),
   `INSERT INTO team_season_batting BY NAME
@@ -202,6 +215,10 @@ function writeSeasonRollups(conn: DuckDBConnection, season: number) {
 
 export async function refreshSeasonRollups(conn: DuckDBConnection, season: number) {
   await inTransaction(conn, () => writeSeasonRollups(conn, season));
+}
+
+export async function refreshGameDayRollups(conn: DuckDBConnection, gamePk: number) {
+  await inTransaction(conn, () => runStatements(conn, dayRollups(GAME_DAY_SCOPE).join(";\n"), { gamePk }));
 }
 
 export async function writeAllSeasonRollups(conn: DuckDBConnection) {

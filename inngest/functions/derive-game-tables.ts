@@ -1,5 +1,6 @@
 import { withConnection } from "@/lib/db";
 import { deriveGame } from "@/lib/feeds";
+import { refreshGameDayRollups } from "@/lib/season-rollups";
 import { inngest } from "../client";
 import { gameFeedStored, gameTablesDerived, seasonRollupsRebuildRequested } from "../events";
 
@@ -15,6 +16,10 @@ export const deriveGameTables = inngest.createFunction(
 
     const { plays, pitches, seasons } = await step.run("derive-game", () =>
       withConnection((conn) => deriveGame(conn, gamePk)),
+    );
+
+    await step.run("refresh-game-day-rollups", () =>
+      withConnection((conn) => refreshGameDayRollups(conn, gamePk)),
     );
 
     await step.sendEvent("emit-game-tables-derived", [

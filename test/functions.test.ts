@@ -268,6 +268,7 @@ describe("derive-game-tables", () => {
       events: [{ name: "mlb/game-feed.stored", data: { gamePk: 101 }, ts: 1700000000000 }],
       steps: [
         mockStep("derive-game", { plays: 70, pitches: 280, seasons: [2026] }),
+        mockStep("refresh-game-day-rollups", undefined),
         mockSend("emit-game-tables-derived"),
       ],
     });
