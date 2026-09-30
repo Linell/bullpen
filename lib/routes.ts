@@ -22,3 +22,11 @@ export function leadersPath({ range, limit }: Partial<LeaderboardSearch> = {}) {
   const search = query.toString();
   return search ? `/leaders?${search}` : "/leaders";
 }
+
+export function scoresPath(date: string) {
+  return `/scores/${date}`;
+}
+
+export function standingsPath(season?: number) {
+  return season === undefined ? "/standings" : `/standings/${season}`;
+}
