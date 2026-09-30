@@ -23,7 +23,7 @@ export const deriveGameTables = inngest.createFunction(
     );
 
     await step.sendEvent("emit-game-tables-derived", [
-      gameTablesDerived.create({ gamePk }, { id: `game-tables-derived-${gamePk}-${event.ts}` }),
+      gameTablesDerived.create({ gamePk }),
       ...seasons.map((season) => seasonRollupsRebuildRequested.create({ season })),
     ]);
 

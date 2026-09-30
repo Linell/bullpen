@@ -13,7 +13,7 @@ export const syncSchedule = inngest.createFunction(
     triggers: [everyMinuteOfBaseballHours],
     singleton: { mode: "skip" },
   },
-  async ({ event, step }) => {
+  async ({ step }) => {
     const { startDate, endDate, rows } = await step.run("fetch-schedule", async () => {
       const today = todayOfficialDate();
       const startDate = shiftDate(today, -1);
@@ -42,16 +42,14 @@ export const syncSchedule = inngest.createFunction(
     if (changedGamePks.length > 0) {
       await step.sendEvent(
         "emit-game-schedule-changed",
-        changedGamePks.map((gamePk) => gameScheduleChanged.create({ gamePk }, { id: `game-schedule-changed-${gamePk}-${event.ts}` })),
+        changedGamePks.map((gamePk) => gameScheduleChanged.create({ gamePk })),
       );
     }
 
     if (probablesGamePks.length > 0) {
       await step.sendEvent(
         "emit-game-probables-changed",
-        probablesGamePks.map((gamePk) =>
-          gameProbablesChanged.create({ gamePk }, { id: `game-probables-changed-${gamePk}-${event.ts}` }),
-        ),
+        probablesGamePks.map((gamePk) => gameProbablesChanged.create({ gamePk })),
       );
     }
 

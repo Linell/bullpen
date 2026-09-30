@@ -89,11 +89,11 @@ describe("sync-schedule", () => {
     expect(result).toEqual({ ...window, games: 2, changed: 2, completed: 0, probablesChanged: 1 });
     expect(ctx.step.sendEvent).toHaveBeenCalledTimes(2);
     expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-schedule-changed", [
-      expect.objectContaining({ data: { gamePk: 401 }, id: "game-schedule-changed-401-1700000000000" }),
-      expect.objectContaining({ data: { gamePk: 402 }, id: "game-schedule-changed-402-1700000000000" }),
+      expect.objectContaining({ data: { gamePk: 401 } }),
+      expect.objectContaining({ data: { gamePk: 402 } }),
     ]);
     expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-probables-changed", [
-      expect.objectContaining({ data: { gamePk: 402 }, id: "game-probables-changed-402-1700000000000" }),
+      expect.objectContaining({ data: { gamePk: 402 } }),
     ]);
   });
 });
@@ -131,7 +131,7 @@ describe("backfill-season", () => {
       expect.objectContaining({ data: { gamePks: [26, 27, 28, 29, 30], refetch: true } }),
     );
     expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-probables-changed", [
-      expect.objectContaining({ data: { gamePk: 31 }, id: "game-probables-changed-31-1700000000000" }),
+      expect.objectContaining({ data: { gamePk: 31 } }),
     ]);
     expect(revalidateTag).toHaveBeenCalledTimes(2);
   });
@@ -275,7 +275,7 @@ describe("derive-game-tables", () => {
 
     expect(result).toEqual({ gamePk: 101, plays: 70, pitches: 280 });
     expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-tables-derived", [
-      expect.objectContaining({ data: { gamePk: 101 }, id: "game-tables-derived-101-1700000000000" }),
+      expect.objectContaining({ name: "mlb/game-tables.derived", data: { gamePk: 101 } }),
       expect.objectContaining({ name: "mlb/season-rollups.rebuild.requested", data: { season: 2026 } }),
     ]);
   });

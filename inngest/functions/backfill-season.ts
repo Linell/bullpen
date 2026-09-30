@@ -44,9 +44,7 @@ export const backfillSeason = inngest.createFunction(
     if (probablesGamePks.length > 0) {
       await step.sendEvent(
         "emit-game-probables-changed",
-        probablesGamePks.map((gamePk) =>
-          gameProbablesChanged.create({ gamePk }, { id: `game-probables-changed-${gamePk}-${event.ts}` }),
-        ),
+        probablesGamePks.map((gamePk) => gameProbablesChanged.create({ gamePk })),
       );
     }
 
