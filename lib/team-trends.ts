@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheTag } from "next/cache";
 import { readRows } from "@/lib/db";
-import { STATS_TAG, teamStatsTag } from "@/lib/cache-tags";
+import { ALL_STATS_TAG, teamStatsTag } from "@/lib/cache-tags";
 import { COMPLETED_STATES_SQL } from "@/lib/schedule";
 import { seasonCacheLife } from "@/lib/stats/cache";
 import type { WinLoss } from "@/lib/team-summary";
@@ -198,7 +198,7 @@ export async function getTeamTrends(
   { isCurrentSeason }: { isCurrentSeason: boolean },
 ): Promise<TeamTrends> {
   "use cache: remote";
-  cacheTag(teamStatsTag(teamId), STATS_TAG);
+  cacheTag(teamStatsTag(teamId), ALL_STATS_TAG);
   seasonCacheLife(season, "hours");
 
   const params = { teamId, season };

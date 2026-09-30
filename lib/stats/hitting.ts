@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { readRows } from "@/lib/db";
-import { playerStatsTag, STATS_TAG } from "@/lib/cache-tags";
+import { playerStatsTag, ALL_STATS_TAG } from "@/lib/cache-tags";
 import { seasonCacheLife } from "@/lib/stats/cache";
 import {
   NO_BATTING,
@@ -133,7 +133,7 @@ const YEARS_SWING_DECISIONS_QUERY = `
 
 export async function hitterSeason(playerId: number, season: number): Promise<BattingStats> {
   "use cache: remote";
-  cacheTag(playerStatsTag(playerId), STATS_TAG);
+  cacheTag(playerStatsTag(playerId), ALL_STATS_TAG);
   seasonCacheLife(season, "hours");
 
   const params = { playerId, season };
@@ -148,7 +148,7 @@ export async function hitterSeason(playerId: number, season: number): Promise<Ba
 
 export async function hitterSplits(playerId: number, season: number): Promise<BattingSplits> {
   "use cache: remote";
-  cacheTag(playerStatsTag(playerId), STATS_TAG);
+  cacheTag(playerStatsTag(playerId), ALL_STATS_TAG);
   seasonCacheLife(season, "hours");
 
   const rows = await readRows<SplitRow>(SPLITS_QUERY, { playerId, season });
@@ -166,7 +166,7 @@ export async function hitterSplits(playerId: number, season: number): Promise<Ba
 
 export async function hitterGameLog(playerId: number, season: number): Promise<HitterGameLogEntry[]> {
   "use cache: remote";
-  cacheTag(playerStatsTag(playerId), STATS_TAG);
+  cacheTag(playerStatsTag(playerId), ALL_STATS_TAG);
   seasonCacheLife(season, "hours");
 
   return readRows<HitterGameLogEntry>(GAME_LOG_QUERY, { playerId, season });
@@ -174,7 +174,7 @@ export async function hitterGameLog(playerId: number, season: number): Promise<H
 
 export async function hitterSprayChart(playerId: number, season: number): Promise<BattedBall[]> {
   "use cache: remote";
-  cacheTag(playerStatsTag(playerId), STATS_TAG);
+  cacheTag(playerStatsTag(playerId), ALL_STATS_TAG);
   seasonCacheLife(season, "hours");
 
   return readRows<BattedBall>(SPRAY_CHART_QUERY, { playerId, season });
@@ -182,7 +182,7 @@ export async function hitterSprayChart(playerId: number, season: number): Promis
 
 export async function hitterYears(playerId: number): Promise<HitterYear[]> {
   "use cache: remote";
-  cacheTag(playerStatsTag(playerId), STATS_TAG);
+  cacheTag(playerStatsTag(playerId), ALL_STATS_TAG);
   cacheLife("hours");
 
   const params = { playerId };

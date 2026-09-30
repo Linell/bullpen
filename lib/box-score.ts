@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { readRows } from "@/lib/db";
-import { GAMES_TAG, gameTag, teamTag } from "@/lib/cache-tags";
+import { ALL_GAMES_TAG, gameTag, teamTag } from "@/lib/cache-tags";
 import { formatInnings } from "@/lib/format";
 import type { PlayerRef } from "@/lib/player-ref";
 import { isCompleted } from "@/lib/schedule";
@@ -170,7 +170,7 @@ export async function getBoxScore(gamePk: number): Promise<BoxScore | undefined>
     return undefined;
   }
 
-  cacheTag(gameTag(gamePk), teamTag(game.home_team_id), teamTag(game.away_team_id), GAMES_TAG);
+  cacheTag(gameTag(gamePk), teamTag(game.home_team_id), teamTag(game.away_team_id), ALL_GAMES_TAG);
   if (isCompleted(game.coded_state)) cacheLife("max");
   else cacheLife("live");
 

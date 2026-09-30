@@ -1,8 +1,8 @@
-export const GAMES_TAG = "games";
+export const ALL_GAMES_TAG = "games";
 
-export const STATS_TAG = "stats";
+export const ALL_STATS_TAG = "stats";
 
-export const BACKFILL_TAGS = [GAMES_TAG, STATS_TAG];
+export const ALL_DATA_TAGS = [ALL_GAMES_TAG, ALL_STATS_TAG];
 
 export function dayTag(date: string) {
   return `day:${date}`;

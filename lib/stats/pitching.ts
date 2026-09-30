@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { readRows } from "@/lib/db";
-import { playerStatsTag, STATS_TAG } from "@/lib/cache-tags";
+import { playerStatsTag, ALL_STATS_TAG } from "@/lib/cache-tags";
 import { seasonCacheLife } from "@/lib/stats/cache";
 import {
   NO_BATTING,
@@ -157,7 +157,7 @@ const LEAGUE_ARSENAL_QUERY = `
 
 export async function pitcherSeason(playerId: number, season: number): Promise<PitchingStats> {
   "use cache: remote";
-  cacheTag(playerStatsTag(playerId), STATS_TAG);
+  cacheTag(playerStatsTag(playerId), ALL_STATS_TAG);
   seasonCacheLife(season, "hours");
 
   const params = { playerId, season };
@@ -171,7 +171,7 @@ export async function pitcherSeason(playerId: number, season: number): Promise<P
 
 export async function pitcherSplits(playerId: number, season: number): Promise<PitcherSplits> {
   "use cache: remote";
-  cacheTag(playerStatsTag(playerId), STATS_TAG);
+  cacheTag(playerStatsTag(playerId), ALL_STATS_TAG);
   seasonCacheLife(season, "hours");
 
   const rows = await readRows<SplitRow>(SPLITS_QUERY, { playerId, season });
@@ -187,7 +187,7 @@ export async function pitcherSplits(playerId: number, season: number): Promise<P
 
 export async function pitcherGameLog(playerId: number, season: number): Promise<PitcherGameLogEntry[]> {
   "use cache: remote";
-  cacheTag(playerStatsTag(playerId), STATS_TAG);
+  cacheTag(playerStatsTag(playerId), ALL_STATS_TAG);
   seasonCacheLife(season, "hours");
 
   return readRows<PitcherGameLogEntry>(GAME_LOG_QUERY, { playerId, season });
@@ -195,7 +195,7 @@ export async function pitcherGameLog(playerId: number, season: number): Promise<
 
 export async function pitcherYears(playerId: number): Promise<PitcherYear[]> {
   "use cache: remote";
-  cacheTag(playerStatsTag(playerId), STATS_TAG);
+  cacheTag(playerStatsTag(playerId), ALL_STATS_TAG);
   cacheLife("hours");
 
   const params = { playerId };
@@ -212,7 +212,7 @@ export async function pitcherYears(playerId: number): Promise<PitcherYear[]> {
 
 export async function pitcherArsenal(playerId: number, season: number): Promise<ArsenalEntry[]> {
   "use cache: remote";
-  cacheTag(playerStatsTag(playerId), STATS_TAG);
+  cacheTag(playerStatsTag(playerId), ALL_STATS_TAG);
   seasonCacheLife(season, "hours");
 
   const rows = await readRows<ArsenalRow>(ARSENAL_QUERY, { playerId, season });
@@ -221,7 +221,7 @@ export async function pitcherArsenal(playerId: number, season: number): Promise<
 
 export async function leagueArsenal(season: number): Promise<LeaguePitch[]> {
   "use cache: remote";
-  cacheTag(STATS_TAG);
+  cacheTag(ALL_STATS_TAG);
   seasonCacheLife(season, "hours");
 
   return readRows<LeaguePitch>(LEAGUE_ARSENAL_QUERY, { season });

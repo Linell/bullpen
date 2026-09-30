@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { readRows } from "@/lib/db";
-import { GAMES_TAG, gameTag, teamTag } from "@/lib/cache-tags";
+import { ALL_GAMES_TAG, gameTag, teamTag } from "@/lib/cache-tags";
 import { GAMES_SELECT, toGame, type GameQueryRow } from "@/lib/games";
 import {
   seriesRecord,
@@ -203,7 +203,7 @@ export async function getGameDetail(gamePk: number): Promise<GameDetail | undefi
   }
 
   const game = toGame(row);
-  cacheTag(gameTag(gamePk), teamTag(row.home_team_id), teamTag(row.away_team_id), GAMES_TAG);
+  cacheTag(gameTag(gamePk), teamTag(row.home_team_id), teamTag(row.away_team_id), ALL_GAMES_TAG);
   if (game.completed) cacheLife("max");
   else cacheLife("live");
 

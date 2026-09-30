@@ -1,5 +1,5 @@
 import { revalidateTag } from "next/cache";
-import { BACKFILL_TAGS } from "@/lib/cache-tags";
+import { ALL_DATA_TAGS } from "@/lib/cache-tags";
 import { withConnection } from "@/lib/db";
 import { rawFeedGamePks } from "@/lib/feeds";
 import { inngest } from "../client";
@@ -18,7 +18,7 @@ export const rebuildGameTables = inngest.createFunction(
     );
 
     await step.run("revalidate-tags", () => {
-      for (const tag of BACKFILL_TAGS) revalidateTag(tag, "max");
+      for (const tag of ALL_DATA_TAGS) revalidateTag(tag, "max");
     });
 
     return { feeds: gamePks.length };

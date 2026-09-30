@@ -1,6 +1,6 @@
 import { NonRetriableError } from "inngest";
 import { revalidateTag } from "next/cache";
-import { BACKFILL_TAGS } from "@/lib/cache-tags";
+import { ALL_DATA_TAGS } from "@/lib/cache-tags";
 import { clampDateRange } from "@/lib/dates";
 import { withConnection } from "@/lib/db";
 import { fetchSchedule, fetchScheduleGames, fetchSeasonDates } from "@/lib/mlb";
@@ -57,7 +57,7 @@ export const backfillSeason = inngest.createFunction(
     );
 
     await step.run("revalidate-tags", () => {
-      for (const tag of BACKFILL_TAGS) revalidateTag(tag, "max");
+      for (const tag of ALL_DATA_TAGS) revalidateTag(tag, "max");
     });
 
     return {

@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { readRows } from "@/lib/db";
-import { dayTag, GAMES_TAG } from "@/lib/cache-tags";
+import { dayTag, ALL_GAMES_TAG } from "@/lib/cache-tags";
 import { isCompleted } from "@/lib/schedule";
 import { playerRef } from "@/lib/player-ref";
 import { ratio } from "@/lib/stats/rates";
@@ -179,7 +179,7 @@ export async function getGames(date: string): Promise<Game[]> {
   "use cache: remote";
   const rows = await readRows<GameQueryRow>(GAMES_QUERY, { date });
   const games = rows.map(toGame);
-  cacheTag(dayTag(date), GAMES_TAG);
+  cacheTag(dayTag(date), ALL_GAMES_TAG);
   if (games.length > 0 && games.every((g) => g.completed)) cacheLife("max");
   else cacheLife("live");
   return games;
