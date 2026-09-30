@@ -1,8 +1,9 @@
 import "server-only";
-import { cacheLife, cacheTag } from "next/cache";
+import { cacheTag } from "next/cache";
 import { readRows } from "@/lib/db";
 import { STATS_TAG, teamStatsTag } from "@/lib/cache-tags";
 import { COMPLETED_STATES_SQL } from "@/lib/schedule";
+import { seasonCacheLife } from "@/lib/stats/cache";
 import type { WinLoss } from "@/lib/team-summary";
 
 export type RunDiffPoint = {
@@ -198,8 +199,7 @@ export async function getTeamTrends(
 ): Promise<TeamTrends> {
   "use cache: remote";
   cacheTag(teamStatsTag(teamId), STATS_TAG);
-  if (isCurrentSeason) cacheLife("hours");
-  else cacheLife("max");
+  seasonCacheLife(season, "hours");
 
   const params = { teamId, season };
   const [runDiff, [situational], innings, [abs], workload] = await Promise.all([

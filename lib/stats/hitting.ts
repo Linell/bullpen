@@ -134,7 +134,7 @@ const YEARS_SWING_DECISIONS_QUERY = `
 export async function hitterSeason(playerId: number, season: number): Promise<BattingStats> {
   "use cache: remote";
   cacheTag(playerStatsTag(playerId), STATS_TAG);
-  seasonCacheLife(season);
+  seasonCacheLife(season, "hours");
 
   const params = { playerId, season };
   const [[box], [battedBalls], [swingDecisions]] = await Promise.all([
@@ -149,7 +149,7 @@ export async function hitterSeason(playerId: number, season: number): Promise<Ba
 export async function hitterSplits(playerId: number, season: number): Promise<BattingSplits> {
   "use cache: remote";
   cacheTag(playerStatsTag(playerId), STATS_TAG);
-  seasonCacheLife(season);
+  seasonCacheLife(season, "hours");
 
   const rows = await readRows<SplitRow>(SPLITS_QUERY, { playerId, season });
   const splitBatting = (split: string) => toBattingStats({ ...NO_BATTING, ...rows.find((r) => r.split === split) });
@@ -167,7 +167,7 @@ export async function hitterSplits(playerId: number, season: number): Promise<Ba
 export async function hitterGameLog(playerId: number, season: number): Promise<HitterGameLogEntry[]> {
   "use cache: remote";
   cacheTag(playerStatsTag(playerId), STATS_TAG);
-  seasonCacheLife(season);
+  seasonCacheLife(season, "hours");
 
   return readRows<HitterGameLogEntry>(GAME_LOG_QUERY, { playerId, season });
 }
@@ -175,7 +175,7 @@ export async function hitterGameLog(playerId: number, season: number): Promise<H
 export async function hitterSprayChart(playerId: number, season: number): Promise<BattedBall[]> {
   "use cache: remote";
   cacheTag(playerStatsTag(playerId), STATS_TAG);
-  seasonCacheLife(season);
+  seasonCacheLife(season, "hours");
 
   return readRows<BattedBall>(SPRAY_CHART_QUERY, { playerId, season });
 }

@@ -165,7 +165,7 @@ function toPitcherLeader(r: PitcherRow): PitcherLeader {
 export async function getTeamStats(teamId: number, season: number): Promise<TeamStats> {
   "use cache: remote";
   cacheTag(teamStatsTag(teamId), seasonRollupsTag(season), STATS_TAG);
-  seasonCacheLife(season);
+  seasonCacheLife(season, "hours");
 
   const params = { teamId, season };
   const [batting, swingDecisions, pitching, pitches, pitchMix, hitters, pitchers] = await Promise.all([

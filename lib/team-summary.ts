@@ -2,11 +2,11 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { readRows } from "@/lib/db";
 import { STATS_TAG, teamTag } from "@/lib/cache-tags";
-import { todayOfficialDate } from "@/lib/dates";
 import { GAMES_SELECT, toGame, type GameQueryRow } from "@/lib/games";
-import { COMPLETED_STATES_SQL } from "@/lib/schedule";
 import { streak, toResult, type TeamResult } from "@/lib/matchup";
+import { COMPLETED_STATES_SQL } from "@/lib/schedule";
 import type { Game } from "@/lib/scoreboard";
+import { isPastSeason, seasonCacheLife } from "@/lib/stats/cache";
 
 export type TeamInfo = {
   id: number;
@@ -165,10 +165,6 @@ function toStandings(rows: StandingsQueryRow[]): StandingsRow[] {
   }));
 }
 
-function isPastSeason(season: number) {
-  return season < Number(todayOfficialDate().slice(0, 4));
-}
-
 export async function getTeamSeasons(teamId: number): Promise<number[]> {
   "use cache: remote";
   const rows = await readRows<{ season: number }>(SEASONS_QUERY, { teamId });
@@ -180,15 +176,13 @@ export async function getTeamSeasons(teamId: number): Promise<number[]> {
 export async function getTeamSummary(teamId: number, season: number): Promise<TeamSummary | undefined> {
   "use cache: remote";
   cacheTag(teamTag(teamId), STATS_TAG);
-  const past = isPastSeason(season);
-  if (past) cacheLife("max");
-  else cacheLife("live");
+  seasonCacheLife(season, "live");
 
   const params = { teamId, season };
   const [[team], completed, upcoming, standings] = await Promise.all([
     readRows<TeamRow>(TEAM_QUERY, params),
     readRows<GameQueryRow>(COMPLETED_QUERY, params),
-    past ? Promise.resolve([]) : readRows<GameQueryRow>(UPCOMING_QUERY, params),
+    isPastSeason(season) ? Promise.resolve([]) : readRows<GameQueryRow>(UPCOMING_QUERY, params),
     readRows<StandingsQueryRow>(STANDINGS_QUERY, params),
   ]);
   if (!team) return undefined;

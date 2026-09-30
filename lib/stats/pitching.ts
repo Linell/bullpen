@@ -158,7 +158,7 @@ const LEAGUE_ARSENAL_QUERY = `
 export async function pitcherSeason(playerId: number, season: number): Promise<PitchingStats> {
   "use cache: remote";
   cacheTag(playerStatsTag(playerId), STATS_TAG);
-  seasonCacheLife(season);
+  seasonCacheLife(season, "hours");
 
   const params = { playerId, season };
   const [[box], [pitches]] = await Promise.all([
@@ -172,7 +172,7 @@ export async function pitcherSeason(playerId: number, season: number): Promise<P
 export async function pitcherSplits(playerId: number, season: number): Promise<PitcherSplits> {
   "use cache: remote";
   cacheTag(playerStatsTag(playerId), STATS_TAG);
-  seasonCacheLife(season);
+  seasonCacheLife(season, "hours");
 
   const rows = await readRows<SplitRow>(SPLITS_QUERY, { playerId, season });
   const splitBatting = (split: string) => toBattingStats({ ...NO_BATTING, ...rows.find((r) => r.split === split) });
@@ -188,7 +188,7 @@ export async function pitcherSplits(playerId: number, season: number): Promise<P
 export async function pitcherGameLog(playerId: number, season: number): Promise<PitcherGameLogEntry[]> {
   "use cache: remote";
   cacheTag(playerStatsTag(playerId), STATS_TAG);
-  seasonCacheLife(season);
+  seasonCacheLife(season, "hours");
 
   return readRows<PitcherGameLogEntry>(GAME_LOG_QUERY, { playerId, season });
 }
@@ -213,7 +213,7 @@ export async function pitcherYears(playerId: number): Promise<PitcherYear[]> {
 export async function pitcherArsenal(playerId: number, season: number): Promise<ArsenalEntry[]> {
   "use cache: remote";
   cacheTag(playerStatsTag(playerId), STATS_TAG);
-  seasonCacheLife(season);
+  seasonCacheLife(season, "hours");
 
   const rows = await readRows<ArsenalRow>(ARSENAL_QUERY, { playerId, season });
   return rows.map((r) => ({ ...toPitchMixEntry(r), spinRate: r.spin_rate, ivb: r.ivb, hb: r.hb }));
@@ -222,7 +222,7 @@ export async function pitcherArsenal(playerId: number, season: number): Promise<
 export async function leagueArsenal(season: number): Promise<LeaguePitch[]> {
   "use cache: remote";
   cacheTag(STATS_TAG);
-  seasonCacheLife(season);
+  seasonCacheLife(season, "hours");
 
   return readRows<LeaguePitch>(LEAGUE_ARSENAL_QUERY, { season });
 }

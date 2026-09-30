@@ -95,7 +95,7 @@ async function percentileBoard<T extends Record<string, Percentile | null>>(
 export async function hittingPercentiles(playerId: number, season: number) {
   "use cache: remote";
   cacheTag(seasonRollupsTag(season), STATS_TAG);
-  seasonCacheLife(season);
+  seasonCacheLife(season, "hours");
 
   return percentileBoard<HittingPercentiles>(HITTING_QUERY, playerId, season);
 }
@@ -103,7 +103,7 @@ export async function hittingPercentiles(playerId: number, season: number) {
 export async function pitchingPercentiles(playerId: number, season: number) {
   "use cache: remote";
   cacheTag(seasonRollupsTag(season), STATS_TAG);
-  seasonCacheLife(season);
+  seasonCacheLife(season, "hours");
 
   return percentileBoard<PitchingPercentiles>(PITCHING_QUERY, playerId, season);
 }

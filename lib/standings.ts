@@ -2,7 +2,7 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { readRows } from "@/lib/db";
 import { STATS_TAG } from "@/lib/cache-tags";
-import { todayOfficialDate } from "@/lib/dates";
+import { seasonCacheLife } from "@/lib/stats/cache";
 import {
   COMPLETED_FILTER,
   pct,
@@ -115,10 +115,6 @@ function toLeague(rows: StandingsQueryRow[]): LeagueStandings {
   };
 }
 
-function isPastSeason(season: number) {
-  return season < Number(todayOfficialDate().slice(0, 4));
-}
-
 export async function getStandingsSeasons(): Promise<number[]> {
   "use cache: remote";
   const rows = await readRows<{ season: number }>(SEASONS_QUERY, {});
@@ -130,8 +126,7 @@ export async function getStandingsSeasons(): Promise<number[]> {
 export async function getStandings(season: number): Promise<LeagueStandings[]> {
   "use cache: remote";
   cacheTag(STATS_TAG);
-  if (isPastSeason(season)) cacheLife("max");
-  else cacheLife("live");
+  seasonCacheLife(season, "live");
 
   const rows = await readRows<StandingsQueryRow>(STANDINGS_QUERY, { season });
   return groupBy(rows, (row) => row.league_name!)
