@@ -3,6 +3,7 @@ import { RetryAfterError } from "inngest";
 const GAME_TYPES = ["R", "F", "D", "L", "W"];
 
 const BASE_URL = "https://statsapi.mlb.com";
+const TIMEOUT_MS = 15_000;
 const HEADERS = {
   "User-Agent": "bullpen/0.1 (personal, non-commercial)",
   Accept: "application/json",
@@ -55,7 +56,7 @@ export type ScheduleResponse = {
 async function get<T>(path: string, params: Record<string, string> = {}): Promise<T> {
   const url = new URL(path, BASE_URL);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-  const res = await fetch(url, { headers: HEADERS });
+  const res = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(TIMEOUT_MS) });
   if (res.status === 429) {
     const retryAfter = res.headers.get("retry-after");
     if (retryAfter) {
