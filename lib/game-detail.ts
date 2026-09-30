@@ -14,6 +14,7 @@ import {
 import { toLinescore, type Linescore, type LinescoreRow } from "@/lib/linescore";
 import { toHalfInnings, type HalfInning, type PlayRow, type StepRow } from "@/lib/play-by-play";
 import { playerRef, type PlayerRef } from "@/lib/player-ref";
+import { COMPLETED_STATES_SQL } from "@/lib/schedule";
 import type { Game } from "@/lib/scoreboard";
 
 export type Decisions = {
@@ -95,7 +96,7 @@ const STEPS_QUERY = `
   WHERE game_pk = $gamePk::INTEGER
   ORDER BY at_bat_index, step_index`;
 
-const COMPLETED_FILTER = `g.coded_state IN ('F', 'O', 'Q', 'R')`;
+const COMPLETED_FILTER = `g.coded_state IN (${COMPLETED_STATES_SQL})`;
 
 const FORM_QUERY = `
   SELECT s.team_id, game.*

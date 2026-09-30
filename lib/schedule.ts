@@ -73,6 +73,8 @@ const INSERT_CHUNK = 500;
 
 const COMPLETED_STATES = ["F", "O", "Q", "R"];
 
+export const COMPLETED_STATES_SQL = COMPLETED_STATES.map((state) => `'${state}'`).join(", ");
+
 export function isCompleted(codedState: string): boolean {
   return COMPLETED_STATES.includes(codedState);
 }
@@ -93,10 +95,9 @@ export function replaceGames(rows: GameRow[], replacements: GameRow[]): GameRow[
 }
 
 export async function readLiveGamePks(conn: DuckDBConnection): Promise<number[]> {
-  const completed = COMPLETED_STATES.map((state) => `'${state}'`).join(", ");
   const reader = await conn.runAndReadAll(
     `SELECT game_pk FROM games
-     WHERE abstract_state = 'Live' AND coded_state NOT IN (${completed}) AND official_date >= current_date - 1
+     WHERE abstract_state = 'Live' AND coded_state NOT IN (${COMPLETED_STATES_SQL}) AND official_date >= current_date - 1
      ORDER BY game_pk`,
   );
   return reader.getRowObjectsJS().map((row) => Number(row.game_pk));

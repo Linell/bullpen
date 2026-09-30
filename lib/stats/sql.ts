@@ -1,4 +1,6 @@
-export const COMPLETED_REGULAR_GAME = `game_type = 'R' AND coded_state IN ('F', 'O', 'Q', 'R')`;
+import { COMPLETED_STATES_SQL } from "../schedule.ts";
+
+export const COMPLETED_REGULAR_GAME = `game_type = 'R' AND coded_state IN (${COMPLETED_STATES_SQL})`;
 
 export const TRACKED_GAME = `game_type IN ('R', 'F', 'D', 'L', 'W')`;
 

@@ -4,6 +4,7 @@ import { readRows } from "@/lib/db";
 import { STATS_TAG, teamTag } from "@/lib/cache-tags";
 import { todayOfficialDate } from "@/lib/dates";
 import { GAMES_SELECT, toGame, type GameQueryRow } from "@/lib/games";
+import { COMPLETED_STATES_SQL } from "@/lib/schedule";
 import { streak, toResult, type TeamResult } from "@/lib/matchup";
 import type { Game } from "@/lib/scoreboard";
 
@@ -57,7 +58,7 @@ type StandingsQueryRow = TeamRow & WinLoss;
 const GAME_LIMIT = 10;
 const PYTHAG_EXPONENT = 1.83;
 
-export const COMPLETED_FILTER = `g.coded_state IN ('F', 'O', 'Q', 'R')`;
+export const COMPLETED_FILTER = `g.coded_state IN (${COMPLETED_STATES_SQL})`;
 
 const TEAM_GAME_FILTER = `g.season = $season::INTEGER AND $teamId::INTEGER IN (g.home_team_id, g.away_team_id)`;
 

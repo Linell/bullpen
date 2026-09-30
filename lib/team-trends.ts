@@ -2,6 +2,7 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { readRows } from "@/lib/db";
 import { STATS_TAG, teamStatsTag } from "@/lib/cache-tags";
+import { COMPLETED_STATES_SQL } from "@/lib/schedule";
 import type { WinLoss } from "@/lib/team-summary";
 
 export type RunDiffPoint = {
@@ -59,7 +60,7 @@ const TEAM_GAMES = `
     FROM games
     WHERE season = $season::INTEGER
       AND game_type = 'R'
-      AND coded_state IN ('F', 'O', 'Q', 'R')
+      AND coded_state IN (${COMPLETED_STATES_SQL})
       AND $teamId::INTEGER IN (home_team_id, away_team_id)
   )`;
 
