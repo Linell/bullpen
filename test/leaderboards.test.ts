@@ -6,7 +6,8 @@ process.env.DUCKDB_URL = ":memory:";
 
 const { readRows, withConnection } = await import("@/lib/db");
 const { migrate } = await import("@/lib/migrate");
-const { barrelRates, fastestPitches, hardestHitBalls, longestHomeRuns, whiffRates } = await import("@/lib/stats/leaderboards");
+const { barrelRates, fastestPitches, hardestHitBalls, hittingLeaders, longestHomeRuns, pitchingLeaders, whiffRates } =
+  await import("@/lib/stats/leaderboards");
 
 const RED_SOX = 111;
 const YANKEES = 147;
@@ -95,6 +96,46 @@ const pitches: Pitch[] = [
   ...bulk(YESTERDAY, FLAMETHROWER, "CCCCCCCCCC"),
 ];
 
+type BattingLine = [
+  game: number,
+  player: number,
+  pa: number,
+  ab: number,
+  hits: number,
+  totalBases: number,
+  homeRuns: number,
+  walks: number,
+  strikeouts: number,
+];
+
+const battingLines: BattingLine[] = [
+  [TODAY, SLUGGER, 4, 3, 2, 5, 1, 1, 1],
+  [SPRING, SLUGGER, 5, 5, 5, 20, 5, 0, 0],
+  [TODAY, CONTACT, 2, 2, 1, 1, 0, 0, 0],
+  [LIVE, CONTACT, 3, 3, 2, 5, 1, 0, 1],
+  [TODAY, DRIFTER, 3, 3, 0, 0, 0, 0, 2],
+  [YESTERDAY, DRIFTER, 5, 5, 5, 5, 0, 0, 0],
+];
+
+type PitchingLine = [
+  game: number,
+  player: number,
+  outs: number,
+  battersFaced: number,
+  hits: number,
+  earnedRuns: number,
+  walks: number,
+  strikeouts: number,
+];
+
+const pitchingLines: PitchingLine[] = [
+  [TODAY, SOFTTOSSER, 9, 12, 3, 1, 1, 4],
+  [POSTSEASON, FLAMETHROWER, 6, 8, 1, 0, 1, 3],
+  [SPRING, FLAMETHROWER, 3, 8, 5, 5, 0, 0],
+  [POSTSEASON, RAREARM, 2, 3, 0, 0, 0, 2],
+  [YESTERDAY, RAREARM, 10, 12, 1, 0, 0, 5],
+];
+
 const TODAY_RANGE = { from: "2026-09-28", to: "2026-09-28", limit: 10 };
 const TWO_DAYS = { from: "2026-09-27", to: "2026-09-28", limit: 10 };
 
@@ -113,6 +154,16 @@ function pitchRow([game, atBat, index, count, speed, type, call, callDesc, zone,
   return `(${game}, 2026, ${atBat}, ${index}, 1, 'bottom', ${play?.[2] ?? 0}, ${play?.[3] ?? pitcher}, ${balls}, ${strikes}, 0,
     ${speed ?? "NULL"}, ${type ? `'${type}'` : "NULL"}, '${call}', '${callDesc}', ${zone}, ${call === "X"},
     ${launch?.[0] ?? "NULL"}, ${launch?.[1] ?? "NULL"}, false)`;
+}
+
+function battingRow([game, player, pa, ab, hits, totalBases, homeRuns, walks, strikeouts]: BattingLine) {
+  return `(${game}, 2026, ${player}, ${RED_SOX}, ${pa}, ${ab}, 0, ${hits}, 0, 0, ${homeRuns}, ${totalBases}, 0,
+    ${walks}, 0, ${strikeouts}, 0, 0, 0, 0, 0, 0, 0)`;
+}
+
+function pitchingRow([game, player, outs, battersFaced, hits, earnedRuns, walks, strikeouts]: PitchingLine) {
+  return `(${game}, 2026, ${player}, ${YANKEES}, false, ${outs}, ${battersFaced}, 0, 0, ${hits}, ${earnedRuns},
+    ${earnedRuns}, 0, ${walks}, 0, ${strikeouts}, 0, 0, 0, 0, 0, false, false, false, false, false)`;
 }
 
 function teamRow(game: number) {
@@ -135,6 +186,8 @@ beforeAll(async () => {
         balls_before, strikes_before, outs_before, start_speed, pitch_type_desc, call_code, call_desc, zone, is_in_play,
         launch_speed, launch_angle, abs_challenged)
       VALUES ${pitches.map(pitchRow).join(",")}`);
+    await conn.run(`INSERT INTO player_game_batting VALUES ${battingLines.map(battingRow).join(",")}`);
+    await conn.run(`INSERT INTO player_game_pitching VALUES ${pitchingLines.map(pitchingRow).join(",")}`);
     await conn.run(`INSERT INTO game_player_bios (player_id, full_name, game_pk, source_date, source_game_number)
       VALUES (${SLUGGER}, 'Sam Slugger', ${TODAY}, '2026-09-28', 1),
         (${CONTACT}, 'Cal Contact', ${TODAY}, '2026-09-28', 1),
@@ -204,6 +257,66 @@ describe("event leaderboards", () => {
 
   it("is empty before any games in the range have data", async () => {
     expect(await fastestPitches({ from: "2026-09-29", to: "2026-09-29", limit: 10 })).toEqual([]);
+  });
+});
+
+describe("hittingLeaders", () => {
+  it("ranks batters by OPS across finished, postseason and in-progress games but not spring training", async () => {
+    const leaders = await hittingLeaders(TODAY_RANGE);
+
+    expect(leaders.map((l) => [l.player.id, l.plateAppearances, l.homeRuns])).toEqual([
+      [SLUGGER, 4, 1],
+      [CONTACT, 5, 1],
+    ]);
+    expect(leaders[1]).toMatchObject({
+      avg: 0.6,
+      obp: 0.6,
+      slg: 1.2,
+      strikeoutRate: 0.2,
+      walkRate: 0,
+    });
+    expect(leaders[0].ops).toBeCloseTo(0.75 + 5 / 3);
+  });
+
+  it("requires 3.1 plate appearances per game day in the range", async () => {
+    const leaders = await hittingLeaders(TWO_DAYS);
+
+    expect(leaders.map((l) => [l.player.id, l.plateAppearances, l.avg])).toEqual([[DRIFTER, 8, 0.625]]);
+  });
+
+  it("honors the limit", async () => {
+    expect(await hittingLeaders({ ...TODAY_RANGE, limit: 1 })).toHaveLength(1);
+  });
+});
+
+describe("pitchingLeaders", () => {
+  it("ranks pitchers by ERA, lowest first", async () => {
+    const leaders = await pitchingLeaders(TODAY_RANGE);
+
+    expect(leaders.map((l) => [l.player.id, l.inningsPitched, l.era])).toEqual([
+      [FLAMETHROWER, 2, 0],
+      [SOFTTOSSER, 3, 3],
+    ]);
+    expect(leaders[1]).toMatchObject({
+      strikeouts: 4,
+      strikeoutRate: 1 / 3,
+      walkRate: 1 / 12,
+    });
+    expect(leaders[1].whip).toBeCloseTo(4 / 3);
+  });
+
+  it("requires one inning per game day in the range and breaks ties by innings", async () => {
+    const leaders = await pitchingLeaders(TWO_DAYS);
+
+    expect(leaders.map((l) => [l.player, l.era])).toEqual([
+      [{ id: RAREARM, name: `Player ${RAREARM}` }, 0],
+      [{ id: FLAMETHROWER, name: "Fay Flamethrower" }, 0],
+      [{ id: SOFTTOSSER, name: "Sid Softtosser" }, 3],
+    ]);
+  });
+
+  it("honors the limit", async () => {
+    expect(await pitchingLeaders({ ...TODAY_RANGE, limit: 1 })).toHaveLength(1);
   });
 });
 

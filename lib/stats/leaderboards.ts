@@ -3,8 +3,27 @@ import { cacheLife, cacheTag } from "next/cache";
 import { LEADERBOARDS_TAG } from "@/lib/cache-tags";
 import { readRows } from "@/lib/db";
 import type { PlayerRef } from "@/lib/player-ref";
-import { ratio, type Rate } from "@/lib/stats/rates";
-import { BATTED_BALL_COUNTS, PITCH_COUNTS, SWING_DECISION_COUNTS, TRACKED_GAME, withNumbers } from "@/lib/stats/sql";
+import {
+  NO_BATTING,
+  NO_PITCHING,
+  ratio,
+  toBattingStats,
+  toPitchingStats,
+  type BattingCounts,
+  type BattingStats,
+  type PitchingCounts,
+  type PitchingStats,
+  type Rate,
+} from "@/lib/stats/rates";
+import {
+  BATTED_BALL_COUNTS,
+  BOX_BATTING_COUNTS,
+  PITCH_COUNTS,
+  PITCHING_COUNTS,
+  SWING_DECISION_COUNTS,
+  TRACKED_GAME,
+  withNumbers,
+} from "@/lib/stats/sql";
 
 export type LeaderboardQuery = {
   from: string;
@@ -39,6 +58,16 @@ export type WhiffLeader = {
   chaseRate: Rate;
   cswRate: Rate;
 };
+
+export type HittingLeader = { player: PlayerRef } & Pick<
+  BattingStats,
+  "plateAppearances" | "homeRuns" | "avg" | "obp" | "slg" | "ops" | "strikeoutRate" | "walkRate"
+>;
+
+export type PitchingLeader = { player: PlayerRef; strikeouts: number } & Pick<
+  PitchingStats,
+  "inningsPitched" | "era" | "strikeoutRate" | "walkRate" | "whip"
+>;
 
 type EventRow = {
   player_id: number;
@@ -75,12 +104,22 @@ type WhiffRow = {
   chases: number;
 };
 
+type PlayerRow = { player_id: number; name: string };
+
+type HittingRow = PlayerRow & Omit<BattingCounts, "batted_balls" | "hard_hits" | "barrels" | "exit_velocity">;
+
+type PitchingRow = PlayerRow & PitchingCounts;
+
+export const PLATE_APPEARANCES_PER_GAME_DAY = 3.1;
+export const INNINGS_PER_GAME_DAY = 1;
 export const BATTED_BALLS_PER_GAME_DAY = 1;
 export const PITCHES_PER_GAME_DAY = 10;
 
 const IN_RANGE = `official_date BETWEEN $from::DATE AND $to::DATE AND ${TRACKED_GAME}`;
 
 const GAME_DAYS = `(SELECT count(DISTINCT official_date) FROM games WHERE ${IN_RANGE})`;
+
+const GAMES_IN_RANGE = `SELECT game_pk FROM games WHERE ${IN_RANGE}`;
 
 const playerName = (name: string, id: string) => `coalesce(${name}, 'Player ' || ${id}::VARCHAR)`;
 
@@ -138,6 +177,64 @@ const WHIFF_RATES_QUERY = withNumbers(
   LIMIT $limit::INTEGER`,
   ["player_id", "name"],
 );
+
+const HITTING_QUERY = withNumbers(
+  `SELECT * FROM (
+    SELECT b.player_id, ${playerName("any_value(pl.full_name)", "b.player_id")} AS name, ${BOX_BATTING_COUNTS}
+    FROM player_game_batting b
+    LEFT JOIN players pl ON pl.player_id = b.player_id
+    WHERE b.game_pk IN (${GAMES_IN_RANGE})
+    GROUP BY b.player_id
+  )
+  WHERE plate_appearances >= ${PLATE_APPEARANCES_PER_GAME_DAY} * ${GAME_DAYS}
+  ORDER BY (hits + walks + hit_by_pitch) / nullif(at_bats + walks + hit_by_pitch + sac_flies, 0)
+      + total_bases / nullif(at_bats, 0) DESC NULLS LAST,
+    plate_appearances DESC, player_id
+  LIMIT $limit::INTEGER`,
+  ["player_id", "name"],
+);
+
+const PITCHING_QUERY = withNumbers(
+  `SELECT * FROM (
+    SELECT p.player_id, ${playerName("any_value(pl.full_name)", "p.player_id")} AS name, ${PITCHING_COUNTS}
+    FROM player_game_pitching p
+    LEFT JOIN players pl ON pl.player_id = p.player_id
+    WHERE p.game_pk IN (${GAMES_IN_RANGE})
+    GROUP BY p.player_id
+  )
+  WHERE outs >= 3 * ${INNINGS_PER_GAME_DAY} * ${GAME_DAYS} AND outs > 0
+  ORDER BY earned_runs / outs, outs DESC, player_id
+  LIMIT $limit::INTEGER`,
+  ["player_id", "name"],
+);
+
+function toHittingLeader({ player_id, name, ...counts }: HittingRow): HittingLeader {
+  const stats = toBattingStats({ ...NO_BATTING, ...counts });
+  return {
+    player: { id: player_id, name },
+    plateAppearances: stats.plateAppearances,
+    homeRuns: stats.homeRuns,
+    avg: stats.avg,
+    obp: stats.obp,
+    slg: stats.slg,
+    ops: stats.ops,
+    strikeoutRate: stats.strikeoutRate,
+    walkRate: stats.walkRate,
+  };
+}
+
+function toPitchingLeader({ player_id, name, ...counts }: PitchingRow): PitchingLeader {
+  const stats = toPitchingStats({ ...NO_PITCHING, ...counts });
+  return {
+    player: { id: player_id, name },
+    inningsPitched: stats.inningsPitched,
+    era: stats.era,
+    strikeouts: counts.strikeouts,
+    strikeoutRate: stats.strikeoutRate,
+    walkRate: stats.walkRate,
+    whip: stats.whip,
+  };
+}
 
 function toEventLeader(r: EventRow): EventLeader {
   return {
@@ -211,4 +308,18 @@ export async function whiffRates(query: LeaderboardQuery): Promise<WhiffLeader[]
   cacheTag(LEADERBOARDS_TAG);
   cacheLife("hours");
   return readLeaders(WHIFF_RATES_QUERY, query, toWhiffLeader);
+}
+
+export async function hittingLeaders(query: LeaderboardQuery): Promise<HittingLeader[]> {
+  "use cache: remote";
+  cacheTag(LEADERBOARDS_TAG);
+  cacheLife("hours");
+  return readLeaders(HITTING_QUERY, query, toHittingLeader);
+}
+
+export async function pitchingLeaders(query: LeaderboardQuery): Promise<PitchingLeader[]> {
+  "use cache: remote";
+  cacheTag(LEADERBOARDS_TAG);
+  cacheLife("hours");
+  return readLeaders(PITCHING_QUERY, query, toPitchingLeader);
 }
