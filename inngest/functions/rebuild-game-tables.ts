@@ -18,7 +18,7 @@ export const rebuildGameTables = inngest.createFunction(
     );
 
     await step.run("revalidate-tags", () => {
-      for (const tag of BACKFILL_TAGS) revalidateTag(tag, { expire: 0 });
+      for (const tag of BACKFILL_TAGS) revalidateTag(tag, "max");
     });
 
     return { feeds: gamePks.length };

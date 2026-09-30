@@ -197,14 +197,14 @@ export async function getGameDetail(gamePk: number): Promise<GameDetail | undefi
     readRows<StarterRow>(STARTERS_QUERY, params),
   ]);
   if (!row) {
-    cacheLife("minutes");
+    cacheLife("live");
     return undefined;
   }
 
   const game = toGame(row);
   cacheTag(gameTag(gamePk), teamTag(row.home_team_id), teamTag(row.away_team_id), GAMES_TAG);
   if (game.completed) cacheLife("max");
-  else cacheLife("minutes");
+  else cacheLife("live");
 
   const headToHead = meetings.map((r) => toResult(toGame(r), r.home_team_id === row.away_team_id));
   return {

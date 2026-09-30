@@ -131,7 +131,7 @@ export async function getStandings(season: number): Promise<LeagueStandings[]> {
   "use cache: remote";
   cacheTag(STATS_TAG);
   if (isPastSeason(season)) cacheLife("max");
-  else cacheLife("minutes");
+  else cacheLife("live");
 
   const rows = await readRows<StandingsQueryRow>(STANDINGS_QUERY, { season });
   return groupBy(rows, (row) => row.league_name!)

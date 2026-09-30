@@ -24,7 +24,7 @@ export const invalidateGameCache = inngest.createFunction(
     const tags = [...gameTags, ...playerTags, ...leaderboardTags];
 
     await step.run("revalidate-tags", () => {
-      for (const tag of tags) revalidateTag(tag, { expire: 0 });
+      for (const tag of tags) revalidateTag(tag, "max");
     });
 
     if (derivedGamePks.length > 0) {

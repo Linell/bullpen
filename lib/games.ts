@@ -181,6 +181,6 @@ export async function getGames(date: string): Promise<Game[]> {
   const games = rows.map(toGame);
   cacheTag(dayTag(date), GAMES_TAG);
   if (games.length > 0 && games.every((g) => g.completed)) cacheLife("max");
-  else cacheLife("minutes");
+  else cacheLife("live");
   return games;
 }

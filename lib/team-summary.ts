@@ -181,7 +181,7 @@ export async function getTeamSummary(teamId: number, season: number): Promise<Te
   cacheTag(teamTag(teamId), STATS_TAG);
   const past = isPastSeason(season);
   if (past) cacheLife("max");
-  else cacheLife("minutes");
+  else cacheLife("live");
 
   const params = { teamId, season };
   const [[team], completed, upcoming, standings] = await Promise.all([

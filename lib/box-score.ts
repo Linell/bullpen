@@ -166,13 +166,13 @@ export async function getBoxScore(gamePk: number): Promise<BoxScore | undefined>
     readRows<PitchingRow>(PITCHING_QUERY, params),
   ]);
   if (!game) {
-    cacheLife("minutes");
+    cacheLife("live");
     return undefined;
   }
 
   cacheTag(gameTag(gamePk), teamTag(game.home_team_id), teamTag(game.away_team_id), GAMES_TAG);
   if (isCompleted(game.coded_state)) cacheLife("max");
-  else cacheLife("minutes");
+  else cacheLife("live");
 
   if (batting.length === 0 && pitching.length === 0) return undefined;
   return { away: toTeam(batting, pitching, "away"), home: toTeam(batting, pitching, "home") };
