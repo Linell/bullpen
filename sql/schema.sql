@@ -51,6 +51,14 @@ CREATE TABLE game_decisions (
   PRIMARY KEY(game_pk)
 );
 
+CREATE TABLE game_feeds (
+  game_pk INTEGER,
+  season INTEGER,
+  feed_ts VARCHAR,
+  fetched_at TIMESTAMP WITH TIME ZONE,
+  json JSON
+);
+
 CREATE TABLE game_player_bios (
   game_pk INTEGER NOT NULL,
   player_id INTEGER NOT NULL,
@@ -161,6 +169,15 @@ CREATE TABLE linescores (
   errors INTEGER,
   left_on_base INTEGER,
   PRIMARY KEY(game_pk, inning, half)
+);
+
+CREATE TABLE live_game_feeds (
+  game_pk INTEGER NOT NULL,
+  season INTEGER NOT NULL,
+  feed_ts VARCHAR NOT NULL,
+  fetched_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  json JSON NOT NULL,
+  PRIMARY KEY(game_pk)
 );
 
 CREATE TABLE pitch_outcome_days (
@@ -755,6 +772,8 @@ CREATE TABLE teams (
   source_game_number INTEGER NOT NULL,
   PRIMARY KEY(team_id, season)
 );
+
+CREATE VIEW game_feeds AS (SELECT * FROM live_game_feeds AS l WHERE (NOT EXISTS(SELECT 1 FROM raw_game_feeds AS r WHERE ((r.game_pk = l.game_pk) AND (r.feed_ts > l.feed_ts))))) UNION ALL (SELECT * FROM raw_game_feeds AS r WHERE (NOT EXISTS(SELECT 1 FROM live_game_feeds AS l WHERE ((l.game_pk = r.game_pk) AND (l.feed_ts >= r.feed_ts)))));
 
 CREATE VIEW pitch_outcomes AS SELECT *, (call_code IN ('S', 'W', 'M', 'T', 'F', 'L', 'X', 'D', 'E')) AS is_swing, (call_code IN ('S', 'W', 'M')) AS is_whiff, (call_code = 'C') AS is_called_strike, ("zone" BETWEEN 1 AND 9) AS is_in_zone, (pitch_type IN ('FF', 'SI')) AS is_fastball FROM team_pitches;
 

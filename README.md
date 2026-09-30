@@ -30,14 +30,14 @@ you ─ mlb/game-tables.rebuild.requested ▶ rebuild-game-tables ─┤  (mlb/g
 Realtime publishes go to the `scoreboard` and `game:{gamePk}` channels: `game` and `play` from `ingest-game-feed` as a live feed changes, and `stats` from `derive-game-tables` once derived tables and caches are fresh, which makes open pages refresh.
 
 - **Events carry ids, not data.** A game feed is ~670 KB, so events say *which* game changed and each function fetches or reads what it needs.
-- **Raw first.** `raw_game_feeds` stores the untouched JSON. Everything else is derived from it in SQL, so it can be rebuilt without refetching.
+- **Raw first.** `raw_game_feeds` (final games) and `live_game_feeds` (unfinished games) store the untouched JSON, read together through the `game_feeds` view. Everything else is derived from it in SQL, so it can be rebuilt without refetching.
 - **Every step is idempotent.** Unchanged feeds aren't re-stored, and re-deriving a game replaces its rows. The event id `game-feed-stored-{gamePk}-{feedTs}` makes Inngest drop repeats of the same feed version for 24 hours.
 - **Games derive independently.** A derive only replaces its own game's rows, so up to three run at once, one per game. Backfills and rebuilds skip ingest and derive: `backfill-games` stores and derives 25 games per run, and caches are revalidated once when the whole backfill ends.
 - **Adding a consumer doesn't touch the producer.** Anything else that should happen when a feed lands is another function triggered by `mlb/game-feed.stored`.
 
 ## Data flow
 
-1. **`raw_game_feeds`**: one untouched feed per game.
+1. **`game_feeds`**: one untouched feed per game, from `live_game_feeds` while it's unfinished and `raw_game_feeds` once final.
 2. **`sql/derive.sql`**: per-game tables (`plays`, `pitches`, `play_events`, `linescores`, `game_players`, `game_teams`, `game_player_bios`, `player_game_batting`, …). Each derive deletes and re-inserts one game's rows.
 3. **`lib/season-tables.ts`**: per-season tables built from those: `players`, `teams`, `game_starters`, and rollups like `player_season_counts`, `team_season_*` and the daily `event_leaders`. Each derive refreshes its game day's rollups; the whole season rebuilds (debounced) after.
 4. **`lib/stats/`, `lib/standings.ts`, …**: cached readers the pages call.

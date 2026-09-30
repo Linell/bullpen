@@ -62,8 +62,8 @@ WITH parsed AS (
       }]}
     }
   }') AS g
-  FROM raw_game_feeds
-  WHERE list_contains($game_pks::INTEGER[], game_pk)
+  FROM game_feeds
+  WHERE game_pk IN (SELECT unnest($game_pks::INTEGER[]))
 )
 SELECT
   game_pk,
@@ -85,34 +85,34 @@ FROM feed, unnest(all_plays) AS unnested(play)
 WHERE play.about.isComplete;
 
 DELETE FROM linescores
-WHERE list_contains($game_pks::INTEGER[], game_pk);
+WHERE game_pk IN (SELECT unnest($game_pks::INTEGER[]));
 
 DELETE FROM game_decisions
-WHERE list_contains($game_pks::INTEGER[], game_pk);
+WHERE game_pk IN (SELECT unnest($game_pks::INTEGER[]));
 
 DELETE FROM play_events
-WHERE list_contains($game_pks::INTEGER[], game_pk);
+WHERE game_pk IN (SELECT unnest($game_pks::INTEGER[]));
 
 DELETE FROM pitches
-WHERE list_contains($game_pks::INTEGER[], game_pk);
+WHERE game_pk IN (SELECT unnest($game_pks::INTEGER[]));
 
 DELETE FROM plays
-WHERE list_contains($game_pks::INTEGER[], game_pk);
+WHERE game_pk IN (SELECT unnest($game_pks::INTEGER[]));
 
 DELETE FROM game_players
-WHERE list_contains($game_pks::INTEGER[], game_pk);
+WHERE game_pk IN (SELECT unnest($game_pks::INTEGER[]));
 
 DELETE FROM game_teams
-WHERE list_contains($game_pks::INTEGER[], game_pk);
+WHERE game_pk IN (SELECT unnest($game_pks::INTEGER[]));
 
 DELETE FROM game_player_bios
-WHERE list_contains($game_pks::INTEGER[], game_pk);
+WHERE game_pk IN (SELECT unnest($game_pks::INTEGER[]));
 
 DELETE FROM player_game_batting
-WHERE list_contains($game_pks::INTEGER[], game_pk);
+WHERE game_pk IN (SELECT unnest($game_pks::INTEGER[]));
 
 DELETE FROM player_game_pitching
-WHERE list_contains($game_pks::INTEGER[], game_pk);
+WHERE game_pk IN (SELECT unnest($game_pks::INTEGER[]));
 
 INSERT INTO plays BY NAME
 WITH plays_with_ball_in_play AS (

@@ -41,6 +41,10 @@ function withTimeStamp(feed: Feed, timeStamp: string): Feed {
   return { ...feed, metaData: { ...feed.metaData, timeStamp } };
 }
 
+function withStatus(feed: Feed, abstractGameState: string): Feed {
+  return { ...feed, gameData: { ...feed.gameData, status: { ...feed.gameData.status, abstractGameState } } };
+}
+
 async function gamePageCounts(conn: DuckDBConnection) {
   return rows(
     conn,
@@ -434,6 +438,29 @@ describe("derive.sql", () => {
       gamePk: feed.gamePk,
     });
     expect(row.feed_ts).toBe(newest);
+  });
+
+  it("keeps unfinished games in live_game_feeds until they go final", async () => {
+    const db = await openDb(":memory:");
+    await migrate(db);
+    const [feed] = played;
+    const live = withStatus(withTimeStamp(feed, "99999999_000001"), "Live");
+    const count = async (table: string) =>
+      Number((await rows(db, `SELECT count(*) AS n FROM ${table} WHERE game_pk = $gamePk`, { gamePk: feed.gamePk }))[0].n);
+
+    expect((await storeFeed(db, live)).status).toBe("stored");
+    expect([await count("live_game_feeds"), await count("raw_game_feeds")]).toEqual([1, 0]);
+    expect((await storeFeed(db, withTimeStamp(feed, "99999999_000000"))).status).toBe("unchanged");
+
+    expect((await storeFeed(db, withTimeStamp(feed, "99999999_000002"))).status).toBe("stored");
+    expect([await count("live_game_feeds"), await count("raw_game_feeds")]).toEqual([0, 1]);
+    expect((await storeFeed(db, live)).status).toBe("unchanged");
+
+    const resumed = withStatus(withTimeStamp(feed, "99999999_000003"), "Live");
+    expect((await storeFeed(db, resumed)).status).toBe("stored");
+    const [stored] = await rows(db, "SELECT feed_ts FROM game_feeds WHERE game_pk = $gamePk", { gamePk: feed.gamePk });
+    expect(stored.feed_ts).toBe("99999999_000003");
+    db.closeSync();
   });
 
   it("stores and derives many games at once like one at a time", async () => {

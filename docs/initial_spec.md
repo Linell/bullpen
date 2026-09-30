@@ -43,7 +43,7 @@ Live UI updates use Inngest Realtime. For a live feed, `ingest-game-feed` diffs 
 3. Backfill the 2026 season in dev.
 4. Point prod at `md:bullpen`, deploy, and run the backfill there.
 
-Rollback: fix `derive.sql` and send `mlb/game-tables.rebuild.requested` to rebuild the derived tables from `raw_game_feeds`. Failed runs can also be replayed from the Inngest dashboard.
+Rollback: fix `derive.sql` and send `mlb/game-tables.rebuild.requested` to rebuild the derived tables from `game_feeds`. Failed runs can also be replayed from the Inngest dashboard.
 
 ## Context
 
@@ -65,7 +65,7 @@ Rollback: fix `derive.sql` and send `mlb/game-tables.rebuild.requested` to rebui
 
 TypeScript writes two tables. SQL derives the rest. Every table except `game_player_bios` has `season`. DDL lives in ordered files under `sql/`.
 
-- **`raw_game_feeds`** (TS): `game_pk` PK, `season`, `feed_ts`, `fetched_at`, `json JSON`. Holds the latest feed per game, replaced only by a newer `feed_ts`.
+- **`raw_game_feeds`** (TS): `game_pk` PK, `season`, `feed_ts`, `fetched_at`, `json JSON`. Holds the latest final feed per game, replaced only by a newer `feed_ts`. Unfinished games go to `live_game_feeds` (same columns) so live polls don't rewrite this table; the `game_feeds` view returns the newer of the two per game.
 - **`games`** (TS): `game_pk` PK, `season`, `official_date`, `game_type`, `game_number`, `abstract_state`, `coded_state`, `detailed_state`, `home_team_id`, `away_team_id`, `home_score`, `away_score`, `inning`, `inning_half`, `start_utc`, `venue_name`, `home_record`, `away_record`, `updated_at`.
 - **`plays`** (SQL): one row per completed play, keyed by `(game_pk, at_bat_index)`.
 - **`pitches`** (SQL): keyed by `(game_pk, at_bat_index, pitch_index)`, because `playId` can be null.
@@ -134,7 +134,7 @@ All functions open a short-lived database connection per step with `withConnecti
   - Returns `{ games, failed, plays, pitches }`.
 - **`ingest-game-feed`**
   - Triggered by `mlb/game.completed` or `mlb/game-feed.updated`, with concurrency `[{ limit: 6 }, { key: "event.data.gamePk", limit: 1 }]`: each game's feeds load one at a time, and at most six run at once.
-  - Step `fetch-and-store-feed`: fetch the feed and upsert `raw_game_feeds`, skipped unless `feed_ts` is newer than the stored one. `feed_ts` is `YYYYMMDD_HHMMSS`, so text comparison orders it, and a late older feed never replaces a newer one. Only a summary is returned, which keeps the 670 KB feed out of Inngest state.
+  - Step `fetch-and-store-feed`: fetch the feed and upsert it (`raw_game_feeds` if final, else `live_game_feeds`), skipped unless `feed_ts` is newer than the stored one. `feed_ts` is `YYYYMMDD_HHMMSS`, so text comparison orders it, and a late older feed never replaces a newer one. Only a summary is returned, which keeps the 670 KB feed out of Inngest state.
   - Step `emit-game-feed-stored`: emits `mlb/game-feed.stored` even when the feed was unchanged, since a retry after the store committed sees it as unchanged. The feed-version id drops a repeat of the same feed. To re-run a derive that ran out of retries, replay the run from the Inngest dashboard or send `mlb/game-tables.rebuild.requested`, whose ids use `event.ts`.
   - Inngest retries handle MLB errors, a 429 with `Retry-After` becomes a `RetryAfterError`, and any other 4xx a `NonRetriableError`.
   - Returns `{ gamePk, feedTs, status }`.
@@ -145,7 +145,7 @@ All functions open a short-lived database connection per step with `withConnecti
   - Returns `{ gamePk, plays, pitches }`.
 - **`rebuild-game-tables`**
   - Triggered by `mlb/game-tables.rebuild.requested`. `singleton: { mode: "skip" }` drops a request while a rebuild is running.
-  - Step `list-raw-feeds`: every `game_pk` in `raw_game_feeds`.
+  - Step `list-raw-feeds`: every `game_pk` in `game_feeds`.
   - Steps `backfill-games-1`, `backfill-games-2`, …: `step.invoke` of `backfill-games` with `refetch: false` for every 25 stored feeds.
   - Step `revalidate-tags`: clears the `games` and `stats` cache tags once.
   - Returns `{ feeds }`.

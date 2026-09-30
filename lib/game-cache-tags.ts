@@ -37,7 +37,7 @@ export async function gameCacheTags(gamePks: number[]) {
 export async function playerCacheTags(gamePks: number[]) {
   if (gamePks.length === 0) return [];
   const rows = await readRows<{ player_id: number }>(
-    `SELECT DISTINCT player_id FROM game_players WHERE played AND list_contains($gamePks::INTEGER[], game_pk)`,
+    `SELECT DISTINCT player_id FROM game_players WHERE played AND game_pk IN (SELECT unnest($gamePks::INTEGER[]))`,
     { gamePks: listValue(gamePks) },
   );
   return rows.map((row) => playerStatsTag(row.player_id));
