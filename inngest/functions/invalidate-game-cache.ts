@@ -2,7 +2,7 @@ import { revalidateTag } from "next/cache";
 import { gameCacheTags, playerCacheTags } from "@/lib/game-cache-tags";
 import { gameChannel, scoreboardChannel } from "../channels";
 import { inngest } from "../client";
-import { gameScheduleChanged, gameCompleted, gameProbablesChanged, gameTablesDerived } from "../events";
+import { gameCompleted, gameProbablesChanged, gameScheduleChanged, gameTablesDerived } from "../events";
 
 export const invalidateGameCache = inngest.createFunction(
   {
@@ -14,15 +14,21 @@ export const invalidateGameCache = inngest.createFunction(
     const gamePks = [...new Set(events.map((event) => event.data.gamePk))];
     const derivedEvents = events.filter((event) => event.name === gameTablesDerived.name);
     const derivedGamePks = [...new Set(derivedEvents.map((event) => event.data.gamePk))];
+    const otherGamePks = gamePks.filter((gamePk) => !derivedGamePks.includes(gamePk));
 
-    const gameTags = await step.run("load-game-tags", () => gameCacheTags(gamePks));
+    const gameTags = await step.run("load-game-tags", () => gameCacheTags(otherGamePks));
 
-    const playerTags = await step.run("load-player-tags", () => playerCacheTags(derivedGamePks));
+    const refreshedTags = await step.run("load-refreshed-tags", async () => [
+      ...(await gameCacheTags(derivedGamePks)),
+      ...(await playerCacheTags(derivedGamePks)),
+    ]);
 
-    const tags = [...gameTags, ...playerTags];
+    const staleTags = gameTags.filter((tag) => !refreshedTags.includes(tag));
 
     await step.run("revalidate-tags", () => {
-      for (const tag of tags) revalidateTag(tag, "max");
+      for (const tag of staleTags) revalidateTag(tag, "max");
+      // Clients refresh on the stats publish, so never serve stale.
+      for (const tag of refreshedTags) revalidateTag(tag, { expire: 0 });
     });
 
     if (derivedGamePks.length > 0) {
@@ -33,6 +39,6 @@ export const invalidateGameCache = inngest.createFunction(
       await step.realtime.publish(`publish-game-stats-${gamePk}`, gameChannel({ gamePk }).stats, { gamePk });
     }
 
-    return { gamePks: gamePks.length, tags: tags.length };
+    return { gamePks: gamePks.length, tags: staleTags.length + refreshedTags.length };
   },
 );

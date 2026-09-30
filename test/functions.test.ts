@@ -317,28 +317,30 @@ describe("backfill-games", () => {
 });
 
 describe("invalidate-game-cache", () => {
-  it("dedupes gamePks, revalidates each game's tags and announces derived games", async () => {
+  it("expires derived games' tags outright, lets the rest serve stale, and announces derived games", async () => {
     vi.mocked(revalidateTag).mockClear();
-    const gameTags = ["game:101", "day:2026-09-24", "team:110", "team:141"];
-    const playerTags = ["player-stats:500"];
+    const gameTags = ["game:102", "day:2026-09-24", "team:120"];
+    const refreshedTags = ["game:101", "day:2026-09-24", "team:110", "player-stats:500"];
     const t = new InngestTestEngine({ function: invalidateGameCache });
     const { ctx, result } = await t.execute({
       events: [
         { name: "mlb/game-schedule.changed", data: { gamePk: 101 } },
-        { name: "mlb/game.completed", data: { gamePk: 101 } },
         { name: "mlb/game-tables.derived", data: { gamePk: 101 } },
+        { name: "mlb/game-tables.derived", data: { gamePk: 101 } },
+        { name: "mlb/game.completed", data: { gamePk: 102 } },
       ],
       steps: [
         mockStep("load-game-tags", gameTags),
-        mockStep("load-player-tags", playerTags),
+        mockStep("load-refreshed-tags", refreshedTags),
         mockStep("publish-scoreboard-stats", { gamePks: [101] }),
         mockStep("publish-game-stats-101", { gamePk: 101 }),
       ],
     });
 
-    expect(result).toEqual({ gamePks: 1, tags: 5 });
-    expect(revalidateTag).toHaveBeenCalledTimes(5);
-    for (const tag of [...gameTags, ...playerTags]) expect(revalidateTag).toHaveBeenCalledWith(tag, "max");
+    expect(result).toEqual({ gamePks: 2, tags: 6 });
+    expect(revalidateTag).toHaveBeenCalledTimes(6);
+    for (const tag of ["game:102", "team:120"]) expect(revalidateTag).toHaveBeenCalledWith(tag, "max");
+    for (const tag of refreshedTags) expect(revalidateTag).toHaveBeenCalledWith(tag, { expire: 0 });
     expect(ctx.step.realtime.publish).toHaveBeenCalledWith(
       "publish-scoreboard-stats",
       expect.objectContaining({ channel: "scoreboard", topic: "stats" }),

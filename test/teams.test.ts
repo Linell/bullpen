@@ -53,4 +53,8 @@ describe("gameCacheTags", () => {
     expect(tags).toContain(`team:${HOME}`);
     expect(tags.filter((tag) => tag.startsWith("team-stats:"))).toEqual([]);
   });
+
+  it("returns no tags for no games", async () => {
+    expect(await gameCacheTags([])).toEqual([]);
+  });
 });

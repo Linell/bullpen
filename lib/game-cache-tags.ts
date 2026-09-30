@@ -12,6 +12,7 @@ type GameTagRow = {
 };
 
 export async function gameCacheTags(gamePks: number[]) {
+  if (gamePks.length === 0) return [];
   const rows = await readRows<GameTagRow>(
     `SELECT game_pk, strftime(official_date, '%Y-%m-%d') AS official_date, home_team_id, away_team_id, coded_state
      FROM games WHERE game_pk IN (${gamePks.join(",")})`,
