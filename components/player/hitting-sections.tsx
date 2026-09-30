@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { GameLogLink } from "@/components/player/game-log-link";
+import { PercentileBars, percentileBar } from "@/components/player/percentile-bars";
 import { PlayerSection } from "@/components/player/player-section";
 import { SeasonLine, StatList } from "@/components/player/season-line";
 import { SplitTable, type Split } from "@/components/player/split-table";
@@ -19,6 +20,7 @@ import {
   type HitterGameLogEntry,
   type HitterYear,
 } from "@/lib/stats/hitting";
+import { hittingPercentiles } from "@/lib/stats/percentiles";
 
 const gameLogColumns: StatColumn<HitterGameLogEntry>[] = [
   { label: "PA", value: (g) => g.plateAppearances },
@@ -50,6 +52,9 @@ export function HittingSections({ playerId, season }: { playerId: number; season
     <>
       <Suspense fallback={<CardSkeleton className="h-12" />}>
         <HittingSeasonLine playerId={playerId} season={season} />
+      </Suspense>
+      <Suspense fallback={<CardSkeleton className="h-48" />}>
+        <HittingPercentiles playerId={playerId} season={season} />
       </Suspense>
       <Accordion multiple defaultValue={["batted-ball"]}>
         <PlayerSection value="splits" title="Splits">
@@ -92,6 +97,38 @@ async function HittingSeasonLine({ playerId, season }: { playerId: number; seaso
         { key: "k", label: <Abbr term="K%" />, value: formatPercent(stats.strikeoutRate) },
         { key: "bb", label: <Abbr term="BB%" />, value: formatPercent(stats.walkRate) },
       ]}
+    />
+  );
+}
+
+async function HittingPercentiles({ playerId, season }: { playerId: number; season: number }) {
+  const { threshold, percentiles: p } = await hittingPercentiles(playerId, season);
+
+  return (
+    <PercentileBars
+      qualifier={`${threshold} PA`}
+      groups={
+        p && [
+          {
+            title: "Contact quality",
+            bars: [
+              percentileBar("Exit velo", p.exitVelocity, formatDecimal),
+              percentileBar("Hard-hit%", p.hardHitRate, formatPercent),
+              percentileBar("Barrel%", p.barrelRate, formatPercent),
+            ],
+          },
+          {
+            title: "Discipline",
+            bars: [
+              percentileBar("K%", p.strikeoutRate, formatPercent),
+              percentileBar("BB%", p.walkRate, formatPercent),
+              percentileBar("Whiff%", p.whiffRate, formatPercent),
+              percentileBar("Chase%", p.chaseRate, formatPercent),
+            ],
+          },
+          { title: "Results", bars: [percentileBar("OPS", p.ops, formatAverage)] },
+        ]
+      }
     />
   );
 }

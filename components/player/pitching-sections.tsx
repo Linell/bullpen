@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { GameLogLink } from "@/components/player/game-log-link";
+import { PercentileBars, percentileBar } from "@/components/player/percentile-bars";
 import { PlayerSection } from "@/components/player/player-section";
 import { SeasonLine } from "@/components/player/season-line";
 import { SplitTable, type Split } from "@/components/player/split-table";
@@ -19,6 +20,7 @@ import {
   type PitcherGameLogEntry,
   type PitcherYear,
 } from "@/lib/stats/pitching";
+import { pitchingPercentiles } from "@/lib/stats/percentiles";
 
 const formatWhole = (value: number | null) => formatDecimal(value, 0);
 const formatTwoDecimals = (value: number | null) => formatDecimal(value, 2);
@@ -59,6 +61,9 @@ export function PitchingSections({ playerId, season }: { playerId: number; seaso
       <Suspense fallback={<CardSkeleton className="h-12" />}>
         <PitchingSeasonLine playerId={playerId} season={season} />
       </Suspense>
+      <Suspense fallback={<CardSkeleton className="h-48" />}>
+        <PitchingPercentiles playerId={playerId} season={season} />
+      </Suspense>
       <Accordion multiple defaultValue={["arsenal"]}>
         <PlayerSection value="splits" title="Splits">
           <PitchingSplits playerId={playerId} season={season} />
@@ -92,6 +97,43 @@ async function PitchingSeasonLine({ playerId, season }: { playerId: number; seas
         { key: "csw", label: <Abbr term="CSW%" />, value: formatPercent(stats.cswRate) },
         { key: "velo", label: <Abbr term="FB velo" />, value: formatDecimal(stats.fastballVelocity) },
       ]}
+    />
+  );
+}
+
+async function PitchingPercentiles({ playerId, season }: { playerId: number; season: number }) {
+  const { threshold, percentiles: p } = await pitchingPercentiles(playerId, season);
+
+  return (
+    <PercentileBars
+      qualifier={`${threshold} BF`}
+      groups={
+        p && [
+          {
+            title: "Stuff",
+            bars: [
+              percentileBar("FB velo", p.fastballVelocity, formatDecimal),
+              percentileBar("Whiff%", p.whiffRate, formatPercent),
+              percentileBar("CSW%", p.cswRate, formatPercent),
+            ],
+          },
+          {
+            title: "Command",
+            bars: [
+              percentileBar("K%", p.strikeoutRate, formatPercent),
+              percentileBar("BB%", p.walkRate, formatPercent),
+              percentileBar("Chase%", p.chaseRate, formatPercent),
+            ],
+          },
+          {
+            title: "Contact allowed",
+            bars: [
+              percentileBar("Hard-hit%", p.hardHitRate, formatPercent),
+              percentileBar("Barrel%", p.barrelRate, formatPercent),
+            ],
+          },
+        ]
+      }
     />
   );
 }

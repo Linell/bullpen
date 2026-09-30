@@ -43,6 +43,7 @@ export const GLOSSARY = {
   OPS: "On-base plus slugging: OBP and SLG added together.",
   PA: "Plate appearances.",
   Pct: "Winning percentage: wins divided by games played.",
+  Percentile: "Rank among qualified players this season, from 0 to 100; higher is always better.",
   Pitch: "Pitch type.",
   Pitcher: "The pitcher on the play.",
   Pos: "Position played.",
