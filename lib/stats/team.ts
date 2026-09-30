@@ -19,14 +19,11 @@ import {
   type SwingDecisionCounts,
 } from "@/lib/stats/rates";
 import {
-  BATTER_SPLITS,
   BATTING_COUNTS,
-  PITCH_COUNTS,
   PITCH_MIX_COUNTS,
   PITCHING_COUNTS,
   TRACKED_SEASON,
   TRACKED_SEASON_GAMES,
-  SWING_DECISION_COUNTS,
   withNumbers,
 } from "@/lib/stats/sql";
 
@@ -97,68 +94,25 @@ export type PitchMixRow = { pitch_type: string; description: string; pitches: nu
 type HitterRow = BattingCounts & { player_id: number; name: string };
 type PitcherRow = PitchingCounts & { player_id: number; name: string };
 
+const TEAM_AND_LEAGUE = `season = $season::INTEGER AND (scope = 'league' OR team_id = $teamId::INTEGER)`;
+
 const BATTING_QUERY = withNumbers(
-  `WITH splits AS (
-    SELECT *, ${BATTER_SPLITS} AS split
-    FROM plate_appearances
-    WHERE ${TRACKED_SEASON}
-  )
-  SELECT split,
-    CASE grouping(batting_team_id) WHEN 1 THEN 'league' ELSE 'team' END AS scope,
-    greatest(count(DISTINCT batting_team_id), 1) AS teams,
-    ${BATTING_COUNTS}
-  FROM splits
-  WHERE split IS NOT NULL
-  GROUP BY GROUPING SETS ((split, batting_team_id), (split))
-  HAVING grouping(batting_team_id) = 1 OR batting_team_id = $teamId::INTEGER`,
+  `SELECT * EXCLUDE (season, team_id, games) FROM team_season_batting WHERE ${TEAM_AND_LEAGUE}`,
   ["split", "scope"],
 );
 
 const SWING_DECISIONS_QUERY = withNumbers(
-  `SELECT CASE grouping(batting_team_id) WHEN 1 THEN 'league' ELSE 'team' END AS scope,
-    ${SWING_DECISION_COUNTS}
-  FROM pitch_outcomes
-  WHERE ${TRACKED_SEASON}
-  GROUP BY GROUPING SETS ((batting_team_id), ())
-  HAVING grouping(batting_team_id) = 1 OR batting_team_id = $teamId::INTEGER`,
+  `SELECT * EXCLUDE (season, team_id) FROM team_season_swing_decisions WHERE ${TEAM_AND_LEAGUE}`,
   ["scope"],
 );
 
 const PITCHING_QUERY = withNumbers(
-  `SELECT
-    CASE
-      WHEN grouping(team_id) = 1 THEN 'league'
-      WHEN grouping(is_starter) = 1 THEN 'team'
-      WHEN is_starter THEN 'starters'
-      ELSE 'bullpen'
-    END AS scope,
-    greatest(count(DISTINCT team_id), 1) AS teams,
-    ${PITCHING_COUNTS}
-  FROM player_game_pitching
-  WHERE game_pk IN (${TRACKED_SEASON_GAMES})
-  GROUP BY GROUPING SETS ((team_id, is_starter), (team_id), ())
-  HAVING grouping(team_id) = 1 OR team_id = $teamId::INTEGER`,
+  `SELECT * EXCLUDE (season, team_id) FROM team_season_pitching WHERE ${TEAM_AND_LEAGUE}`,
   ["scope"],
 );
 
 const PITCHES_QUERY = withNumbers(
-  `WITH pitcher_roles AS (
-    SELECT game_pk, team_id AS fielding_team_id, player_id AS pitcher_id, is_starter
-    FROM player_game_pitching
-  )
-  SELECT
-    CASE
-      WHEN grouping(fielding_team_id) = 1 THEN 'league'
-      WHEN grouping(is_starter) = 1 THEN 'team'
-      WHEN is_starter THEN 'starters'
-      WHEN NOT is_starter THEN 'bullpen'
-    END AS scope,
-    ${PITCH_COUNTS}
-  FROM pitch_outcomes
-  LEFT JOIN pitcher_roles USING (game_pk, fielding_team_id, pitcher_id)
-  WHERE ${TRACKED_SEASON}
-  GROUP BY GROUPING SETS ((fielding_team_id, is_starter), (fielding_team_id), ())
-  HAVING grouping(fielding_team_id) = 1 OR fielding_team_id = $teamId::INTEGER`,
+  `SELECT * EXCLUDE (season, team_id) FROM team_season_pitches WHERE ${TEAM_AND_LEAGUE}`,
   ["scope"],
 );
 

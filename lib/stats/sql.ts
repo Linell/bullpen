@@ -15,10 +15,12 @@ export const BATTER_SPLITS = `unnest([
   CASE WHEN men_on_base IN ('RISP', 'Loaded') THEN 'risp' WHEN men_on_base = 'Empty' THEN 'bases_empty' END
 ])`;
 
-export const BATTED_BALL_COUNTS = `
+export const BATTED_BALL_TOTALS = `
   count(launch_speed) AS batted_balls,
   count(*) FILTER (launch_speed >= 95) AS hard_hits,
-  count(*) FILTER (is_barrel(launch_speed, launch_angle)) AS barrels,
+  count(*) FILTER (is_barrel(launch_speed, launch_angle)) AS barrels`;
+
+export const BATTED_BALL_COUNTS = `${BATTED_BALL_TOTALS},
   avg(launch_speed) AS exit_velocity`;
 
 export const BATTING_COUNTS = `
@@ -49,11 +51,13 @@ export const SWING_DECISION_COUNTS = `
   count(*) FILTER (is_in_zone AND is_swing) AS zone_swings,
   count(*) FILTER (is_in_zone AND is_swing AND NOT is_whiff) AS zone_contacts`;
 
-export const PITCH_COUNTS = `
+export const PITCH_TOTALS = `
   count(*) AS pitches,
   count(*) FILTER (is_swing) AS swings,
   count(*) FILTER (is_whiff) AS whiffs,
-  count(*) FILTER (is_called_strike) AS called_strikes,
+  count(*) FILTER (is_called_strike) AS called_strikes`;
+
+export const PITCH_COUNTS = `${PITCH_TOTALS},
   avg(start_speed) FILTER (is_fastball) AS fastball_velocity`;
 
 export const PITCH_MIX_COUNTS = `

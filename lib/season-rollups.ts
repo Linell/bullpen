@@ -1,6 +1,33 @@
 import "server-only";
 import type { DuckDBConnection } from "@duckdb/node-api";
 import { inTransaction, runStatements } from "@/lib/db";
+import { LIMITS } from "@/lib/leaderboard-range";
+import {
+  BATTED_BALL_TOTALS,
+  BATTER_SPLITS,
+  BATTING_COUNTS,
+  PITCH_COUNTS,
+  PITCH_TOTALS,
+  PITCHING_COUNTS,
+  SWING_DECISION_COUNTS,
+  TRACKED_GAME,
+  TRACKED_SEASON,
+  TRACKED_SEASON_GAMES,
+} from "@/lib/stats/sql";
+
+export const EVENT_BOARDS = {
+  longest_home_runs: {
+    credit: "batter",
+    value: "a.total_distance",
+    where: "e.is_in_play AND a.event_type = 'home_run' AND a.total_distance IS NOT NULL",
+  },
+  fastest_pitches: { credit: "pitcher", value: "e.start_speed", where: "e.start_speed IS NOT NULL" },
+  hardest_hit_balls: { credit: "batter", value: "e.launch_speed", where: "e.is_in_play AND e.launch_speed IS NOT NULL" },
+} satisfies Record<string, { credit: "batter" | "pitcher"; value: string; where: string }>;
+
+export type EventBoard = keyof typeof EVENT_BOARDS;
+
+const EVENT_LEADERS_PER_DAY = Math.max(...LIMITS);
 
 const SEASON_GAMES = `SELECT game_pk FROM games WHERE season = $season::INTEGER`;
 
@@ -45,7 +72,128 @@ const GAME_STARTERS = [
   GROUP BY ALL`,
 ];
 
-const STATEMENTS = [...PLAYERS, ...TEAMS, ...GAME_STARTERS];
+function eventLeaders(board: EventBoard) {
+  const { credit, value, where } = EVENT_BOARDS[board];
+  const opponent = credit === "batter" ? "pitcher" : "batter";
+  return `INSERT INTO event_leaders BY NAME
+  SELECT '${board}' AS board, g.season, g.official_date,
+    e.${credit}_id AS player_id, e.${opponent}_id AS opponent_id, ${value} AS value,
+    e.pitch_type_desc AS pitch_type, e.balls_before || '-' || e.strikes_before AS count,
+    CASE WHEN e.is_in_play THEN a.event ELSE e.call_desc END AS result,
+    e.game_pk, e.at_bat_index, e.pitch_index
+  FROM pitches e
+  JOIN games g ON g.game_pk = e.game_pk
+  LEFT JOIN plays a ON a.game_pk = e.game_pk AND a.at_bat_index = e.at_bat_index
+  WHERE g.season = $season::INTEGER AND ${TRACKED_GAME} AND ${where}
+  QUALIFY rank() OVER (
+    PARTITION BY g.official_date ORDER BY ${value} DESC, e.game_pk, e.at_bat_index, e.pitch_index
+  ) <= ${EVENT_LEADERS_PER_DAY}`;
+}
+
+function playerSeasonCounts(role: "batter" | "pitcher") {
+  return `INSERT INTO player_season_counts BY NAME
+  WITH batting AS (
+    SELECT ${role}_id AS player_id, ${BATTING_COUNTS}
+    FROM plate_appearances
+    WHERE ${TRACKED_SEASON}
+    GROUP BY ${role}_id
+  ),
+  pitch_totals AS (
+    SELECT ${role}_id AS player_id, ${PITCH_COUNTS}, ${SWING_DECISION_COUNTS}
+    FROM pitch_outcomes
+    WHERE ${TRACKED_SEASON}
+    GROUP BY ${role}_id
+  )
+  SELECT $season::INTEGER AS season, '${role}' AS role, *
+  FROM batting
+  LEFT JOIN pitch_totals USING (player_id)`;
+}
+
+const ROLLUP_TABLES = [
+  "event_leaders",
+  "batted_ball_days",
+  "pitch_outcome_days",
+  "player_season_counts",
+  "team_season_batting",
+  "team_season_swing_decisions",
+  "team_season_pitching",
+  "team_season_pitches",
+];
+
+const ROLLUPS = [
+  ...ROLLUP_TABLES.map((table) => `DELETE FROM ${table} WHERE season = $season::INTEGER`),
+  eventLeaders("longest_home_runs"),
+  eventLeaders("fastest_pitches"),
+  eventLeaders("hardest_hit_balls"),
+  `INSERT INTO batted_ball_days BY NAME
+  SELECT season, official_date, batter_id AS player_id, ${BATTED_BALL_TOTALS}, sum(launch_speed) AS launch_speed_sum
+  FROM plate_appearances
+  WHERE ${TRACKED_SEASON}
+  GROUP BY season, official_date, batter_id`,
+  `INSERT INTO pitch_outcome_days BY NAME
+  SELECT season, official_date, pitcher_id AS player_id, ${PITCH_TOTALS}, ${SWING_DECISION_COUNTS}
+  FROM pitch_outcomes
+  WHERE ${TRACKED_SEASON}
+  GROUP BY season, official_date, pitcher_id`,
+  playerSeasonCounts("batter"),
+  playerSeasonCounts("pitcher"),
+  `INSERT INTO team_season_batting BY NAME
+  WITH splits AS (
+    SELECT *, ${BATTER_SPLITS} AS split
+    FROM plate_appearances
+    WHERE ${TRACKED_SEASON}
+  )
+  SELECT $season::INTEGER AS season, batting_team_id AS team_id, split,
+    CASE grouping(batting_team_id) WHEN 1 THEN 'league' ELSE 'team' END AS scope,
+    greatest(count(DISTINCT batting_team_id), 1) AS teams,
+    count(DISTINCT game_pk) AS games,
+    ${BATTING_COUNTS}
+  FROM splits
+  WHERE split IS NOT NULL
+  GROUP BY GROUPING SETS ((split, batting_team_id), (split))`,
+  `INSERT INTO team_season_swing_decisions BY NAME
+  SELECT $season::INTEGER AS season, batting_team_id AS team_id,
+    CASE grouping(batting_team_id) WHEN 1 THEN 'league' ELSE 'team' END AS scope,
+    ${SWING_DECISION_COUNTS}
+  FROM pitch_outcomes
+  WHERE ${TRACKED_SEASON}
+  GROUP BY GROUPING SETS ((batting_team_id), ())`,
+  `INSERT INTO team_season_pitching BY NAME
+  SELECT $season::INTEGER AS season, team_id,
+    CASE
+      WHEN grouping(team_id) = 1 THEN 'league'
+      WHEN grouping(is_starter) = 1 THEN 'team'
+      WHEN is_starter THEN 'starters'
+      ELSE 'bullpen'
+    END AS scope,
+    greatest(count(DISTINCT team_id), 1) AS teams,
+    ${PITCHING_COUNTS}
+  FROM player_game_pitching
+  WHERE game_pk IN (${TRACKED_SEASON_GAMES})
+  GROUP BY GROUPING SETS ((team_id, is_starter), (team_id), ())`,
+  `INSERT INTO team_season_pitches BY NAME
+  WITH pitcher_roles AS (
+    SELECT game_pk, team_id AS fielding_team_id, player_id AS pitcher_id, is_starter
+    FROM player_game_pitching
+  ),
+  scoped AS (
+    SELECT $season::INTEGER AS season, fielding_team_id AS team_id,
+      CASE
+        WHEN grouping(fielding_team_id) = 1 THEN 'league'
+        WHEN grouping(is_starter) = 1 THEN 'team'
+        WHEN is_starter THEN 'starters'
+        WHEN NOT is_starter THEN 'bullpen'
+      END AS scope,
+      ${PITCH_COUNTS}
+    FROM pitch_outcomes
+    LEFT JOIN pitcher_roles USING (game_pk, fielding_team_id, pitcher_id)
+    WHERE ${TRACKED_SEASON}
+    GROUP BY GROUPING SETS ((fielding_team_id, is_starter), (fielding_team_id), ())
+  )
+  SELECT * FROM scoped WHERE scope IS NOT NULL`,
+];
+
+const STATEMENTS = [...PLAYERS, ...TEAMS, ...GAME_STARTERS, ...ROLLUPS];
 
 export async function refreshSeasonRollups(conn: DuckDBConnection, season: number) {
   await inTransaction(conn, () => runStatements(conn, STATEMENTS.join(";\n"), { season }));

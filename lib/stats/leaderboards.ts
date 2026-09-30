@@ -15,15 +15,8 @@ import {
   type PitchingStats,
   type Rate,
 } from "@/lib/stats/rates";
-import {
-  BATTED_BALL_COUNTS,
-  BOX_BATTING_COUNTS,
-  PITCH_COUNTS,
-  PITCHING_COUNTS,
-  SWING_DECISION_COUNTS,
-  TRACKED_GAME,
-  withNumbers,
-} from "@/lib/stats/sql";
+import type { EventBoard } from "@/lib/season-rollups";
+import { BOX_BATTING_COUNTS, PITCHING_COUNTS, TRACKED_GAME, withNumbers } from "@/lib/stats/sql";
 
 export type LeaderboardQuery = {
   from: string;
@@ -115,7 +108,9 @@ export const INNINGS_PER_GAME_DAY = 1;
 export const BATTED_BALLS_PER_GAME_DAY = 1;
 export const PITCHES_PER_GAME_DAY = 10;
 
-const IN_RANGE = `official_date BETWEEN $from::DATE AND $to::DATE AND ${TRACKED_GAME}`;
+const DAYS_IN_RANGE = `official_date BETWEEN $from::DATE AND $to::DATE`;
+
+const IN_RANGE = `${DAYS_IN_RANGE} AND ${TRACKED_GAME}`;
 
 const GAME_DAYS = `(SELECT count(DISTINCT official_date) FROM games WHERE ${IN_RANGE})`;
 
@@ -123,56 +118,62 @@ const GAMES_IN_RANGE = `SELECT game_pk FROM games WHERE ${IN_RANGE}`;
 
 const playerName = (name: string, id: string) => `coalesce(${name}, 'Player ' || ${id}::VARCHAR)`;
 
-function eventQuery(credit: "batter" | "pitcher", value: string, where: string) {
-  const opponent = credit === "batter" ? "pitcher" : "batter";
+function eventQuery(board: EventBoard) {
   return `
-  SELECT e.${credit}_id AS player_id, ${playerName("p.full_name", `e.${credit}_id`)} AS name,
-    e.${opponent}_id AS opponent_id, ${playerName("o.full_name", `e.${opponent}_id`)} AS opponent_name,
-    ${value} AS value, e.pitch_type_desc AS pitch_type, e.balls_before || '-' || e.strikes_before AS count,
-    CASE WHEN e.is_in_play THEN a.event ELSE e.call_desc END AS result,
-    e.game_pk, strftime(g.official_date, '%Y-%m-%d') AS date, away.abbreviation AS away, home.abbreviation AS home
-  FROM pitches e
-  JOIN games g ON g.game_pk = e.game_pk
-  LEFT JOIN plays a ON a.game_pk = e.game_pk AND a.at_bat_index = e.at_bat_index
-  LEFT JOIN players p ON p.player_id = e.${credit}_id
-  LEFT JOIN players o ON o.player_id = e.${opponent}_id
+  SELECT l.player_id, ${playerName("p.full_name", "l.player_id")} AS name,
+    l.opponent_id, ${playerName("o.full_name", "l.opponent_id")} AS opponent_name,
+    l.value, l.pitch_type, l.count, l.result,
+    l.game_pk, strftime(l.official_date, '%Y-%m-%d') AS date, away.abbreviation AS away, home.abbreviation AS home
+  FROM event_leaders l
+  JOIN games g ON g.game_pk = l.game_pk
+  LEFT JOIN players p ON p.player_id = l.player_id
+  LEFT JOIN players o ON o.player_id = l.opponent_id
   LEFT JOIN game_teams away ON away.game_pk = g.game_pk AND away.team_id = g.away_team_id
   LEFT JOIN game_teams home ON home.game_pk = g.game_pk AND home.team_id = g.home_team_id
-  WHERE ${IN_RANGE} AND ${where}
-  ORDER BY value DESC, g.official_date, e.game_pk, e.at_bat_index, e.pitch_index
+  WHERE l.board = '${board}' AND l.official_date BETWEEN $from::DATE AND $to::DATE
+  ORDER BY l.value DESC, l.official_date, l.game_pk, l.at_bat_index, l.pitch_index
   LIMIT $limit::INTEGER`;
 }
 
-const LONGEST_HOME_RUNS_QUERY = eventQuery(
-  "batter",
-  "a.total_distance",
-  "e.is_in_play AND a.event_type = 'home_run' AND a.total_distance IS NOT NULL",
-);
+const LONGEST_HOME_RUNS_QUERY = eventQuery("longest_home_runs");
 
-const FASTEST_PITCHES_QUERY = eventQuery("pitcher", "e.start_speed", "e.start_speed IS NOT NULL");
+const FASTEST_PITCHES_QUERY = eventQuery("fastest_pitches");
 
-const HARDEST_HIT_BALLS_QUERY = eventQuery("batter", "e.launch_speed", "e.is_in_play AND e.launch_speed IS NOT NULL");
+const HARDEST_HIT_BALLS_QUERY = eventQuery("hardest_hit_balls");
 
 const BARREL_RATES_QUERY = withNumbers(
-  `SELECT pa.batter_id AS player_id, ${playerName("any_value(pl.full_name)", "pa.batter_id")} AS name, ${BATTED_BALL_COUNTS}
-  FROM plate_appearances pa
-  LEFT JOIN players pl ON pl.player_id = pa.batter_id
-  WHERE ${IN_RANGE}
-  GROUP BY pa.batter_id
-  HAVING batted_balls >= ${BATTED_BALLS_PER_GAME_DAY} * ${GAME_DAYS}
+  `SELECT * FROM (
+    SELECT d.player_id, ${playerName("any_value(pl.full_name)", "d.player_id")} AS name,
+      sum(d.batted_balls) AS batted_balls,
+      sum(d.hard_hits) AS hard_hits,
+      sum(d.barrels) AS barrels,
+      sum(d.launch_speed_sum) / nullif(sum(d.batted_balls), 0) AS exit_velocity
+    FROM batted_ball_days d
+    LEFT JOIN players pl ON pl.player_id = d.player_id
+    WHERE ${DAYS_IN_RANGE}
+    GROUP BY d.player_id
+  )
+  WHERE batted_balls >= ${BATTED_BALLS_PER_GAME_DAY} * ${GAME_DAYS}
   ORDER BY barrels / batted_balls DESC, hard_hits / batted_balls DESC, batted_balls DESC, player_id
   LIMIT $limit::INTEGER`,
   ["player_id", "name"],
 );
 
 const WHIFF_RATES_QUERY = withNumbers(
-  `SELECT po.pitcher_id AS player_id, ${playerName("any_value(pl.full_name)", "po.pitcher_id")} AS name,
-    ${PITCH_COUNTS}, ${SWING_DECISION_COUNTS}
-  FROM pitch_outcomes po
-  LEFT JOIN players pl ON pl.player_id = po.pitcher_id
-  WHERE ${IN_RANGE}
-  GROUP BY po.pitcher_id
-  HAVING pitches >= ${PITCHES_PER_GAME_DAY} * ${GAME_DAYS} AND swings > 0
+  `SELECT * FROM (
+    SELECT d.player_id, ${playerName("any_value(pl.full_name)", "d.player_id")} AS name,
+      sum(d.pitches) AS pitches,
+      sum(d.swings) AS swings,
+      sum(d.whiffs) AS whiffs,
+      sum(d.called_strikes) AS called_strikes,
+      sum(d.out_of_zone_pitches) AS out_of_zone_pitches,
+      sum(d.chases) AS chases
+    FROM pitch_outcome_days d
+    LEFT JOIN players pl ON pl.player_id = d.player_id
+    WHERE ${DAYS_IN_RANGE}
+    GROUP BY d.player_id
+  )
+  WHERE pitches >= ${PITCHES_PER_GAME_DAY} * ${GAME_DAYS} AND swings > 0
   ORDER BY whiffs / swings DESC, (called_strikes + whiffs) / pitches DESC, pitches DESC, player_id
   LIMIT $limit::INTEGER`,
   ["player_id", "name"],
