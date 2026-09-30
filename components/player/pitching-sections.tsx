@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { GameLogLink } from "@/components/player/game-log-link";
-import { MovementPlot, type MovementPitch } from "@/components/player/movement-plot";
+import { LazyMovementPlot } from "@/components/player/lazy-movement-plot";
+import type { MovementPitch } from "@/components/player/movement-plot";
 import { PercentileBars, percentileBar } from "@/components/player/percentile-bars";
 import { PlayerSection } from "@/components/player/player-section";
 import { SeasonLine } from "@/components/player/season-line";
@@ -178,7 +179,7 @@ async function Arsenal({ playerId, season }: { playerId: number; season: number 
 
   return (
     <div className="grid gap-4">
-      {movement.length >= 2 && <MovementPlot pitches={movement} league={leagueMovement} pitchHand={pitchHand} />}
+      {movement.length >= 2 && <LazyMovementPlot pitches={movement} league={leagueMovement} pitchHand={pitchHand} />}
       <StatGrid
         rowLabel="Pitch"
         rows={arsenal}

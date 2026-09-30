@@ -2,7 +2,7 @@ import { PlayerLink } from "@/components/player-link";
 import { Abbr } from "@/components/ui/abbr";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { RunDiffChart } from "@/components/team/run-diff-chart";
+import { LazyRunDiffChart } from "@/components/team/lazy-run-diff-chart";
 import { formatPercent } from "@/lib/format";
 import type { WinLoss } from "@/lib/team-summary";
 import type { AbsChallenges, InningRuns, RelieverWorkload, SituationalRecords, TeamTrends } from "@/lib/team-trends";
@@ -176,7 +176,7 @@ export function TeamTrendsSection({ trends, season }: { trends: TeamTrends; seas
       <Card size="sm">
         <CardContent className="flex flex-col gap-3">
           <h2 className="text-lg">Run differential</h2>
-          <RunDiffChart points={trends.runDiffByGame} />
+          <LazyRunDiffChart points={trends.runDiffByGame} />
         </CardContent>
       </Card>
       <SituationalGrid situational={trends.situational} />
