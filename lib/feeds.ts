@@ -9,8 +9,6 @@ type FeedHeader = {
   gameData?: { game?: { season?: unknown } };
 };
 
-let deriveSql: Promise<string> | undefined;
-
 export async function storeFeed(conn: DuckDBConnection, feed: unknown) {
   const { gamePk, feedTs } = readFeedHeader(feed);
   const stored = await storeFeeds(conn, [feed]);
@@ -72,11 +70,7 @@ function readFeedHeader(feed: unknown) {
 }
 
 async function derive(conn: DuckDBConnection, gamePks: number[]) {
-  deriveSql ??= readSql("derive.sql").catch((err) => {
-    deriveSql = undefined;
-    throw err;
-  });
-  await runStatements(conn, await deriveSql, { game_pks: listValue(gamePks) });
+  await runStatements(conn, await readSql("derive.sql"), { game_pks: listValue(gamePks) });
 
   const counts = await conn.runAndReadAll(
     `SELECT
