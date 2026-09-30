@@ -15,7 +15,7 @@ export const ingestGameFeed = inngest.createFunction(
   async ({ event, step }) => {
     const { gamePk } = event.data;
 
-    const { feedTs, status, diff } = await step.run("load-game-feed", async () => {
+    const { feedTs, status, diff } = await step.run("fetch-and-store-feed", async () => {
       const feed = await fetchFeed(gamePk);
       return withConnection(async (conn) => {
         const previous = await readFeed(conn, gamePk);

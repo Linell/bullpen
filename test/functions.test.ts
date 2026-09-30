@@ -201,7 +201,7 @@ describe("ingest-game-feed", () => {
     const t = new InngestTestEngine({ function: ingestGameFeed });
     const { ctx, result } = await t.execute({
       events: [{ name: "mlb/game.completed", data: { gamePk: 101 } }],
-      steps: [mockStep("load-game-feed", stored), mockSend("emit-game-feed-stored")],
+      steps: [mockStep("fetch-and-store-feed", stored), mockSend("emit-game-feed-stored")],
     });
 
     expect(result).toEqual(stored);
@@ -216,7 +216,7 @@ describe("ingest-game-feed", () => {
     const t = new InngestTestEngine({ function: ingestGameFeed });
     const { ctx, result } = await t.execute({
       events: [{ name: "mlb/game.completed", data: { gamePk: 101 } }],
-      steps: [mockStep("load-game-feed", unchanged)],
+      steps: [mockStep("fetch-and-store-feed", unchanged)],
     });
 
     expect(result).toEqual(unchanged);
@@ -227,7 +227,7 @@ describe("ingest-game-feed", () => {
     const t = new InngestTestEngine({ function: ingestGameFeed });
     const { ctx, result } = await t.execute({
       events: [{ name: "mlb/game-feed.updated", data: { gamePk: 101 } }],
-      steps: [mockStep("load-game-feed", stored), mockSend("emit-game-feed-stored")],
+      steps: [mockStep("fetch-and-store-feed", stored), mockSend("emit-game-feed-stored")],
     });
 
     expect(result).toEqual(stored);
