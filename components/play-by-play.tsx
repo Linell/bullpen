@@ -1,7 +1,7 @@
 import { ArrowLeftRight, ChevronDown } from "lucide-react";
 import { Fragment } from "react";
 import { PlayerLink } from "@/components/player-link";
-import { StrikeZone, RESULT_FILL } from "@/components/strike-zone";
+import { StrikeZone } from "@/components/strike-zone";
 import { Abbr } from "@/components/ui/abbr";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import {
   halfInningLabel,
   type HalfInning,
   type Pitch,
+  type PitchResult,
   type PitchingChange,
   type PlateAppearance,
   type Step,
@@ -16,14 +17,20 @@ import {
 import type { Team } from "@/lib/scoreboard";
 import { cn } from "@/lib/utils";
 
+const RESULT_BG: Record<PitchResult, string> = {
+  ball: "bg-chart-4",
+  strike: "bg-chart-2",
+  in_play: "bg-chart-1",
+};
+
 function PitchDot({ pitch }: { pitch: Pitch }) {
   return (
-    <svg viewBox="-10 -10 20 20" className="size-5 shrink-0" aria-hidden>
-      <circle r={9} className={cn(RESULT_FILL[pitch.result], "stroke-border")} strokeWidth={1.5} />
-      <text textAnchor="middle" dominantBaseline="central" fontSize={11} className="fill-main-foreground font-heading">
-        {pitch.number}
-      </text>
-    </svg>
+    <span
+      aria-hidden
+      className={cn("grid size-5 shrink-0 place-items-center rounded-full border-2 border-border font-heading text-[11px] text-main-foreground", RESULT_BG[pitch.result])}
+    >
+      {pitch.number}
+    </span>
   );
 }
 
@@ -32,9 +39,9 @@ function PitchItem({ pitch }: { pitch: Pitch }) {
     <li className="flex items-start gap-2">
       <PitchDot pitch={pitch} />
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="font-heading tabular-nums">{pitch.count}</span>
+        <span className="font-heading">{pitch.count}</span>
         <span>{pitch.type ?? "Unknown pitch"}</span>
-        {pitch.speed != null && <span className="tabular-nums opacity-70">{pitch.speed.toFixed(1)} mph</span>}
+        {pitch.speed != null && <span className="opacity-70">{`${pitch.speed.toFixed(1)} mph`}</span>}
         <span className="opacity-70">{pitch.call}</span>
         {pitch.abs && <Badge variant="neutral">
             <Abbr term="ABS" /> {pitch.abs}
@@ -110,7 +117,7 @@ function PlateAppearanceItem({ pa, away, home, season }: Sides & { pa: PlateAppe
         </summary>
         <div className="flex items-start gap-4 pb-4">
           {pitches.length > 0 && <StrikeZone pitches={pitches} />}
-          <ol className="flex min-w-0 flex-1 flex-col gap-2 text-xs">
+          <ol className="flex min-w-0 flex-1 flex-col gap-2 text-xs tabular-nums">
             {pa.steps.map((step) => (
               <StepItem key={`${step.kind}-${step.index}`} step={step} />
             ))}

@@ -1,11 +1,10 @@
 import type { Pitch, PitchResult } from "@/lib/play-by-play";
 import { PLATE_HALF_WIDTH, SCALE, VIEW, toSvgX, toSvgY } from "@/lib/strike-zone";
-import { cn } from "@/lib/utils";
 
 const DOT_RADIUS = 13;
 const DEFAULT_ZONE = { top: 3.4, bottom: 1.6 };
 
-export const RESULT_FILL: Record<PitchResult, string> = {
+const RESULT_FILL: Record<PitchResult, string> = {
   ball: "fill-chart-4",
   strike: "fill-chart-2",
   in_play: "fill-chart-1",
@@ -35,27 +34,18 @@ export function StrikeZone({ pitches }: { pitches: Pitch[] }) {
         className="fill-secondary-background stroke-foreground"
         strokeWidth={4}
       />
-      {dots.map(({ pitch, x, y }) => (
-        <g key={pitch.index}>
-          <circle
-            cx={x}
-            cy={y}
-            r={DOT_RADIUS}
-            className={cn(RESULT_FILL[pitch.result], "stroke-border")}
-            strokeWidth={2}
-          />
-          <text
-            x={x}
-            y={y}
-            textAnchor="middle"
-            dominantBaseline="central"
-            fontSize={15}
-            className="fill-main-foreground font-heading"
-          >
+      <g className="stroke-border" strokeWidth={2}>
+        {dots.map(({ pitch, x, y }) => (
+          <circle key={pitch.index} cx={x} cy={y} r={DOT_RADIUS} className={RESULT_FILL[pitch.result]} />
+        ))}
+      </g>
+      <g textAnchor="middle" fontSize={15} className="fill-main-foreground font-heading">
+        {dots.map(({ pitch, x, y }) => (
+          <text key={pitch.index} x={x} y={y} dominantBaseline="central">
             {pitch.number}
           </text>
-        </g>
-      ))}
+        ))}
+      </g>
     </svg>
   );
 }
