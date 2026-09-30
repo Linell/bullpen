@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { Leaders, LeadersSkeleton } from "@/components/leaders";
+import { DailyLeaders, DailyLeadersSkeleton } from "@/components/daily-leaders";
 import { Scoreboard, ScoreboardSkeleton } from "@/components/scoreboard";
 import { todayOfficialDate } from "@/lib/dates";
 
@@ -13,7 +13,7 @@ export default function Home() {
         </Suspense>
       </div>
       <aside>
-        <Suspense fallback={<LeadersSkeleton />}>
+        <Suspense fallback={<DailyLeadersSkeleton />}>
           <TodayLeaders />
         </Suspense>
       </aside>
@@ -28,5 +28,5 @@ async function TodayScoreboard() {
 
 async function TodayLeaders() {
   await connection();
-  return <Leaders date={todayOfficialDate()} />;
+  return <DailyLeaders date={todayOfficialDate()} />;
 }

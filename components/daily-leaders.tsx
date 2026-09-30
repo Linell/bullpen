@@ -69,7 +69,7 @@ function LeaderTile({
   );
 }
 
-export async function Leaders({ date }: { date: string }) {
+export async function DailyLeaders({ date }: { date: string }) {
   const query = { from: date, to: date, limit: 3 };
   const [homeRuns, pitches, battedBalls] = await Promise.all([
     longestHomeRuns(query),
@@ -100,7 +100,7 @@ export async function Leaders({ date }: { date: string }) {
   );
 }
 
-export function LeadersSkeleton() {
+export function DailyLeadersSkeleton() {
   return (
     <section className="flex flex-col gap-3">
       <Skeleton className="h-8 w-48" />
