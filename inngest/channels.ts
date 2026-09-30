@@ -1,16 +1,14 @@
 import { realtime, staticSchema } from "inngest";
 import type { LiveGame, LivePlays } from "@/lib/live-game";
 
-export const SCOREBOARD_TOPICS = ["game", "play", "derived"] as const;
-
-export const GAME_TOPICS = ["game", "play", "derived"] as const;
+export const LIVE_TOPICS = ["game", "play", "stats"] as const;
 
 export const scoreboardChannel = realtime.channel({
   name: "scoreboard",
   topics: {
     game: { schema: staticSchema<LiveGame>() },
     play: { schema: staticSchema<LivePlays>() },
-    derived: { schema: staticSchema<{ gamePks: number[] }>() },
+    stats: { schema: staticSchema<{ gamePks: number[] }>() },
   },
 });
 
@@ -19,6 +17,6 @@ export const gameChannel = realtime.channel({
   topics: {
     game: { schema: staticSchema<LiveGame>() },
     play: { schema: staticSchema<LivePlays>() },
-    derived: { schema: staticSchema<{ gamePk: number }>() },
+    stats: { schema: staticSchema<{ gamePk: number }>() },
   },
 });

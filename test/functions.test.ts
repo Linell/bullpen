@@ -331,8 +331,8 @@ describe("invalidate-game-cache", () => {
       steps: [
         mockStep("load-game-tags", gameTags),
         mockStep("load-player-tags", playerTags),
-        mockStep("publish-scoreboard-derived", { gamePks: [101] }),
-        mockStep("publish-game-derived-101", { gamePk: 101 }),
+        mockStep("publish-scoreboard-stats", { gamePks: [101] }),
+        mockStep("publish-game-stats-101", { gamePk: 101 }),
       ],
     });
 
@@ -340,8 +340,8 @@ describe("invalidate-game-cache", () => {
     expect(revalidateTag).toHaveBeenCalledTimes(5);
     for (const tag of [...gameTags, ...playerTags]) expect(revalidateTag).toHaveBeenCalledWith(tag, "max");
     expect(ctx.step.realtime.publish).toHaveBeenCalledWith(
-      "publish-scoreboard-derived",
-      expect.objectContaining({ channel: "scoreboard", topic: "derived" }),
+      "publish-scoreboard-stats",
+      expect.objectContaining({ channel: "scoreboard", topic: "stats" }),
       { gamePks: [101] },
     );
   });

@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import { GameHeader } from "@/components/game-header";
 import { LinescoreTable } from "@/components/linescore-table";
 import { PlaysTicker } from "@/components/plays-ticker";
-import { GAME_TOPICS, gameChannel } from "@/inngest/channels";
+import { gameChannel, LIVE_TOPICS } from "@/inngest/channels";
 import { gameToken } from "@/inngest/realtime-tokens";
 import type { Decisions } from "@/lib/game-detail";
 import { toLinescore, type Linescore } from "@/lib/linescore";
@@ -27,17 +27,17 @@ export function LiveGameHeader({
   const router = useRouter();
   const { messages } = useRealtime({
     channel: gameChannel({ gamePk: game.gamePk }),
-    topics: GAME_TOPICS,
+    topics: LIVE_TOPICS,
     token: () => gameToken(game.gamePk),
     enabled: !game.completed,
     autoCloseOnTerminal: false,
     historyLimit: 500,
   });
 
-  const derived = messages.byTopic.derived;
+  const stats = messages.byTopic.stats;
   useEffect(() => {
-    if (derived) router.refresh();
-  }, [derived, router]);
+    if (stats) router.refresh();
+  }, [stats, router]);
 
   const live = messages.byTopic.game?.data;
   const patched = patchGame(game, live);

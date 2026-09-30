@@ -26,11 +26,11 @@ export const invalidateGameCache = inngest.createFunction(
     });
 
     if (derivedGamePks.length > 0) {
-      await step.realtime.publish("publish-scoreboard-derived", scoreboardChannel.derived, { gamePks: derivedGamePks });
+      await step.realtime.publish("publish-scoreboard-stats", scoreboardChannel.stats, { gamePks: derivedGamePks });
     }
 
     for (const gamePk of derivedGamePks) {
-      await step.realtime.publish(`publish-game-derived-${gamePk}`, gameChannel({ gamePk }).derived, { gamePk });
+      await step.realtime.publish(`publish-game-stats-${gamePk}`, gameChannel({ gamePk }).stats, { gamePk });
     }
 
     return { gamePks: gamePks.length, tags: tags.length };
