@@ -2,10 +2,10 @@ import { revalidateTag } from "next/cache";
 import { withConnection } from "@/lib/db";
 import { deriveGame } from "@/lib/feeds";
 import { gameCacheTags, playerCacheTags } from "@/lib/game-cache-tags";
-import { refreshGameDayRollups } from "@/lib/season-rollups";
+import { refreshGameDayRollups } from "@/lib/season-tables";
 import { gameChannel, scoreboardChannel } from "../channels";
 import { inngest } from "../client";
-import { gameFeedStored, seasonRollupsRebuildRequested } from "../events";
+import { gameFeedStored, seasonTablesRebuildRequested } from "../events";
 
 export const deriveGameTables = inngest.createFunction(
   {
@@ -41,8 +41,8 @@ export const deriveGameTables = inngest.createFunction(
 
     if (seasons.length > 0) {
       await step.sendEvent(
-        "emit-season-rollups-rebuild-requested",
-        seasons.map((season) => seasonRollupsRebuildRequested.create({ season })),
+        "emit-season-tables-rebuild-requested",
+        seasons.map((season) => seasonTablesRebuildRequested.create({ season })),
       );
     }
 

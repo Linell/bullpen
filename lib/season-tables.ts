@@ -211,19 +211,19 @@ const STATEMENTS = [...PLAYERS, ...TEAMS, ...GAME_STARTERS, ...ROLLUPS].join(";\
 
 const SEASONS = "SELECT season FROM games UNION SELECT season FROM game_teams UNION SELECT season FROM plays ORDER BY season";
 
-function writeSeasonRollups(conn: DuckDBConnection, season: number) {
+function writeSeasonTables(conn: DuckDBConnection, season: number) {
   return runStatements(conn, STATEMENTS, { season });
 }
 
-export async function refreshSeasonRollups(conn: DuckDBConnection, season: number) {
-  await inTransaction(conn, () => writeSeasonRollups(conn, season));
+export async function rebuildSeasonTables(conn: DuckDBConnection, season: number) {
+  await inTransaction(conn, () => writeSeasonTables(conn, season));
 }
 
 export async function refreshGameDayRollups(conn: DuckDBConnection, gamePk: number) {
   await inTransaction(conn, () => runStatements(conn, dayRollups(GAME_DAY_SCOPE).join(";\n"), { gamePk }));
 }
 
-export async function writeAllSeasonRollups(conn: DuckDBConnection) {
+export async function rebuildAllSeasonTables(conn: DuckDBConnection) {
   const reader = await conn.runAndReadAll(SEASONS);
-  for (const { season } of reader.getRowObjectsJS()) await writeSeasonRollups(conn, Number(season));
+  for (const { season } of reader.getRowObjectsJS()) await writeSeasonTables(conn, Number(season));
 }

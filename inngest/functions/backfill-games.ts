@@ -2,7 +2,7 @@ import { withConnection } from "@/lib/db";
 import { deriveGames, storeFeeds } from "@/lib/feeds";
 import { fetchFeed } from "@/lib/mlb";
 import { inngest } from "../client";
-import { gamesBackfillRequested, seasonRollupsRebuildRequested } from "../events";
+import { gamesBackfillRequested, seasonTablesRebuildRequested } from "../events";
 
 const GAMES_PER_BACKFILL = 25;
 
@@ -30,8 +30,8 @@ export const backfillGames = inngest.createFunction(
 
     if (seasons.length > 0) {
       await step.sendEvent(
-        "emit-season-rollups-rebuild-requested",
-        seasons.map((season) => seasonRollupsRebuildRequested.create({ season })),
+        "emit-season-tables-rebuild-requested",
+        seasons.map((season) => seasonTablesRebuildRequested.create({ season })),
       );
     }
 

@@ -2,7 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import type { DuckDBConnection } from "@duckdb/node-api";
 // Relative .ts imports: scripts/migrate.ts runs in bare node.
-import { writeAllSeasonRollups } from "./season-rollups.ts";
+import { rebuildAllSeasonTables } from "./season-tables.ts";
 import { inTransaction } from "./statements.ts";
 
 export const SQL_DIR = path.join(process.cwd(), "sql");
@@ -24,7 +24,7 @@ export async function migrate(conn: DuckDBConnection, log: (message: string) => 
       await conn.run(await readFile(path.join(SQL_DIR, file), "utf8"));
       await conn.run("INSERT INTO schema_migrations VALUES ($file, now())", { file });
     }
-    log("Rebuilding season rollups");
-    await writeAllSeasonRollups(conn);
+    log("Rebuilding season tables");
+    await rebuildAllSeasonTables(conn);
   });
 }

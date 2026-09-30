@@ -4,7 +4,7 @@ vi.mock("next/cache", () => ({ cacheTag: () => {}, cacheLife: () => {} }));
 
 process.env.DUCKDB_URL = ":memory:";
 
-const { writeAllSeasonRollups } = await import("@/lib/season-rollups");
+const { rebuildAllSeasonTables } = await import("@/lib/season-tables");
 const { withConnection } = await import("@/lib/db");
 const { migrate } = await import("@/lib/migrate");
 const { hittingPercentiles, pitchingPercentiles } = await import("@/lib/stats/percentiles");
@@ -79,7 +79,7 @@ beforeAll(async () => {
         balls_before, strikes_before, outs_before, zone, call_code, pitch_type, start_speed, spin_rate, abs_challenged)
       VALUES ${pitches.map(pitchRow).join(",")}`);
   });
-  await withConnection(writeAllSeasonRollups);
+  await withConnection(rebuildAllSeasonTables);
 });
 
 describe("hitting percentiles", () => {

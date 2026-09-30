@@ -7,7 +7,7 @@ import { deriveGameTables } from "@/inngest/functions/derive-game-tables";
 import { ingestGameFeed } from "@/inngest/functions/ingest-game-feed";
 import { invalidateGameCache } from "@/inngest/functions/invalidate-game-cache";
 import { rebuildGameTables } from "@/inngest/functions/rebuild-game-tables";
-import { rebuildSeasonRollups } from "@/inngest/functions/rebuild-season-rollups";
+import { rebuildSeasonTables } from "@/inngest/functions/rebuild-season-tables";
 import { syncSchedule } from "@/inngest/functions/sync-schedule";
 import { seasonBackfillRequested } from "@/inngest/events";
 
@@ -262,7 +262,7 @@ describe("rebuild-game-tables", () => {
 });
 
 describe("derive-game-tables", () => {
-  it("expires the game's tags, tells clients to refresh, and asks to rebuild its season's rollups", async () => {
+  it("expires the game's tags, tells clients to refresh, and asks to rebuild its season's tables", async () => {
     vi.mocked(revalidateTag).mockClear();
     const tags = ["game:101", "day:2026-09-24", "team:110", "player-stats:500"];
     const t = new InngestTestEngine({ function: deriveGameTables });
@@ -274,7 +274,7 @@ describe("derive-game-tables", () => {
         mockStep("load-game-tags", tags),
         mockStep("publish-scoreboard-stats", { gamePk: 101 }),
         mockStep("publish-game-stats", { gamePk: 101 }),
-        mockSend("emit-season-rollups-rebuild-requested"),
+        mockSend("emit-season-tables-rebuild-requested"),
       ],
     });
 
@@ -291,29 +291,29 @@ describe("derive-game-tables", () => {
       expect.objectContaining({ channel: "game:101", topic: "stats" }),
       { gamePk: 101 },
     );
-    expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-season-rollups-rebuild-requested", [
-      expect.objectContaining({ name: "mlb/season-rollups.rebuild.requested", data: { season: 2026 } }),
+    expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-season-tables-rebuild-requested", [
+      expect.objectContaining({ name: "mlb/season-tables.rebuild.requested", data: { season: 2026 } }),
     ]);
   });
 });
 
 describe("backfill-games", () => {
-  it("derives only the feeds it stored and asks to rebuild their seasons' rollups", async () => {
+  it("derives only the feeds it stored and asks to rebuild their seasons' tables", async () => {
     const t = new InngestTestEngine({ function: backfillGames });
     const { ctx, result } = await t.execute({
       events: [{ name: "mlb/games.backfill.requested", data: { gamePks: [101, 102, 103], refetch: true } }],
       steps: [
         mockStep("store-feeds", { stored: [101], failed: [103] }),
         mockStep("derive-games", { plays: 70, pitches: 280, seasons: [2025, 2026] }),
-        mockSend("emit-season-rollups-rebuild-requested"),
+        mockSend("emit-season-tables-rebuild-requested"),
       ],
     });
 
     expect(result).toEqual({ games: 3, stored: 1, failed: [103], plays: 70, pitches: 280 });
     expect(ctx.step.run).toHaveBeenCalledTimes(2);
-    expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-season-rollups-rebuild-requested", [
-      expect.objectContaining({ name: "mlb/season-rollups.rebuild.requested", data: { season: 2025 } }),
-      expect.objectContaining({ name: "mlb/season-rollups.rebuild.requested", data: { season: 2026 } }),
+    expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-season-tables-rebuild-requested", [
+      expect.objectContaining({ name: "mlb/season-tables.rebuild.requested", data: { season: 2025 } }),
+      expect.objectContaining({ name: "mlb/season-tables.rebuild.requested", data: { season: 2026 } }),
     ]);
   });
 
@@ -323,7 +323,7 @@ describe("backfill-games", () => {
       events: [{ name: "mlb/games.backfill.requested", data: { gamePks: [101, 102], refetch: false } }],
       steps: [
         mockStep("derive-games", { plays: 140, pitches: 560, seasons: [2026] }),
-        mockSend("emit-season-rollups-rebuild-requested"),
+        mockSend("emit-season-tables-rebuild-requested"),
       ],
     });
 
@@ -352,17 +352,17 @@ describe("invalidate-game-cache", () => {
   });
 });
 
-describe("rebuild-season-rollups", () => {
-  it("refreshes the season's rollups, then revalidates its tag", async () => {
+describe("rebuild-season-tables", () => {
+  it("rebuilds the season's tables, then revalidates its tag", async () => {
     vi.mocked(revalidateTag).mockClear();
-    const t = new InngestTestEngine({ function: rebuildSeasonRollups });
+    const t = new InngestTestEngine({ function: rebuildSeasonTables });
     const { ctx, result } = await t.execute({
-      events: [{ name: "mlb/season-rollups.rebuild.requested", data: { season: 2026 } }],
-      steps: [mockStep("refresh-season-rollups", undefined)],
+      events: [{ name: "mlb/season-tables.rebuild.requested", data: { season: 2026 } }],
+      steps: [mockStep("rebuild-season-tables", undefined)],
     });
 
     expect(result).toEqual({ season: 2026 });
-    expect(ctx.step.run).toHaveBeenCalledWith("refresh-season-rollups", expect.any(Function));
-    expect(revalidateTag).toHaveBeenCalledExactlyOnceWith("season-rollups:2026", "max");
+    expect(ctx.step.run).toHaveBeenCalledWith("rebuild-season-tables", expect.any(Function));
+    expect(revalidateTag).toHaveBeenCalledExactlyOnceWith("season-tables:2026", "max");
   });
 });

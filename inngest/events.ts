@@ -50,6 +50,6 @@ export const gameProbablesChanged = eventType("mlb/game-probables.changed", {
   schema: z.object({ gamePk }),
 });
 
-export const seasonRollupsRebuildRequested = eventType("mlb/season-rollups.rebuild.requested", {
+export const seasonTablesRebuildRequested = eventType("mlb/season-tables.rebuild.requested", {
   schema: z.object({ season }),
 });

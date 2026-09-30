@@ -4,7 +4,7 @@ import { deriveGameTables } from "./derive-game-tables";
 import { ingestGameFeed } from "./ingest-game-feed";
 import { invalidateGameCache } from "./invalidate-game-cache";
 import { rebuildGameTables } from "./rebuild-game-tables";
-import { rebuildSeasonRollups } from "./rebuild-season-rollups";
+import { rebuildSeasonTables } from "./rebuild-season-tables";
 import { syncSchedule } from "./sync-schedule";
 import { watchLiveGames } from "./watch-live-games";
 
@@ -17,5 +17,5 @@ export const functions = [
   deriveGameTables,
   rebuildGameTables,
   invalidateGameCache,
-  rebuildSeasonRollups,
+  rebuildSeasonTables,
 ];

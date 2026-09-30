@@ -24,8 +24,8 @@ export function standingsTag(season: number) {
   return `standings:${season}`;
 }
 
-export function seasonRollupsTag(season: number) {
-  return `season-rollups:${season}`;
+export function seasonTablesTag(season: number) {
+  return `season-tables:${season}`;
 }
 
 export function playerStatsTag(playerId: number) {

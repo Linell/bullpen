@@ -4,7 +4,7 @@ vi.mock("next/cache", () => ({ cacheTag: () => {}, cacheLife: () => {} }));
 
 process.env.DUCKDB_URL = ":memory:";
 
-const { writeAllSeasonRollups } = await import("@/lib/season-rollups");
+const { rebuildAllSeasonTables } = await import("@/lib/season-tables");
 const { withConnection } = await import("@/lib/db");
 const { migrate } = await import("@/lib/migrate");
 const { getTeamStats } = await import("@/lib/stats/team");
@@ -112,7 +112,7 @@ beforeAll(async () => {
     await conn.run(`INSERT INTO game_player_bios (player_id, full_name, game_pk, source_date, source_game_number)
       VALUES (${STARTER}, 'Sam Starter', 1, '2026-09-20', 1), (10, 'Lead Off', 1, '2026-09-20', 1)`);
   });
-  await withConnection(writeAllSeasonRollups);
+  await withConnection(rebuildAllSeasonTables);
 });
 
 describe("getTeamStats", () => {

@@ -1,6 +1,6 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
-import { dayTag, seasonRollupsTag } from "@/lib/cache-tags";
+import { dayTag, seasonTablesTag } from "@/lib/cache-tags";
 import { readRows } from "@/lib/db";
 import type { PlayerRef } from "@/lib/player-ref";
 import {
@@ -15,7 +15,7 @@ import {
   type PitchingStats,
   type Rate,
 } from "@/lib/stats/rates";
-import type { EventBoard } from "@/lib/season-rollups";
+import type { EventBoard } from "@/lib/season-tables";
 import { BOX_BATTING_COUNTS, PITCHING_COUNTS, TRACKED_GAME } from "@/lib/stats/sql";
 
 export type LeaderboardQuery = {
@@ -264,7 +264,7 @@ function toWhiffLeader(r: WhiffRow): WhiffLeader {
 }
 
 function rollupTags({ from, to }: LeaderboardQuery) {
-  return [...new Set([from, to].map((date) => seasonRollupsTag(Number(date.slice(0, 4))))), dayTag(to)];
+  return [...new Set([from, to].map((date) => seasonTablesTag(Number(date.slice(0, 4))))), dayTag(to)];
 }
 
 async function readLeaders<Row, Leader>(query: string, params: LeaderboardQuery, toLeader: (row: Row) => Leader) {
