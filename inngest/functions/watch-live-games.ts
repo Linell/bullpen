@@ -15,6 +15,7 @@ export const watchLiveGames = inngest.createFunction(
     triggers: [everyMinuteOfBaseballHours],
     singleton: { mode: "skip" },
   },
+  // One looping step gives 5s updates; normally a separate poller.
   async ({ step }) =>
     step.run("watch-feeds", async () => {
       const gamePks = await withConnection(readLiveGamePks);
@@ -37,6 +38,7 @@ async function watchFeeds(gamePks: number[]) {
     });
 
     if (changed.length > 0) {
+      // Timestamp ids dedupe re-sends of the same feed.
       await inngest.send(
         changed.map(({ gamePk, timeStamp }) =>
           gameFeedUpdated.create({ gamePk }, { id: `game-feed-updated-${gamePk}-${timeStamp}` }),

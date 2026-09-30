@@ -8,6 +8,7 @@ export const deriveGameTables = inngest.createFunction(
   {
     id: "derive-game-tables",
     triggers: [gameFeedStored],
+    // Debounce can start a run while a slow one continues.
     concurrency: [{ limit: 3 }, { key: "event.data.gamePk", limit: 1 }],
     debounce: { key: "event.data.gamePk", period: "30s", timeout: "2m" },
   },

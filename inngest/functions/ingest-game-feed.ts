@@ -10,6 +10,7 @@ export const ingestGameFeed = inngest.createFunction(
   {
     id: "ingest-game-feed",
     triggers: [gameCompleted, gameFeedUpdated],
+    // Serialized per game so diffs read the latest stored feed.
     concurrency: [{ limit: 6 }, { key: "event.data.gamePk", limit: 1 }],
   },
   async ({ event, step }) => {
@@ -26,6 +27,7 @@ export const ingestGameFeed = inngest.createFunction(
     });
 
     if (status === "stored") {
+      // Timestamp ids dedupe re-sends of the same feed.
       await step.sendEvent(
         "emit-game-feed-stored",
         gameFeedStored.create({ gamePk }, { id: `game-feed-stored-${gamePk}-${feedTs}` }),

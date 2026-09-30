@@ -33,6 +33,7 @@ export const syncSchedule = inngest.createFunction(
     const completedGamePks = findCompletedGamePks(rows);
 
     if (completedGamePks.length > 0) {
+      // No timestamp: re-emitted every minute, but sent once.
       await step.sendEvent(
         "emit-game-completed",
         completedGamePks.map((gamePk) => gameCompleted.create({ gamePk }, { id: `game-completed-${gamePk}` })),
