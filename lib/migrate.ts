@@ -8,7 +8,7 @@ import { inTransaction } from "./statements.ts";
 export const SQL_DIR = path.join(process.cwd(), "sql");
 const MIGRATION_FILE = /^\d+_.*\.sql$/;
 
-export async function migrate(conn: DuckDBConnection) {
+export async function migrate(conn: DuckDBConnection, log: (message: string) => void = () => {}) {
   await conn.run(
     "CREATE TABLE IF NOT EXISTS schema_migrations (file VARCHAR PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL)",
   );
@@ -20,9 +20,11 @@ export async function migrate(conn: DuckDBConnection) {
 
   await inTransaction(conn, async () => {
     for (const file of pending) {
+      log(`Applying ${file}`);
       await conn.run(await readFile(path.join(SQL_DIR, file), "utf8"));
       await conn.run("INSERT INTO schema_migrations VALUES ($file, now())", { file });
     }
+    log("Rebuilding season rollups");
     await writeAllSeasonRollups(conn);
   });
 }

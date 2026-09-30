@@ -5,5 +5,5 @@ const url = process.env.DUCKDB_URL;
 if (!url) throw new Error("DUCKDB_URL is not set");
 
 const conn = await (await DuckDBInstance.create(url)).connect();
-await migrate(conn);
+await migrate(conn, console.log);
 conn.closeSync();
