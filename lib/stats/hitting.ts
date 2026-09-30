@@ -20,7 +20,6 @@ import {
   TRACKED_SEASON,
   TRACKED_SEASON_GAMES,
   SWING_DECISION_COUNTS,
-  withNumbers,
 } from "@/lib/stats/sql";
 import type { BattingSplits } from "@/lib/stats/team";
 
@@ -55,41 +54,33 @@ type BattedBallRow = BattedBallCounts & { season: number };
 type SwingDecisionRow = SwingDecisionCounts & { season: number };
 type SplitRow = BattingCounts & { split: string };
 
-const SEASON_BOX_QUERY = withNumbers(
-  `SELECT season, ${BOX_BATTING_COUNTS}
+const SEASON_BOX_QUERY = `
+  SELECT season, ${BOX_BATTING_COUNTS}
   FROM player_game_batting
   WHERE player_id = $playerId::INTEGER AND game_pk IN (${TRACKED_SEASON_GAMES})
-  GROUP BY season`,
-  ["season"],
-);
+  GROUP BY season`;
 
-const SEASON_BATTED_BALLS_QUERY = withNumbers(
-  `SELECT season, ${BATTED_BALL_COUNTS}
+const SEASON_BATTED_BALLS_QUERY = `
+  SELECT season, ${BATTED_BALL_COUNTS}
   FROM plate_appearances
   WHERE ${TRACKED_SEASON} AND batter_id = $playerId::INTEGER
-  GROUP BY season`,
-  ["season"],
-);
+  GROUP BY season`;
 
-const SEASON_SWING_DECISIONS_QUERY = withNumbers(
-  `SELECT season, ${SWING_DECISION_COUNTS}
+const SEASON_SWING_DECISIONS_QUERY = `
+  SELECT season, ${SWING_DECISION_COUNTS}
   FROM pitch_outcomes
   WHERE ${TRACKED_SEASON} AND batter_id = $playerId::INTEGER
-  GROUP BY season`,
-  ["season"],
-);
+  GROUP BY season`;
 
-const SPLITS_QUERY = withNumbers(
-  `SELECT split, ${BATTING_COUNTS}
+const SPLITS_QUERY = `
+  SELECT split, ${BATTING_COUNTS}
   FROM (
     SELECT *, ${BATTER_SPLITS} AS split
     FROM plate_appearances
     WHERE ${TRACKED_SEASON} AND batter_id = $playerId::INTEGER
   )
   WHERE split IS NOT NULL
-  GROUP BY split`,
-  ["split"],
-);
+  GROUP BY split`;
 
 const SPRAY_CHART_QUERY = `
   SELECT hit_coord_x AS x, hit_coord_y AS y, bases
@@ -120,31 +111,25 @@ const GAME_LOG_QUERY = `
   WHERE b.player_id = $playerId::INTEGER AND b.game_pk IN (${TRACKED_SEASON_GAMES})
   ORDER BY g.official_date, g.game_number`;
 
-const YEARS_BOX_QUERY = withNumbers(
-  `SELECT season, ${BOX_BATTING_COUNTS}
+const YEARS_BOX_QUERY = `
+  SELECT season, ${BOX_BATTING_COUNTS}
   FROM player_game_batting
   WHERE player_id = $playerId::INTEGER AND game_pk IN (${TRACKED_GAMES})
   GROUP BY season
   HAVING sum(plate_appearances) > 0
-  ORDER BY season`,
-  ["season"],
-);
+  ORDER BY season`;
 
-const YEARS_BATTED_BALLS_QUERY = withNumbers(
-  `SELECT season, ${BATTED_BALL_COUNTS}
+const YEARS_BATTED_BALLS_QUERY = `
+  SELECT season, ${BATTED_BALL_COUNTS}
   FROM plate_appearances
   WHERE ${TRACKED_GAME} AND batter_id = $playerId::INTEGER
-  GROUP BY season`,
-  ["season"],
-);
+  GROUP BY season`;
 
-const YEARS_SWING_DECISIONS_QUERY = withNumbers(
-  `SELECT season, ${SWING_DECISION_COUNTS}
+const YEARS_SWING_DECISIONS_QUERY = `
+  SELECT season, ${SWING_DECISION_COUNTS}
   FROM pitch_outcomes
   WHERE ${TRACKED_GAME} AND batter_id = $playerId::INTEGER
-  GROUP BY season`,
-  ["season"],
-);
+  GROUP BY season`;
 
 export async function hitterSeason(playerId: number, season: number): Promise<BattingStats> {
   "use cache: remote";

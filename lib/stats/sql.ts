@@ -77,7 +77,3 @@ export const PITCHING_COUNTS = `
   sum(hits) AS hits,
   sum(walks) AS walks,
   sum(strikeouts) AS strikeouts`;
-
-export function withNumbers(query: string, labels: string[]) {
-  return `SELECT ${labels.join(", ")}, COLUMNS(* EXCLUDE (${labels.join(", ")}))::DOUBLE FROM (${query})`;
-}

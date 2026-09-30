@@ -24,7 +24,6 @@ import {
   PITCHING_COUNTS,
   TRACKED_SEASON,
   TRACKED_SEASON_GAMES,
-  withNumbers,
 } from "@/lib/stats/sql";
 
 export type TeamBatting = { team: BattingStats; league: BattingStats };
@@ -96,37 +95,27 @@ type PitcherRow = PitchingCounts & { player_id: number; name: string };
 
 const TEAM_AND_LEAGUE = `season = $season::INTEGER AND (scope = 'league' OR team_id = $teamId::INTEGER)`;
 
-const BATTING_QUERY = withNumbers(
-  `SELECT * EXCLUDE (season, team_id, games) FROM team_season_batting WHERE ${TEAM_AND_LEAGUE}`,
-  ["split", "scope"],
-);
+const BATTING_QUERY = `
+  SELECT * EXCLUDE (season, team_id, games) FROM team_season_batting WHERE ${TEAM_AND_LEAGUE}`;
 
-const SWING_DECISIONS_QUERY = withNumbers(
-  `SELECT * EXCLUDE (season, team_id) FROM team_season_swing_decisions WHERE ${TEAM_AND_LEAGUE}`,
-  ["scope"],
-);
+const SWING_DECISIONS_QUERY = `
+  SELECT * EXCLUDE (season, team_id) FROM team_season_swing_decisions WHERE ${TEAM_AND_LEAGUE}`;
 
-const PITCHING_QUERY = withNumbers(
-  `SELECT * EXCLUDE (season, team_id) FROM team_season_pitching WHERE ${TEAM_AND_LEAGUE}`,
-  ["scope"],
-);
+const PITCHING_QUERY = `
+  SELECT * EXCLUDE (season, team_id) FROM team_season_pitching WHERE ${TEAM_AND_LEAGUE}`;
 
-const PITCHES_QUERY = withNumbers(
-  `SELECT * EXCLUDE (season, team_id) FROM team_season_pitches WHERE ${TEAM_AND_LEAGUE}`,
-  ["scope"],
-);
+const PITCHES_QUERY = `
+  SELECT * EXCLUDE (season, team_id) FROM team_season_pitches WHERE ${TEAM_AND_LEAGUE}`;
 
-const PITCH_MIX_QUERY = withNumbers(
-  `SELECT ${PITCH_MIX_COUNTS}
+const PITCH_MIX_QUERY = `
+  SELECT ${PITCH_MIX_COUNTS}
   FROM pitch_outcomes
   WHERE ${TRACKED_SEASON} AND fielding_team_id = $teamId::INTEGER AND pitch_type IS NOT NULL
   GROUP BY pitch_type
-  ORDER BY pitches DESC`,
-  ["pitch_type", "description"],
-);
+  ORDER BY pitches DESC`;
 
-const HITTERS_QUERY = withNumbers(
-  `SELECT pa.batter_id AS player_id,
+const HITTERS_QUERY = `
+  SELECT pa.batter_id AS player_id,
     coalesce(any_value(pl.full_name), 'Player ' || pa.batter_id::VARCHAR) AS name,
     ${BATTING_COUNTS}
   FROM plate_appearances pa
@@ -134,12 +123,10 @@ const HITTERS_QUERY = withNumbers(
   WHERE ${TRACKED_SEASON} AND pa.batting_team_id = $teamId::INTEGER
   GROUP BY pa.batter_id
   ORDER BY plate_appearances DESC, pa.batter_id
-  LIMIT 5`,
-  ["player_id", "name"],
-);
+  LIMIT 5`;
 
-const PITCHERS_QUERY = withNumbers(
-  `SELECT pgp.player_id,
+const PITCHERS_QUERY = `
+  SELECT pgp.player_id,
     coalesce(any_value(pl.full_name), 'Player ' || pgp.player_id::VARCHAR) AS name,
     ${PITCHING_COUNTS}
   FROM player_game_pitching pgp
@@ -147,9 +134,7 @@ const PITCHERS_QUERY = withNumbers(
   WHERE pgp.game_pk IN (${TRACKED_SEASON_GAMES}) AND pgp.team_id = $teamId::INTEGER
   GROUP BY pgp.player_id
   ORDER BY batters_faced DESC, pgp.player_id
-  LIMIT 5`,
-  ["player_id", "name"],
-);
+  LIMIT 5`;
 
 export function toPitchMixEntry(r: PitchMixRow): PitchMixEntry {
   return {

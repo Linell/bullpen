@@ -16,7 +16,7 @@ import {
   type Rate,
 } from "@/lib/stats/rates";
 import type { EventBoard } from "@/lib/season-rollups";
-import { BOX_BATTING_COUNTS, PITCHING_COUNTS, TRACKED_GAME, withNumbers } from "@/lib/stats/sql";
+import { BOX_BATTING_COUNTS, PITCHING_COUNTS, TRACKED_GAME } from "@/lib/stats/sql";
 
 export type LeaderboardQuery = {
   from: string;
@@ -141,8 +141,8 @@ const FASTEST_PITCHES_QUERY = eventQuery("fastest_pitches");
 
 const HARDEST_HIT_BALLS_QUERY = eventQuery("hardest_hit_balls");
 
-const BARREL_RATES_QUERY = withNumbers(
-  `SELECT * FROM (
+const BARREL_RATES_QUERY = `
+  SELECT * FROM (
     SELECT d.player_id, ${playerName("any_value(pl.full_name)", "d.player_id")} AS name,
       sum(d.batted_balls) AS batted_balls,
       sum(d.hard_hits) AS hard_hits,
@@ -155,12 +155,10 @@ const BARREL_RATES_QUERY = withNumbers(
   )
   WHERE batted_balls >= ${BATTED_BALLS_PER_GAME_DAY} * ${GAME_DAYS}
   ORDER BY barrels / batted_balls DESC, hard_hits / batted_balls DESC, batted_balls DESC, player_id
-  LIMIT $limit::INTEGER`,
-  ["player_id", "name"],
-);
+  LIMIT $limit::INTEGER`;
 
-const WHIFF_RATES_QUERY = withNumbers(
-  `SELECT * FROM (
+const WHIFF_RATES_QUERY = `
+  SELECT * FROM (
     SELECT d.player_id, ${playerName("any_value(pl.full_name)", "d.player_id")} AS name,
       sum(d.pitches) AS pitches,
       sum(d.swings) AS swings,
@@ -175,12 +173,10 @@ const WHIFF_RATES_QUERY = withNumbers(
   )
   WHERE pitches >= ${PITCHES_PER_GAME_DAY} * ${GAME_DAYS} AND swings > 0
   ORDER BY whiffs / swings DESC, (called_strikes + whiffs) / pitches DESC, pitches DESC, player_id
-  LIMIT $limit::INTEGER`,
-  ["player_id", "name"],
-);
+  LIMIT $limit::INTEGER`;
 
-const HITTING_QUERY = withNumbers(
-  `SELECT * FROM (
+const HITTING_QUERY = `
+  SELECT * FROM (
     SELECT b.player_id, ${playerName("any_value(pl.full_name)", "b.player_id")} AS name, ${BOX_BATTING_COUNTS}
     FROM player_game_batting b
     LEFT JOIN players pl ON pl.player_id = b.player_id
@@ -191,12 +187,10 @@ const HITTING_QUERY = withNumbers(
   ORDER BY (hits + walks + hit_by_pitch) / nullif(at_bats + walks + hit_by_pitch + sac_flies, 0)
       + total_bases / nullif(at_bats, 0) DESC NULLS LAST,
     plate_appearances DESC, player_id
-  LIMIT $limit::INTEGER`,
-  ["player_id", "name"],
-);
+  LIMIT $limit::INTEGER`;
 
-const PITCHING_QUERY = withNumbers(
-  `SELECT * FROM (
+const PITCHING_QUERY = `
+  SELECT * FROM (
     SELECT p.player_id, ${playerName("any_value(pl.full_name)", "p.player_id")} AS name, ${PITCHING_COUNTS}
     FROM player_game_pitching p
     LEFT JOIN players pl ON pl.player_id = p.player_id
@@ -205,9 +199,7 @@ const PITCHING_QUERY = withNumbers(
   )
   WHERE outs >= 3 * ${INNINGS_PER_GAME_DAY} * ${GAME_DAYS} AND outs > 0
   ORDER BY earned_runs / outs, outs DESC, player_id
-  LIMIT $limit::INTEGER`,
-  ["player_id", "name"],
-);
+  LIMIT $limit::INTEGER`;
 
 function toHittingLeader({ player_id, name, ...counts }: HittingRow): HittingLeader {
   const stats = toBattingStats({ ...NO_BATTING, ...counts });

@@ -2,10 +2,20 @@ import "server-only";
 import { readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { DuckDBInstance, type DuckDBConnection, type DuckDBValue } from "@duckdb/node-api";
+import {
+  DuckDBInstance,
+  JSDuckDBValueConverter,
+  type DuckDBConnection,
+  type DuckDBValue,
+  type DuckDBValueConverter,
+  type JS,
+} from "@duckdb/node-api";
 import { SQL_DIR } from "@/lib/migrate";
 
 let ready: Promise<DuckDBInstance> | undefined;
+
+const bigIntsAsNumbers: DuckDBValueConverter<JS> = (value, type, converter) =>
+  typeof value === "bigint" ? Number(value) : JSDuckDBValueConverter(value, type, converter);
 
 function instance(): Promise<DuckDBInstance> {
   ready ??= (async () => {
@@ -31,7 +41,7 @@ export async function withConnection<T>(work: (conn: DuckDBConnection) => Promis
 export function readRows<T>(query: string, params: Record<string, DuckDBValue>): Promise<T[]> {
   return withConnection(async (conn) => {
     const reader = await conn.runAndReadAll(query, params);
-    return reader.getRowObjectsJS() as unknown as T[];
+    return reader.convertRowObjects(bigIntsAsNumbers) as unknown as T[];
   });
 }
 

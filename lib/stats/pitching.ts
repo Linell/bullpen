@@ -24,7 +24,6 @@ import {
   TRACKED_GAMES,
   TRACKED_SEASON,
   TRACKED_SEASON_GAMES,
-  withNumbers,
 } from "@/lib/stats/sql";
 import { toPitchMixEntry, type PitchMixEntry, type PitchMixRow } from "@/lib/stats/team";
 
@@ -69,24 +68,20 @@ type PitchRow = PitchCounts & { season: number };
 type SplitRow = BattingCounts & { split: string };
 type ArsenalRow = PitchMixRow & { spin_rate: number | null; ivb: number | null; hb: number | null };
 
-const SEASON_BOX_QUERY = withNumbers(
-  `SELECT season, ${PITCHING_COUNTS}
+const SEASON_BOX_QUERY = `
+  SELECT season, ${PITCHING_COUNTS}
   FROM player_game_pitching
   WHERE player_id = $playerId::INTEGER AND game_pk IN (${TRACKED_SEASON_GAMES})
-  GROUP BY season`,
-  ["season"],
-);
+  GROUP BY season`;
 
-const SEASON_PITCHES_QUERY = withNumbers(
-  `SELECT season, ${PITCH_COUNTS}
+const SEASON_PITCHES_QUERY = `
+  SELECT season, ${PITCH_COUNTS}
   FROM pitch_outcomes
   WHERE ${TRACKED_SEASON} AND pitcher_id = $playerId::INTEGER
-  GROUP BY season`,
-  ["season"],
-);
+  GROUP BY season`;
 
-const SPLITS_QUERY = withNumbers(
-  `SELECT split, ${BATTING_COUNTS}
+const SPLITS_QUERY = `
+  SELECT split, ${BATTING_COUNTS}
   FROM (
     SELECT *, unnest([
       'vs_' || bat_side::VARCHAR,
@@ -96,9 +91,7 @@ const SPLITS_QUERY = withNumbers(
     WHERE ${TRACKED_SEASON} AND pitcher_id = $playerId::INTEGER
   )
   WHERE split IS NOT NULL
-  GROUP BY split`,
-  ["split"],
-);
+  GROUP BY split`;
 
 const GAME_LOG_QUERY = `
   SELECT p.game_pk AS "gamePk",
@@ -129,34 +122,28 @@ const GAME_LOG_QUERY = `
   WHERE p.player_id = $playerId::INTEGER AND p.game_pk IN (${TRACKED_SEASON_GAMES})
   ORDER BY g.official_date, g.game_number`;
 
-const YEARS_BOX_QUERY = withNumbers(
-  `SELECT season, ${PITCHING_COUNTS}
+const YEARS_BOX_QUERY = `
+  SELECT season, ${PITCHING_COUNTS}
   FROM player_game_pitching
   WHERE player_id = $playerId::INTEGER AND game_pk IN (${TRACKED_GAMES})
   GROUP BY season
-  ORDER BY season`,
-  ["season"],
-);
+  ORDER BY season`;
 
-const YEARS_PITCHES_QUERY = withNumbers(
-  `SELECT season, ${PITCH_COUNTS}
+const YEARS_PITCHES_QUERY = `
+  SELECT season, ${PITCH_COUNTS}
   FROM pitch_outcomes
   WHERE ${TRACKED_GAME} AND pitcher_id = $playerId::INTEGER
-  GROUP BY season`,
-  ["season"],
-);
+  GROUP BY season`;
 
-const ARSENAL_QUERY = withNumbers(
-  `SELECT ${PITCH_MIX_COUNTS},
+const ARSENAL_QUERY = `
+  SELECT ${PITCH_MIX_COUNTS},
     avg(spin_rate) AS spin_rate,
     avg(induced_vertical_break) AS ivb,
     avg(horizontal_break) AS hb
   FROM pitch_outcomes
   WHERE ${TRACKED_SEASON} AND pitcher_id = $playerId::INTEGER AND pitch_type IS NOT NULL
   GROUP BY pitch_type
-  ORDER BY pitches DESC`,
-  ["pitch_type", "description"],
-);
+  ORDER BY pitches DESC`;
 
 const LEAGUE_ARSENAL_QUERY = `
   SELECT pitch_hand::VARCHAR AS "pitchHand",
