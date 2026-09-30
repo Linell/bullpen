@@ -8,7 +8,7 @@ const { withConnection } = await import("@/lib/db");
 const { migrate } = await import("@/lib/migrate");
 const { playerCacheTags } = await import("@/lib/cache-tags");
 const { hitterGameLog, hitterSeason, hitterSplits, hitterSprayChart, hitterYears } = await import("@/lib/stats/hitting");
-const { pitcherArsenal, pitcherGameLog, pitcherSeason, pitcherSplits, pitcherYears } = await import("@/lib/stats/pitching");
+const { leagueArsenal, pitcherArsenal, pitcherGameLog, pitcherSeason, pitcherSplits, pitcherYears } = await import("@/lib/stats/pitching");
 const { playerSummary } = await import("@/lib/stats/player");
 
 const RED_SOX = 111;
@@ -157,6 +157,8 @@ beforeAll(async () => {
     await conn.run(`INSERT INTO pitches (game_pk, season, at_bat_index, pitch_index, inning, half, batter_id, pitcher_id,
         balls_before, strikes_before, outs_before, zone, call_code, pitch_type, start_speed, spin_rate, abs_challenged)
       VALUES ${pitches.map(pitchRow).join(",")}`);
+    await conn.run(`UPDATE pitches SET pitch_hand = 'R', induced_vertical_break = start_speed - 80,
+      horizontal_break = CASE pitch_type WHEN 'FF' THEN 8 ELSE -4 END`);
     await conn.run(`INSERT INTO player_game_batting VALUES ${battingLines.map(battingRow).join(",")}`);
     await conn.run(`INSERT INTO player_game_pitching VALUES ${pitchingLines.map(pitchingRow).join(",")}`);
     await conn.run(`INSERT INTO game_players (game_pk, season, player_id, team_id, side, jersey_number, position, played)
@@ -263,6 +265,22 @@ describe("pitcher stats", () => {
       ["FF", 3, 0.6, 96, 2300, 0.5],
       ["SL", 2, 0.4, 85.5, 2450, 1],
     ]);
+  });
+
+  it("averages movement per pitch type for the pitcher and the league", async () => {
+    const arsenal = await pitcherArsenal(PITCHER, 2026);
+    const league = await leagueArsenal(2026);
+
+    expect(arsenal.map((p) => [p.pitchType, p.ivb, p.hb])).toEqual([
+      ["FF", 16, 8],
+      ["SL", 5.5, -4],
+    ]);
+    expect(league).toEqual(
+      expect.arrayContaining([
+        { pitchHand: "R", pitchType: "FF", ivb: 16, hb: 8, velocity: 96 },
+        { pitchHand: "R", pitchType: "SL", ivb: 5.5, hb: -4, velocity: 85.5 },
+      ]),
+    );
   });
 });
 

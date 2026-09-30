@@ -58,12 +58,16 @@ export type PitcherGameLogEntry = {
 
 export type PitcherYear = { season: number; stats: PitchingStats };
 
-export type ArsenalEntry = PitchMixEntry & { spinRate: Rate };
+export type ArsenalEntry = PitchMixEntry & { spinRate: Rate; ivb: Rate; hb: Rate };
+
+export type LeaguePitch = { pitchHand: string; pitchType: string; ivb: Rate; hb: Rate; velocity: Rate };
+
+export const MIN_MOVEMENT_PITCHES = 20;
 
 type BoxRow = PitchingCounts & { season: number };
 type PitchRow = PitchCounts & { season: number };
 type SplitRow = BattingCounts & { split: string };
-type ArsenalRow = PitchMixRow & { spin_rate: number | null };
+type ArsenalRow = PitchMixRow & { spin_rate: number | null; ivb: number | null; hb: number | null };
 
 const SEASON_BOX_QUERY = withNumbers(
   `SELECT season, ${PITCHING_COUNTS}
@@ -144,13 +148,25 @@ const YEARS_PITCHES_QUERY = withNumbers(
 
 const ARSENAL_QUERY = withNumbers(
   `SELECT ${PITCH_MIX_COUNTS},
-    avg(spin_rate) AS spin_rate
+    avg(spin_rate) AS spin_rate,
+    avg(induced_vertical_break) AS ivb,
+    avg(horizontal_break) AS hb
   FROM pitch_outcomes
   WHERE ${TRACKED_SEASON} AND pitcher_id = $playerId::INTEGER AND pitch_type IS NOT NULL
   GROUP BY pitch_type
   ORDER BY pitches DESC`,
   ["pitch_type", "description"],
 );
+
+const LEAGUE_ARSENAL_QUERY = `
+  SELECT pitch_hand::VARCHAR AS "pitchHand",
+    pitch_type AS "pitchType",
+    avg(induced_vertical_break) AS ivb,
+    avg(horizontal_break) AS hb,
+    avg(start_speed) AS velocity
+  FROM pitch_outcomes
+  WHERE ${TRACKED_SEASON} AND pitch_type IS NOT NULL AND pitch_hand IS NOT NULL
+  GROUP BY pitch_hand, pitch_type`;
 
 export async function pitcherSeason(playerId: number, season: number): Promise<PitchingStats> {
   "use cache: remote";
@@ -213,5 +229,13 @@ export async function pitcherArsenal(playerId: number, season: number): Promise<
   seasonCacheLife(season);
 
   const rows = await readRows<ArsenalRow>(ARSENAL_QUERY, { playerId, season });
-  return rows.map((r) => ({ ...toPitchMixEntry(r), spinRate: r.spin_rate }));
+  return rows.map((r) => ({ ...toPitchMixEntry(r), spinRate: r.spin_rate, ivb: r.ivb, hb: r.hb }));
+}
+
+export async function leagueArsenal(season: number): Promise<LeaguePitch[]> {
+  "use cache: remote";
+  cacheTag(STATS_TAG);
+  seasonCacheLife(season);
+
+  return readRows<LeaguePitch>(LEAGUE_ARSENAL_QUERY, { season });
 }

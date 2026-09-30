@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { GameLogLink } from "@/components/player/game-log-link";
+import { MovementPlot, type MovementPitch } from "@/components/player/movement-plot";
 import { PercentileBars, percentileBar } from "@/components/player/percentile-bars";
 import { PlayerSection } from "@/components/player/player-section";
 import { SeasonLine } from "@/components/player/season-line";
@@ -11,6 +12,8 @@ import { Accordion } from "@/components/ui/accordion";
 import { CardSkeleton } from "@/components/ui/skeleton";
 import { formatCount, formatDecimal, formatInnings, formatPercent } from "@/lib/format";
 import {
+  leagueArsenal,
+  MIN_MOVEMENT_PITCHES,
   pitcherArsenal,
   pitcherGameLog,
   pitcherSeason,
@@ -21,6 +24,7 @@ import {
   type PitcherYear,
 } from "@/lib/stats/pitching";
 import { pitchingPercentiles } from "@/lib/stats/percentiles";
+import { playerSummary } from "@/lib/stats/player";
 
 const formatWhole = (value: number | null) => formatDecimal(value, 0);
 const formatTwoDecimals = (value: number | null) => formatDecimal(value, 2);
@@ -152,16 +156,37 @@ async function PitchingSplits({ playerId, season }: { playerId: number; season: 
 }
 
 async function Arsenal({ playerId, season }: { playerId: number; season: number }) {
-  const arsenal = await pitcherArsenal(playerId, season);
+  const [arsenal, league, summary] = await Promise.all([
+    pitcherArsenal(playerId, season),
+    leagueArsenal(season),
+    playerSummary(playerId),
+  ]);
+  const pitchHand = summary?.pitchHand ?? null;
+
+  const movement: MovementPitch[] = arsenal.flatMap(({ pitchType, description, ivb, hb, velocity, usage, pitches }) =>
+    pitches >= MIN_MOVEMENT_PITCHES && ivb !== null && hb !== null
+      ? [{ pitchType, name: description || pitchType, ivb, hb, velocity, usage }]
+      : [],
+  );
+
+  const leagueMovement: MovementPitch[] = league.flatMap(({ pitchHand: hand, pitchType, ivb, hb, velocity }) => {
+    const pitch = movement.find((p) => p.pitchType === pitchType);
+    return hand === pitchHand && pitch && ivb !== null && hb !== null
+      ? [{ pitchType, name: pitch.name, ivb, hb, velocity, usage: null }]
+      : [];
+  });
 
   return (
-    <StatGrid
-      rowLabel="Pitch"
-      rows={arsenal}
-      rowKey={(p) => p.pitchType}
-      rowName={(p) => p.description || p.pitchType}
-      columns={arsenalColumns}
-    />
+    <div className="grid gap-4">
+      {movement.length >= 2 && <MovementPlot pitches={movement} league={leagueMovement} pitchHand={pitchHand} />}
+      <StatGrid
+        rowLabel="Pitch"
+        rows={arsenal}
+        rowKey={(p) => p.pitchType}
+        rowName={(p) => p.description || p.pitchType}
+        columns={arsenalColumns}
+      />
+    </div>
   );
 }
 
