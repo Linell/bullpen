@@ -120,13 +120,13 @@ All functions open a short-lived database connection per step with `withConnecti
   - Step `emit-game-completed`: `mlb/game.completed` for every completed game in the window. The id `game-completed-{gamePk}` has no time in it, so consecutive runs don't send it again. A game still in the window after 24 hours is sent once more, which is harmless because ingest is idempotent.
   - Returns `{ startDate, endDate, games, changed, completed }`.
 - **`backfill-season`**
-  - Triggered by `mlb/season.backfill.requested`.
-  - Step `fetch-season-dates`: the season's date range.
-  - Step `fetch-schedule`: one schedule call over that range. Returns the parsed rows, about 1 MB for a full season, well under Inngest's 4 MB step limit.
-  - Step `upsert-games`: upsert only the `games` rows that changed.
+  - Triggered by `mlb/season.backfill.requested`. `singleton: { key: "event.data.season", mode: "skip" }` drops a request for a season that's already backfilling.
+  - Step `fetch-season-dates`: the season's date range. A season MLB doesn't know fails without retrying.
+  - Step `sync-games`: one schedule call over that range, a re-fetch of postponed and suspended games, and an upsert of only the `games` rows that changed. Returns counts and game ids, so the ~1 MB of rows stays out of Inngest state.
+  - Step `record-probables`: records probable pitcher changes for every game in the range. Returns the count.
   - Steps `backfill-games-1`, `backfill-games-2`, …: `step.invoke` of `backfill-games` for every 25 completed games, all started at once and queued by its concurrency. Re-sending the request re-checks every game.
   - Step `revalidate-tags`: clears the `games` and `stats` cache tags once every batch is done.
-  - Returns `{ season, games, changed, completed, failed }`, where `failed` lists the games whose feeds couldn't be fetched.
+  - Returns `{ season, startDate, endDate, games, rescheduled, changed, completed, failed, probablesChanged }`, where `failed` lists the games whose feeds couldn't be fetched.
 - **`backfill-games`**
   - Triggered by `mlb/games.backfill.requested`, with concurrency `{ limit: 2 }`.
   - Step `store-feeds`, only when `refetch`: fetches the batch's feeds in parallel and upserts the newer ones in one insert. Returns only the stored and failed ids, so the feeds stay out of Inngest state.
@@ -136,7 +136,7 @@ All functions open a short-lived database connection per step with `withConnecti
   - Triggered by `mlb/game.completed` or `mlb/game-feed.updated`, with concurrency `[{ limit: 6 }, { key: "event.data.gamePk", limit: 1 }]`: each game's feeds load one at a time, and at most six run at once.
   - Step `fetch-and-store-feed`: fetch the feed and upsert `raw_game_feeds`, skipped unless `feed_ts` is newer than the stored one. `feed_ts` is `YYYYMMDD_HHMMSS`, so text comparison orders it, and a late older feed never replaces a newer one. Only a summary is returned, which keeps the 670 KB feed out of Inngest state.
   - Step `emit-game-feed-stored`: emits `mlb/game-feed.stored` only when the feed was stored, so an unchanged or older feed causes no derive. To re-run a derive that ran out of retries, replay the run from the Inngest dashboard or send `mlb/game-tables.rebuild.requested`, whose ids use `event.ts`.
-  - Inngest retries handle MLB errors, and a 429 with `Retry-After` becomes a `RetryAfterError`.
+  - Inngest retries handle MLB errors, a 429 with `Retry-After` becomes a `RetryAfterError`, and any other 4xx a `NonRetriableError`.
   - Returns `{ gamePk, feedTs, status }`.
 - **`derive-game-tables`**
   - Triggered by `mlb/game-feed.stored`. Concurrency is `[{ limit: 3 }, { key: "event.data.gamePk", limit: 1 }]`: at most three derives at once, and one per game, so two derives of a game never conflict.
@@ -144,7 +144,7 @@ All functions open a short-lived database connection per step with `withConnecti
   - Step `derive-game`: runs `derive.sql` for one game in a transaction. A failure leaves the previous rows in place, and Inngest retries it without refetching the feed.
   - Returns `{ gamePk, plays, pitches }`.
 - **`rebuild-game-tables`**
-  - Triggered by `mlb/game-tables.rebuild.requested`.
+  - Triggered by `mlb/game-tables.rebuild.requested`. `singleton: { mode: "skip" }` drops a request while a rebuild is running.
   - Step `list-raw-feeds`: every `game_pk` in `raw_game_feeds`.
   - Steps `backfill-games-1`, `backfill-games-2`, …: `step.invoke` of `backfill-games` with `refetch: false` for every 25 stored feeds.
   - Step `revalidate-tags`: clears the `games` and `stats` cache tags once.

@@ -7,11 +7,15 @@ import { fetchSchedule, fetchScheduleGames, fetchSeasonDates } from "@/lib/mlb";
 import { recordProbables } from "@/lib/probables";
 import { findCompletedGamePks, findRescheduledGamePks, parseSchedule, replaceGames, upsertGames } from "@/lib/schedule";
 import { inngest } from "../client";
-import { gameProbablesChanged, seasonBackfillRequested } from "../events";
+import { seasonBackfillRequested } from "../events";
 import { backfillBatches, backfillGames } from "./backfill-games";
 
 export const backfillSeason = inngest.createFunction(
-  { id: "backfill-season", triggers: [seasonBackfillRequested] },
+  {
+    id: "backfill-season",
+    triggers: [seasonBackfillRequested],
+    singleton: { key: "event.data.season", mode: "skip" },
+  },
   async ({ event, step }) => {
     const { season } = event.data;
 
@@ -21,37 +25,28 @@ export const backfillSeason = inngest.createFunction(
       throw new NonRetriableError(`No ${season} season dates between ${event.data.startDate} and ${event.data.endDate}`);
     }
 
-    const scheduled = await step.run("fetch-schedule", async () => parseSchedule(await fetchSchedule(dates)));
+    const synced = await step.run("sync-games", async () => {
+      const scheduled = parseSchedule(await fetchSchedule(dates));
+      const rescheduledGamePks = findRescheduledGamePks(scheduled);
+      const rescheduled =
+        rescheduledGamePks.length > 0 ? parseSchedule(await fetchScheduleGames(rescheduledGamePks)) : [];
+      const rows = replaceGames(scheduled, rescheduled);
+      const { changed } = await withConnection((conn) => upsertGames(conn, rows));
+      return {
+        rescheduled: rescheduled.length,
+        changed,
+        gamePks: rows.map((row) => row.gamePk),
+        completedGamePks: findCompletedGamePks(rows),
+      };
+    });
 
-    const rescheduledGamePks = findRescheduledGamePks(scheduled);
-    const rescheduled =
-      rescheduledGamePks.length > 0
-        ? await step.run("fetch-rescheduled-games", async () =>
-            parseSchedule(await fetchScheduleGames(rescheduledGamePks)),
-          )
-        : [];
-    const rows = replaceGames(scheduled, rescheduled);
-
-    const { changed } = await step.run("upsert-games", () =>
-      withConnection((conn) => upsertGames(conn, rows)),
-    );
-
-    const gamePks = rows.map((row) => row.gamePk);
-    const probablesGamePks = await step.run("record-probables", () =>
-      withConnection((conn) => recordProbables(conn, gamePks)),
-    );
-
-    if (probablesGamePks.length > 0) {
-      await step.sendEvent(
-        "emit-game-probables-changed",
-        probablesGamePks.map((gamePk) => gameProbablesChanged.create({ gamePk })),
-      );
-    }
-
-    const completedGamePks = findCompletedGamePks(rows);
+    const probablesChanged = await step.run("record-probables", async () => {
+      const changedGamePks = await withConnection((conn) => recordProbables(conn, synced.gamePks));
+      return changedGamePks.length;
+    });
 
     const backfills = await Promise.all(
-      backfillBatches(completedGamePks).map((batch, i) =>
+      backfillBatches(synced.completedGamePks).map((batch, i) =>
         step.invoke(`backfill-games-${i + 1}`, { function: backfillGames, data: { gamePks: batch, refetch: true } }),
       ),
     );
@@ -63,12 +58,12 @@ export const backfillSeason = inngest.createFunction(
     return {
       season,
       ...dates,
-      games: rows.length,
-      rescheduled: rescheduled.length,
-      changed,
-      completed: completedGamePks.length,
+      games: synced.gamePks.length,
+      rescheduled: synced.rescheduled,
+      changed: synced.changed,
+      completed: synced.completedGamePks.length,
       failed: backfills.flatMap((backfill) => backfill.failed),
-      probablesChanged: probablesGamePks.length,
+      probablesChanged,
     };
   },
 );

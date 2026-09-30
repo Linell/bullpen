@@ -105,18 +105,20 @@ describe("backfill-season", () => {
     return { name: "mlb/season.backfill.requested", data: { season: 2026, ...data }, ts: 1700000000000 };
   }
 
+  function synced(gamePks: number[], completedGamePks: number[]) {
+    return { rescheduled: 0, changed: gamePks.length, gamePks, completedGamePks };
+  }
+
   it("backfills completed games in batches and revalidates once", async () => {
     vi.mocked(revalidateTag).mockClear();
-    const completed = Array.from({ length: 30 }, (_, i) => ({ gamePk: i + 1, abstractState: "Final", codedState: "F" }));
+    const completed = Array.from({ length: 30 }, (_, i) => i + 1);
     const t = new InngestTestEngine({ function: backfillSeason });
     const { ctx, result } = await t.execute({
       events: [requested({})],
       steps: [
         mockStep("fetch-season-dates", seasonDates),
-        mockStep("fetch-schedule", [...completed, { gamePk: 31, abstractState: "Preview", codedState: "S" }]),
-        mockStep("upsert-games", { changed: 31, changedGamePks: [] }),
-        mockStep("record-probables", [31]),
-        mockSend("emit-game-probables-changed"),
+        mockStep("sync-games", synced([...completed, 31], completed)),
+        mockStep("record-probables", 1),
         mockStep("backfill-games-1", { failed: [] }),
         mockStep("backfill-games-2", { failed: [27] }),
       ],
@@ -130,34 +132,8 @@ describe("backfill-season", () => {
       "backfill-games-2",
       expect.objectContaining({ data: { gamePks: [26, 27, 28, 29, 30], refetch: true } }),
     );
-    expect(ctx.step.sendEvent).toHaveBeenCalledWith("emit-game-probables-changed", [
-      expect.objectContaining({ data: { gamePk: 31 } }),
-    ]);
+    expect(ctx.step.sendEvent).not.toHaveBeenCalled();
     expect(revalidateTag).toHaveBeenCalledTimes(2);
-  });
-
-  it("re-fetches postponed games so completed makeups are ingested", async () => {
-    const t = new InngestTestEngine({ function: backfillSeason });
-    const { ctx, result } = await t.execute({
-      events: [requested({ startDate: "2026-07-23", endDate: "2026-08-05" })],
-      steps: [
-        mockStep("fetch-season-dates", seasonDates),
-        mockStep("fetch-schedule", [
-          { gamePk: 101, abstractState: "Final", codedState: "D" },
-          { gamePk: 102, abstractState: "Final", codedState: "F" },
-        ]),
-        mockStep("fetch-rescheduled-games", [{ gamePk: 101, abstractState: "Final", codedState: "F" }]),
-        mockStep("upsert-games", { changed: 2, changedGamePks: [101, 102] }),
-        mockStep("record-probables", []),
-        mockStep("backfill-games-1", { failed: [] }),
-      ],
-    });
-
-    expect(result).toMatchObject({ games: 2, rescheduled: 1, completed: 2 });
-    expect(ctx.step.invoke).toHaveBeenCalledWith(
-      "backfill-games-1",
-      expect.objectContaining({ data: { gamePks: [101, 102], refetch: true } }),
-    );
   });
 
   it("clamps a requested slice to the season's dates", async () => {
@@ -166,9 +142,8 @@ describe("backfill-season", () => {
       events: [requested({ startDate: "2026-03-01", endDate: "2026-04-15" })],
       steps: [
         mockStep("fetch-season-dates", seasonDates),
-        mockStep("fetch-schedule", []),
-        mockStep("upsert-games", { changed: 0, changedGamePks: [] }),
-        mockStep("record-probables", []),
+        mockStep("sync-games", synced([], [])),
+        mockStep("record-probables", 0),
       ],
     });
 
