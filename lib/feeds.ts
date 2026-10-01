@@ -102,11 +102,12 @@ function readFeedHeader(feed: unknown) {
 async function derive(conn: DuckDBConnection, gamePks: number[]) {
   await runStatements(conn, await readSql("derive.sql"), { game_pks: listValue(gamePks) });
 
+  // Only final games report seasons: rebuilding season tables per live pitch exhausts MotherDuck.
   const counts = await conn.runAndReadAll(
     `SELECT
        (SELECT count(*) FROM plays WHERE game_pk IN (SELECT unnest($game_pks::INTEGER[]))) AS plays,
        (SELECT count(*) FROM pitches WHERE game_pk IN (SELECT unnest($game_pks::INTEGER[]))) AS pitches,
-       (SELECT list(DISTINCT season ORDER BY season) FROM game_feeds WHERE game_pk IN (SELECT unnest($game_pks::INTEGER[]))) AS seasons`,
+       (SELECT list(DISTINCT season ORDER BY season) FROM raw_game_feeds WHERE game_pk IN (SELECT unnest($game_pks::INTEGER[]))) AS seasons`,
     { game_pks: listValue(gamePks) },
   );
   const [row] = counts.getRowObjectsJS();
