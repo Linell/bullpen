@@ -18,7 +18,10 @@ function TeamScore({ side }: { side: GameSide }) {
   return (
     <div className="flex min-w-0 flex-col items-center gap-1 text-center">
       {side.score !== undefined && (
-        <Pop value={side.score} className="text-4xl font-heading tabular-nums">{side.score}</Pop>
+        <Pop value={side.score} className="text-4xl font-heading tabular-nums">
+          <span className="sr-only">{side.team.name} </span>
+          {side.score}
+        </Pop>
       )}
       <TeamLink teamId={side.team.id} className="truncate font-heading">
         {side.team.name}

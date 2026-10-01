@@ -33,7 +33,10 @@ export function TeamHeader({ summary }: { summary: TeamSummary }) {
             <h1>{team.name}</h1>
             <p className="text-sm opacity-70">{affiliation}</p>
           </div>
-          <span className="text-4xl font-heading tabular-nums">{formatWinLoss(record)}</span>
+          <span className="text-4xl font-heading tabular-nums">
+            <span className="sr-only">Record </span>
+            {formatWinLoss(record)}
+          </span>
         </div>
         <dl className="grid grid-cols-2 gap-4 border-t-2 border-border pt-4 sm:grid-cols-4">
           <Stat label="Run diff" value={formatRunDiff(record.runDiff)} />
