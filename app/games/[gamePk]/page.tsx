@@ -85,7 +85,7 @@ async function GameContent({ params }: GameParams) {
           <GameBoxScore away={away.team} home={home.team} season={game.season} boxScore={boxScorePromise} />
         </Suspense>
       )}
-      <div className="w-full max-w-3xl empty:hidden">
+      <div className="grid items-start gap-6 empty:hidden xl:grid-cols-[minmax(0,1fr)_20rem]">
         {halfInnings.length > 0 ? (
           <PlayByPlay
             halfInnings={halfInnings}
@@ -102,8 +102,8 @@ async function GameContent({ params }: GameParams) {
             </CardContent>
           </Card>
         ) : null}
+        {hasStarted && matchup}
       </div>
-      {hasStarted && matchup}
     </>
   );
 }
