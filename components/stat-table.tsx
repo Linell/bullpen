@@ -20,9 +20,9 @@ type StatGridProps<Row> = {
   isHighlighted?: (row: Row) => boolean;
 };
 
-const cell = "h-auto px-2 py-1.5 text-right";
+const cell = "text-right";
 const leftCell = "text-left";
-const labelCell = "sticky left-0 h-auto bg-background px-2 py-1.5 text-left font-heading";
+const labelCell = "sticky left-0 bg-background px-2 py-1.5 text-left font-heading";
 const bodyRow = "border-b-2 border-border";
 const highlighted = "bg-main text-main-foreground";
 

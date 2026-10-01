@@ -7,8 +7,8 @@ import type { GlossaryTerm } from "@/lib/glossary";
 import type { Team } from "@/lib/scoreboard";
 import { cn } from "@/lib/utils";
 
-const cell = "h-auto px-2 py-1.5 text-right tabular-nums";
-const nameCell = "h-auto px-2 py-1.5 text-left font-base";
+const cell = "text-right tabular-nums";
+const nameCell = "text-left font-base";
 
 const BATTING_COLUMNS: { term: GlossaryTerm; value: (line: BattingLine) => number }[] = [
   { term: "AB", value: (l) => l.atBats },

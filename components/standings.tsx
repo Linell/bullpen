@@ -5,7 +5,6 @@ import {
   cell,
   formatGamesBack,
   formatPct,
-  teamCell,
 } from "@/components/team/division-standings";
 import { Abbr } from "@/components/ui/abbr";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,7 +28,7 @@ function StandingsCard({ title, linkSeason, teams }: { title: string; linkSeason
         <Table>
           <TableHeader>
             <TableRow className="text-xs">
-              <TableHead scope="col" className={teamCell}>Team</TableHead>
+              <TableHead scope="col">Team</TableHead>
               {COLUMNS.map((term) => (
                 <TableHead key={term} scope="col" className={cell}>
                   <Abbr term={term} />
@@ -40,7 +39,7 @@ function StandingsCard({ title, linkSeason, teams }: { title: string; linkSeason
           <TableBody>
             {teams.map((row) => (
               <TableRow key={row.team.id}>
-                <TableHead scope="row" className={teamCell}>
+                <TableHead scope="row">
                   <TeamLink teamId={row.team.id} season={linkSeason}>{row.team.name}</TeamLink>
                 </TableHead>
                 <TableCell className={cell}>{row.wins}</TableCell>

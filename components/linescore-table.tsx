@@ -5,8 +5,8 @@ import type { Linescore, LinescoreLine } from "@/lib/linescore";
 import type { Team } from "@/lib/scoreboard";
 import { cn } from "@/lib/utils";
 
-const cell = "h-auto px-2 py-1.5 text-center tabular-nums";
-const teamCell = "sticky left-0 h-auto bg-background px-2 py-1.5";
+const cell = "text-center tabular-nums";
+const teamCell = "sticky left-0 bg-background";
 
 function LineRow({ team, line }: { team: Team; line: LinescoreLine }) {
   return (

@@ -8,8 +8,8 @@ import type { WinLoss } from "@/lib/team-summary";
 import type { AbsChallenges, InningRuns, RelieverWorkload, SituationalRecords, TeamTrends } from "@/lib/team-trends";
 import { cn } from "@/lib/utils";
 
-const cell = "h-auto px-2 py-1.5 text-center tabular-nums";
-const rowHeader = "sticky left-0 h-auto bg-background px-2 py-1.5";
+const cell = "text-center tabular-nums";
+const rowHeader = "sticky left-0 bg-background";
 
 function record({ wins, losses }: WinLoss) {
   return `${wins}-${losses}`;
