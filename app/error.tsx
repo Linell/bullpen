@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { PageMain } from "@/components/page-main";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -10,7 +11,7 @@ export default function Error({ error, retry }: { error: Error & { digest?: stri
   }, [error]);
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center gap-6 px-6 pt-6 pb-24 text-center">
+    <PageMain className="max-w-3xl items-center justify-center text-center">
       <h1>Something went wrong</h1>
       <Card>
         <CardContent className="flex flex-col items-center gap-4">
@@ -18,6 +19,6 @@ export default function Error({ error, retry }: { error: Error & { digest?: stri
           <Button onClick={() => retry()}>Try again</Button>
         </CardContent>
       </Card>
-    </main>
+    </PageMain>
   );
 }

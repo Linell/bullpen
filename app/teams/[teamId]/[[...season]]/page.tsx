@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageMain } from "@/components/page-main";
 import { loadTeamSeason, TeamPage, teamTitle } from "@/components/team/team-page";
 
 type TeamParams = Pick<PageProps<"/teams/[teamId]/[[...season]]">, "params">;
@@ -14,8 +15,8 @@ export async function generateMetadata(props: PageProps<"/teams/[teamId]/[[...se
 
 export default function TeamSeasonPage({ params }: PageProps<"/teams/[teamId]/[[...season]]">) {
   return (
-    <main className="mx-auto flex w-full max-w-(--breakpoint-2xl) flex-1 flex-col gap-6 px-6 pt-6 pb-24">
+    <PageMain>
       <TeamPage team={loadFromParams({ params })} />
-    </main>
+    </PageMain>
   );
 }

@@ -5,6 +5,7 @@ import { BoxScore } from "@/components/box-score";
 import { GameHeaderSkeleton } from "@/components/game-header";
 import { LiveGameHeader } from "@/components/live-game-header";
 import { Matchup } from "@/components/matchup";
+import { PageMain } from "@/components/page-main";
 import { PlayByPlay } from "@/components/play-by-play";
 import { Starters } from "@/components/starters";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,11 +36,11 @@ export async function generateMetadata(props: PageProps<"/games/[gamePk]">): Pro
 
 export default function GamePage({ params }: PageProps<"/games/[gamePk]">) {
   return (
-    <main className="mx-auto flex w-full max-w-(--breakpoint-2xl) flex-1 flex-col gap-6 px-6 pt-6 pb-24">
+    <PageMain>
       <Suspense fallback={<GameFallback />}>
         <GameContent params={params} />
       </Suspense>
-    </main>
+    </PageMain>
   );
 }
 

@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
+import { PageMain } from "@/components/page-main";
 import { Scoreboard, ScoreboardSkeleton } from "@/components/scoreboard";
 import { isOfficialDate, shiftDate, todayOfficialDate } from "@/lib/dates";
 
@@ -10,11 +11,11 @@ export function generateStaticParams() {
 
 export default function ScoresPage({ params }: PageProps<"/scores/[date]">) {
   return (
-    <main className="@container mx-auto flex w-full max-w-(--breakpoint-2xl) flex-1 flex-col gap-6 px-6 pt-6 pb-24">
+    <PageMain className="@container">
       <Suspense fallback={<ScoreboardSkeleton />}>
         <DateScoreboard params={params} />
       </Suspense>
-    </main>
+    </PageMain>
   );
 }
 
