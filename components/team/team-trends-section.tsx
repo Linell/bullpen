@@ -7,7 +7,8 @@ import { formatPercent, formatWinLoss } from "@/lib/format";
 import type { AbsChallenges, InningRuns, RelieverWorkload, SituationalRecords, TeamTrends } from "@/lib/team-trends";
 import { cn } from "@/lib/utils";
 
-const cell = "text-center tabular-nums";
+const inningCell = "text-center tabular-nums";
+const countCell = "text-right tabular-nums";
 const rowHeader = "sticky left-0 bg-background";
 
 function Stat({ label, value }: { label: string; value: string | number }) {
@@ -50,7 +51,7 @@ function InningRunsTable({ innings }: { innings: InningRuns[] }) {
                 <span className="sr-only">Runs</span>
               </TableHead>
               {innings.map(({ inning }) => (
-                <TableHead key={inning} scope="col" className={cell}>
+                <TableHead key={inning} scope="col" className={inningCell}>
                   {inning === "extras" ? <Abbr term="X" /> : inning}
                 </TableHead>
               ))}
@@ -62,7 +63,7 @@ function InningRunsTable({ innings }: { innings: InningRuns[] }) {
                 Scored
               </TableHead>
               {innings.map(({ inning, scored, allowed }) => (
-                <TableCell key={inning} className={cn(cell, scored > allowed && "font-heading")}>
+                <TableCell key={inning} className={cn(inningCell, scored > allowed && "font-heading")}>
                   {scored}
                 </TableCell>
               ))}
@@ -72,7 +73,7 @@ function InningRunsTable({ innings }: { innings: InningRuns[] }) {
                 Allowed
               </TableHead>
               {innings.map(({ inning, scored, allowed }) => (
-                <TableCell key={inning} className={cn(cell, allowed > scored && "font-heading")}>
+                <TableCell key={inning} className={cn(inningCell, allowed > scored && "font-heading")}>
                   {allowed}
                 </TableCell>
               ))}
@@ -100,9 +101,9 @@ function AbsChallengesCard({ abs }: { abs: AbsChallenges }) {
               <TableHead scope="col" className={rowHeader}>
                 <span className="sr-only">Side</span>
               </TableHead>
-              <TableHead scope="col" className={cell}>Challenges</TableHead>
-              <TableHead scope="col" className={cell}>Overturned</TableHead>
-              <TableHead scope="col" className={cell}>Rate</TableHead>
+              <TableHead scope="col" className={countCell}>Challenges</TableHead>
+              <TableHead scope="col" className={countCell}>Overturned</TableHead>
+              <TableHead scope="col" className={countCell}>Rate</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -110,17 +111,17 @@ function AbsChallengesCard({ abs }: { abs: AbsChallenges }) {
               <TableHead scope="row" className={rowHeader}>
                 Team
               </TableHead>
-              <TableCell className={cell}>{abs.challenges}</TableCell>
-              <TableCell className={cell}>{abs.overturned}</TableCell>
-              <TableCell className={cell}>{formatPercent(abs.overturnRate ?? null)}</TableCell>
+              <TableCell className={countCell}>{abs.challenges}</TableCell>
+              <TableCell className={countCell}>{abs.overturned}</TableCell>
+              <TableCell className={countCell}>{formatPercent(abs.overturnRate ?? null)}</TableCell>
             </TableRow>
             <TableRow>
               <TableHead scope="row" className={rowHeader}>
                 Opponents
               </TableHead>
-              <TableCell className={cell}>{abs.opponentChallenges}</TableCell>
-              <TableCell className={cell}>{abs.opponentOverturned}</TableCell>
-              <TableCell className={cell}>{formatPercent(opponentRate)}</TableCell>
+              <TableCell className={countCell}>{abs.opponentChallenges}</TableCell>
+              <TableCell className={countCell}>{abs.opponentOverturned}</TableCell>
+              <TableCell className={countCell}>{formatPercent(opponentRate)}</TableCell>
             </TableRow>
           </TableBody>
         </Table>
@@ -144,8 +145,8 @@ function BullpenWorkloadTable({ relievers, linkSeason }: { relievers: RelieverWo
                 <TableHead scope="col" className={rowHeader}>
                   Pitcher
                 </TableHead>
-                <TableHead scope="col" className={cell}>Pitches, 3 days</TableHead>
-                <TableHead scope="col" className={cell}>Pitches, 7 days</TableHead>
+                <TableHead scope="col" className={countCell}>Pitches, 3 days</TableHead>
+                <TableHead scope="col" className={countCell}>Pitches, 7 days</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -156,8 +157,8 @@ function BullpenWorkloadTable({ relievers, linkSeason }: { relievers: RelieverWo
                       {r.name}
                     </PlayerLink>
                   </TableHead>
-                  <TableCell className={cell}>{r.last3Days}</TableCell>
-                  <TableCell className={cell}>{r.last7Days}</TableCell>
+                  <TableCell className={countCell}>{r.last3Days}</TableCell>
+                  <TableCell className={countCell}>{r.last7Days}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
