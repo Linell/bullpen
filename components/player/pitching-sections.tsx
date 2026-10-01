@@ -181,6 +181,7 @@ async function Arsenal({ playerId, season }: { playerId: number; season: number 
     <div className="grid gap-4">
       {movement.length >= 2 && <LazyMovementPlot pitches={movement} league={leagueMovement} pitchHand={pitchHand} />}
       <StatGrid
+        caption="Arsenal"
         rowLabel="Pitch"
         rows={arsenal}
         rowKey={(p) => p.pitchType}
@@ -201,6 +202,7 @@ async function PitchingGameLog({ playerId, season }: { playerId: number; season:
 
   return (
     <StatGrid
+      caption="Game log"
       rowLabel="Game"
       rows={games.toReversed()}
       rowKey={(g) => g.gamePk}

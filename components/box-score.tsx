@@ -1,7 +1,7 @@
 import { PlayerLink } from "@/components/player-link";
 import { Abbr } from "@/components/ui/abbr";
 import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { BattingLine, BoxScore as BoxScoreData, PitchingLine, TeamBoxScore } from "@/lib/box-score";
 import type { GlossaryTerm } from "@/lib/glossary";
 import type { Team } from "@/lib/scoreboard";
@@ -30,9 +30,10 @@ const PITCHING_COLUMNS: { term: GlossaryTerm; value: (line: PitchingLine) => num
   { term: "NP", value: (l) => l.pitches },
 ];
 
-function BattingTable({ lines, season }: { lines: BattingLine[]; season: number }) {
+function BattingTable({ team, lines, season }: { team: Team; lines: BattingLine[]; season: number }) {
   return (
     <Table>
+      <TableCaption className="sr-only">{team.name} batting</TableCaption>
       <TableHeader>
         <TableRow className="text-xs">
           <TableHead scope="col" className={nameCell}>Batters</TableHead>
@@ -67,9 +68,10 @@ function BattingTable({ lines, season }: { lines: BattingLine[]; season: number 
   );
 }
 
-function PitchingTable({ lines, season }: { lines: PitchingLine[]; season: number }) {
+function PitchingTable({ team, lines, season }: { team: Team; lines: PitchingLine[]; season: number }) {
   return (
     <Table>
+      <TableCaption className="sr-only">{team.name} pitching</TableCaption>
       <TableHeader>
         <TableRow className="text-xs">
           <TableHead scope="col" className={nameCell}>Pitchers</TableHead>
@@ -106,8 +108,8 @@ function TeamBoxScoreCard({ team, season, lines }: { team: Team; season: number;
     <Card size="sm">
       <CardContent className="flex flex-col gap-3">
         <h2>{team.name}</h2>
-        {lines.batting.length > 0 && <BattingTable lines={lines.batting} season={season} />}
-        {lines.pitching.length > 0 && <PitchingTable lines={lines.pitching} season={season} />}
+        {lines.batting.length > 0 && <BattingTable team={team} lines={lines.batting} season={season} />}
+        {lines.pitching.length > 0 && <PitchingTable team={team} lines={lines.pitching} season={season} />}
       </CardContent>
     </Card>
   );

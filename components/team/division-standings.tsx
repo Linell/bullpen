@@ -1,7 +1,7 @@
 import { TeamLink } from "@/components/team/team-link";
 import { Abbr } from "@/components/ui/abbr";
 import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { StandingsRow } from "@/lib/team-summary";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +32,7 @@ export function DivisionStandings({
       <CardContent className="flex flex-col gap-3">
         <h2>{title}</h2>
         <Table>
+          <TableCaption className="sr-only">{title} standings</TableCaption>
           <TableHeader>
             <TableRow className="text-xs">
               <TableHead scope="col">Team</TableHead>

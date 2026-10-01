@@ -21,6 +21,6 @@ export function SplitTable({ splits, countLabel }: { splits: Split[]; countLabel
   ];
 
   return (
-    <StatGrid rowLabel="Split" rows={splits} rowKey={(r) => r.key} rowName={(r) => r.label} columns={columns} />
+    <StatGrid caption="Splits" rowLabel="Split" rows={splits} rowKey={(r) => r.key} rowName={(r) => r.label} columns={columns} />
   );
 }

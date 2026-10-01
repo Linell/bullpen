@@ -1,6 +1,6 @@
 import { Abbr } from "@/components/ui/abbr";
 import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Linescore, LinescoreLine } from "@/lib/linescore";
 import type { Team } from "@/lib/scoreboard";
 import { cn } from "@/lib/utils";
@@ -39,6 +39,7 @@ export function LinescoreTable({
     <Card size="sm">
       <CardContent>
         <Table>
+          <TableCaption className="sr-only">Linescore</TableCaption>
           <TableHeader>
             <TableRow className="text-xs">
               <TableHead scope="col" className={teamCell}>

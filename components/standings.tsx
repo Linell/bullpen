@@ -9,7 +9,7 @@ import {
 import { Abbr } from "@/components/ui/abbr";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { standingsPath } from "@/lib/routes";
 import { resolveSeason } from "@/lib/season";
 import { getStandings, getStandingsSeasons, type LeagueStandings, type TeamStanding } from "@/lib/standings";
@@ -26,6 +26,7 @@ function StandingsCard({ title, linkSeason, teams }: { title: string; linkSeason
       <CardContent className="flex flex-col gap-3">
         <h3>{title}</h3>
         <Table>
+          <TableCaption className="sr-only">{title} standings</TableCaption>
           <TableHeader>
             <TableRow className="text-xs">
               <TableHead scope="col">Team</TableHead>

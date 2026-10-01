@@ -177,6 +177,7 @@ async function HittingGameLog({ playerId, season }: { playerId: number; season: 
 
   return (
     <StatGrid
+      caption="Game log"
       rowLabel="Game"
       rows={games.toReversed()}
       rowKey={(g) => g.gamePk}

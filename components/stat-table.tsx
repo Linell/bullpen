@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Abbr } from "@/components/ui/abbr";
 import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCaption, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { GlossaryTerm } from "@/lib/glossary";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +12,7 @@ export type StatColumn<Row> = {
 };
 
 type StatGridProps<Row> = {
+  caption?: string;
   rowLabel: string;
   rows: Row[];
   rowKey: (row: Row, index: number) => string | number;
@@ -26,11 +27,12 @@ const labelCell = "sticky left-0 bg-background px-2 py-1.5 text-left font-headin
 const bodyRow = "border-b-2 border-border";
 const highlighted = "bg-main text-main-foreground";
 
-export function StatGrid<Row>({ rowLabel, rows, rowKey, rowName, columns, isHighlighted }: StatGridProps<Row>) {
+export function StatGrid<Row>({ caption, rowLabel, rows, rowKey, rowName, columns, isHighlighted }: StatGridProps<Row>) {
   if (rows.length === 0) return <p className="text-sm opacity-70">No data yet.</p>;
 
   return (
     <Table className="bg-background font-base tabular-nums whitespace-nowrap">
+      {caption && <TableCaption className="sr-only">{caption}</TableCaption>}
       <TableHeader>
         <TableRow className="text-xs">
           <TableHead scope="col" className={labelCell}>
@@ -74,7 +76,7 @@ export function StatTable<Row>({
     <Card size="sm" className={cn("min-w-0", className)}>
       <CardContent className="flex flex-col gap-3">
         <Heading>{title}</Heading>
-        <StatGrid {...grid} />
+        <StatGrid caption={title} {...grid} />
       </CardContent>
     </Card>
   );

@@ -1,7 +1,7 @@
 import { PlayerLink } from "@/components/player-link";
 import { Abbr } from "@/components/ui/abbr";
 import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LazyRunDiffChart } from "@/components/team/lazy-run-diff-chart";
 import { formatPercent } from "@/lib/format";
 import type { WinLoss } from "@/lib/team-summary";
@@ -48,6 +48,7 @@ function InningRunsTable({ innings }: { innings: InningRuns[] }) {
       <CardContent className="flex flex-col gap-3">
         <h2>Runs by inning</h2>
         <Table>
+          <TableCaption className="sr-only">Runs by inning</TableCaption>
           <TableHeader>
             <TableRow className="text-xs">
               <TableHead scope="col" className={rowHeader}>
@@ -98,6 +99,7 @@ function AbsChallengesCard({ abs }: { abs: AbsChallenges }) {
           <Abbr term="ABS" /> challenges
         </h2>
         <Table>
+          <TableCaption className="sr-only">ABS challenges</TableCaption>
           <TableHeader>
             <TableRow className="text-xs">
               <TableHead scope="col" className={rowHeader}>
@@ -141,6 +143,7 @@ function BullpenWorkloadTable({ relievers, linkSeason }: { relievers: RelieverWo
           <p className="text-sm opacity-70">No relief appearances in the last week.</p>
         ) : (
           <Table>
+            <TableCaption className="sr-only">Bullpen workload</TableCaption>
             <TableHeader>
               <TableRow className="text-xs">
                 <TableHead scope="col" className={rowHeader}>

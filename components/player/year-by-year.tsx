@@ -19,6 +19,7 @@ export function YearByYear<Year extends { season: number }>({
 
   return (
     <StatGrid
+      caption="Year by year"
       rowLabel="Season"
       rows={years}
       rowKey={(y) => y.season}
