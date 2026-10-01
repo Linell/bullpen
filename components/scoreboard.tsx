@@ -43,7 +43,7 @@ export function ScoreboardSkeleton({ title = "Scores" }: { title?: string }) {
         <Skeleton className="h-10 w-56" />
         <Skeleton className="h-8 w-44" />
       </div>
-      <section className="grid gap-6 @xl:grid-cols-2 @4xl:grid-cols-3 @7xl:grid-cols-4">
+      <section className="grid gap-4 @xl:grid-cols-2 @4xl:grid-cols-3 @7xl:grid-cols-4">
         {Array.from({ length: 4 }, (_, i) => (
           <GameCardSkeleton key={i} />
         ))}

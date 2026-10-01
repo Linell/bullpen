@@ -7,7 +7,7 @@ function ScheduleSection({ title, games }: { title: string; games: Game[] }) {
   return (
     <section className="flex flex-col gap-3">
       <h2>{title}</h2>
-      <div className="grid gap-6 @xl:grid-cols-2 @4xl:grid-cols-3 @7xl:grid-cols-4">
+      <div className="grid gap-4 @xl:grid-cols-2 @4xl:grid-cols-3 @7xl:grid-cols-4">
         {games.map((game) => (
           <GameCard key={game.id} game={game} />
         ))}

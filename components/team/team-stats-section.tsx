@@ -110,7 +110,7 @@ export function TeamStatsSection({ stats, linkSeason }: { stats: TeamStats; link
   ];
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <StatGroup title="Batting">
         <StatComparison title="Team vs league" stats={battingComparison} team={batting.team} league={batting.league} />
         <StatTable

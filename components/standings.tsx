@@ -84,18 +84,20 @@ function Leagues({ leagues, linkSeason }: { leagues: LeagueStandings[]; linkSeas
   return (
     <div className="grid gap-6 xl:grid-cols-2">
       {leagues.map((league, i) => (
-        <section key={league.name} aria-labelledby={`${idPrefix}-${i}`} className="flex flex-col gap-6">
+        <section key={league.name} aria-labelledby={`${idPrefix}-${i}`} className="flex flex-col gap-3">
           <h2 id={`${idPrefix}-${i}`}>{league.name}</h2>
-          {league.divisions.map((division) => (
-            <StandingsCard key={division.id} title={division.name} linkSeason={linkSeason} teams={division.teams} />
-          ))}
-          <StandingsCard
-            title="Wild Card"
-            linkSeason={linkSeason}
-            teams={league.wildCard}
-            gamesBack="WCGB"
-            cutoff={WILD_CARD_SPOTS}
-          />
+          <div className="flex flex-col gap-4">
+            {league.divisions.map((division) => (
+              <StandingsCard key={division.id} title={division.name} linkSeason={linkSeason} teams={division.teams} />
+            ))}
+            <StandingsCard
+              title="Wild Card"
+              linkSeason={linkSeason}
+              teams={league.wildCard}
+              gamesBack="WCGB"
+              cutoff={WILD_CARD_SPOTS}
+            />
+          </div>
         </section>
       ))}
     </div>

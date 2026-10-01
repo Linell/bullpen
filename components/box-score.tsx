@@ -167,7 +167,7 @@ export function BoxScore({
   boxScore: BoxScoreData;
 }) {
   return (
-    <div className="grid items-start gap-6 lg:grid-cols-2">
+    <div className="grid items-start gap-4 lg:grid-cols-2">
       <TeamBoxScoreCard team={away} season={season} lines={boxScore.away} />
       <TeamBoxScoreCard team={home} season={season} lines={boxScore.home} />
     </div>

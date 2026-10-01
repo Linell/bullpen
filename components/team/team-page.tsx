@@ -100,7 +100,7 @@ function TeamFallback() {
   return (
     <>
       <TeamHeaderSkeleton />
-      <div className="grid gap-6 @xl:grid-cols-2 @4xl:grid-cols-3 @7xl:grid-cols-4">
+      <div className="grid gap-4 @xl:grid-cols-2 @4xl:grid-cols-3 @7xl:grid-cols-4">
         {Array.from({ length: 3 }, (_, i) => (
           <GameCardSkeleton key={i} />
         ))}

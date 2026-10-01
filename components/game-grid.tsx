@@ -37,7 +37,7 @@ export function GameGrid({ games, latestPlays }: { games: Game[]; latestPlays?: 
     <>
       {live.length > 0 && (
         <GameSection title="Live now">
-          <div className="grid gap-6 @xl:grid-cols-2 @4xl:grid-cols-3 @7xl:grid-cols-4">
+          <div className="grid gap-4 @xl:grid-cols-2 @4xl:grid-cols-3 @7xl:grid-cols-4">
             {live.map((game) => (
               <GameCard key={game.id} game={game} latestPlay={latestPlays?.get(game.gamePk)} />
             ))}

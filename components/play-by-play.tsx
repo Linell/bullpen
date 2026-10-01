@@ -135,28 +135,30 @@ export function PlayByPlay({
   season,
 }: Sides & { halfInnings: HalfInning[] }) {
   return (
-    <section aria-labelledby="play-by-play" className="flex flex-col gap-6">
+    <section aria-labelledby="play-by-play" className="flex flex-col gap-3">
       <h2 id="play-by-play">Play by play</h2>
-      {halfInnings.map((h) => (
-        <Card key={`${h.inning}-${h.half}`} size="sm">
-          <CardContent className="flex flex-col gap-3">
-            <h3 className="flex items-baseline justify-between gap-2">
-              {halfInningLabel(h.inning, h.half)}
-              <span className="truncate text-sm font-base opacity-70">
-                {(h.half === "top" ? away : home).name}
-              </span>
-            </h3>
-            <ol>
-              {h.plateAppearances.map((pa) => (
-                <Fragment key={pa.atBatIndex}>
-                  {pa.pitchingChange && <PitchingChangeItem change={pa.pitchingChange} season={season} />}
-                  <PlateAppearanceItem pa={pa} away={away} home={home} season={season} />
-                </Fragment>
-              ))}
-            </ol>
-          </CardContent>
-        </Card>
-      ))}
+      <div className="flex flex-col gap-4">
+        {halfInnings.map((h) => (
+          <Card key={`${h.inning}-${h.half}`} size="sm">
+            <CardContent className="flex flex-col gap-3">
+              <h3 className="flex items-baseline justify-between gap-2">
+                {halfInningLabel(h.inning, h.half)}
+                <span className="truncate text-sm font-base opacity-70">
+                  {(h.half === "top" ? away : home).name}
+                </span>
+              </h3>
+              <ol>
+                {h.plateAppearances.map((pa) => (
+                  <Fragment key={pa.atBatIndex}>
+                    {pa.pitchingChange && <PitchingChangeItem change={pa.pitchingChange} season={season} />}
+                    <PlateAppearanceItem pa={pa} away={away} home={home} season={season} />
+                  </Fragment>
+                ))}
+              </ol>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </section>
   );
 }
