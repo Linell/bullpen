@@ -13,6 +13,15 @@
   }
 }
 
+/* Static so the offsets exist as :root vars the shadows below can build on. */
+@theme static {
+    --spacing-boxShadowX: 4px;
+    --spacing-boxShadowY: 4px;
+    --spacing-reverseBoxShadowX: -4px;
+    --spacing-reverseBoxShadowY: -4px;
+    --spacing-liveShadow: 6px;
+}
+
 @theme inline {
     --color-main: var(--main);
     --color-background: var(--background);
@@ -31,10 +40,6 @@
     --color-chart-7: var(--chart-7);
     --color-chart-8: var(--chart-8);
     --color-chart-9: var(--chart-9);
-    --spacing-boxShadowX: 4px;
-    --spacing-boxShadowY: 4px;
-    --spacing-reverseBoxShadowX: -4px;
-    --spacing-reverseBoxShadowY: -4px;
     --font-sans: var(--font-dm-sans);
     --radius-base: 5px;
     --font-weight-base: 500;
@@ -92,8 +97,8 @@
     --main-foreground: hsl(222, 40%, 8%);
     --border: hsl(222, 40%, 8%);
     --overlay: hsl(222, 40%, 8% / 0.8);
-    --shadow: 4px 4px 0px 0px var(--border);
-    --live-shadow: 6px 6px 0px 0px var(--border);
+    --shadow: var(--spacing-boxShadowX) var(--spacing-boxShadowY) 0px 0px var(--border);
+    --live-shadow: var(--spacing-liveShadow) var(--spacing-liveShadow) 0px 0px var(--border);
     --chart-1: #5294FF;
     --chart-2: #FF6B5B;
     --chart-3: #FACC00;
