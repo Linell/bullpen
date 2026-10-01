@@ -13,7 +13,8 @@ export function formatPct(pct: number) {
 
 export function formatGamesBack(gamesBack: number) {
   if (gamesBack === 0) return "—";
-  return gamesBack > 0 ? String(gamesBack) : `+${-gamesBack}`;
+  const games = String(Math.abs(gamesBack)).replace(/^0/, "");
+  return gamesBack > 0 ? games : `+${games}`;
 }
 
 export function DivisionStandings({
