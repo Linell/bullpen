@@ -123,7 +123,7 @@ export function GameCard({ game, latestPlay }: { game: Game; latestPlay?: LivePl
             showProbable={isScheduled}
           />
         </div>
-        {game.series?.result && <span className="text-xs font-heading">{game.series.result}</span>}
+        {game.series?.result && <span className="text-xs font-heading">Series: {game.series.result}</span>}
         {atBat && <AtBat atBat={atBat} season={game.season} />}
         {latestPlay && (
           <p
