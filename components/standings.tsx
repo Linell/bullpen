@@ -25,7 +25,7 @@ function StandingsCard({ title, linkSeason, teams }: { title: string; linkSeason
   return (
     <Card size="sm">
       <CardContent className="flex flex-col gap-3">
-        <h3 className="text-lg">{title}</h3>
+        <h3>{title}</h3>
         <Table>
           <TableHeader>
             <TableRow className="text-xs">
@@ -66,7 +66,7 @@ function Leagues({ leagues, linkSeason }: { leagues: LeagueStandings[]; linkSeas
     <div className="grid gap-6 xl:grid-cols-2">
       {leagues.map((league) => (
         <section key={league.name} className="flex flex-col gap-6">
-          <h2 className="text-2xl">{league.name}</h2>
+          <h2>{league.name}</h2>
           {league.divisions.map((division) => (
             <StandingsCard key={division.id} title={division.name} linkSeason={linkSeason} teams={division.teams} />
           ))}

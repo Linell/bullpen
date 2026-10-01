@@ -32,7 +32,7 @@ export function PlayerHeader({
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="flex min-w-0 flex-col gap-1">
-            <h1 className="text-3xl sm:text-4xl">{fullName}</h1>
+            <h1>{fullName}</h1>
             {latest && (
               <p className="flex flex-wrap gap-x-2 text-sm opacity-70">
                 {latest.jerseyNumber && <span>#{latest.jerseyNumber}</span>}

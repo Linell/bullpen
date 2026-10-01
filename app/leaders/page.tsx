@@ -26,7 +26,7 @@ const GRID = "grid gap-6 xl:grid-cols-2";
 export default function LeadersPage({ searchParams }: PageProps<"/leaders">) {
   return (
     <main className="mx-auto flex w-full max-w-(--breakpoint-2xl) flex-1 flex-col gap-6 px-6 pt-6 pb-24">
-      <h1 className="text-3xl">Leaders</h1>
+      <h1>Leaders</h1>
       <Suspense fallback={<LeaderboardsSkeleton />}>
         <Leaderboards searchParams={searchParams} />
       </Suspense>

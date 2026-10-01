@@ -7,7 +7,7 @@ import type { Game } from "@/lib/scoreboard";
 function GameSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-2xl">{title}</h2>
+      <h2>{title}</h2>
       {children}
     </section>
   );

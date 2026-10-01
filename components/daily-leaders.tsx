@@ -80,7 +80,7 @@ export async function DailyLeaders({ date }: { date: string }) {
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-2xl">
+      <h2>
         <Link href={leadersPath()} className="hover:underline">
           Today&apos;s leaders
         </Link>

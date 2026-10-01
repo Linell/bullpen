@@ -138,8 +138,8 @@ export function PlayByPlay({
     <section className="flex flex-col gap-6">
       {halfInnings.map((h) => (
         <Card key={`${h.inning}-${h.half}`} size="sm">
-          <CardContent className="flex flex-col gap-2">
-            <h2 className="flex items-baseline justify-between gap-2 text-lg">
+          <CardContent className="flex flex-col gap-3">
+            <h2 className="flex items-baseline justify-between gap-2">
               {halfInningLabel(h.inning, h.half)}
               <span className="truncate text-sm font-base opacity-70">
                 {(h.half === "top" ? away : home).name}

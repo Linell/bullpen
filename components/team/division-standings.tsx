@@ -31,7 +31,7 @@ export function DivisionStandings({
   return (
     <Card size="sm">
       <CardContent className="flex flex-col gap-3">
-        <h2 className="text-lg">{title}</h2>
+        <h2>{title}</h2>
         <Table>
           <TableHeader>
             <TableRow className="text-xs">

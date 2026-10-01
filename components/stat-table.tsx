@@ -71,8 +71,8 @@ export function StatTable<Row>({
 }: StatGridProps<Row> & { title: string; className?: string }) {
   return (
     <Card size="sm" className={cn("min-w-0", className)}>
-      <CardContent className="flex flex-col gap-2">
-        <h3 className="font-heading">{title}</h3>
+      <CardContent className="flex flex-col gap-3">
+        <h3>{title}</h3>
         <StatGrid {...grid} />
       </CardContent>
     </Card>

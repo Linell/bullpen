@@ -21,7 +21,7 @@ export function SeasonLine({ title, stats }: { title: string; stats: SeasonStat[
   return (
     <Card size="sm">
       <CardContent className="flex flex-col gap-3">
-        <h2 className="font-heading">{title}</h2>
+        <h2>{title}</h2>
         <StatList stats={stats} />
       </CardContent>
     </Card>

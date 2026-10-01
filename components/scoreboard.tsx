@@ -17,7 +17,7 @@ export async function Scoreboard({ date, isToday = false }: { date: string; isTo
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <h1 className="text-4xl">{isToday ? "Today" : formatOfficialDate(date)}</h1>
+          <h1>{isToday ? "Today" : formatOfficialDate(date)}</h1>
           {rounds.length > 0 && <p className="text-xl font-heading opacity-70">{rounds.join(" · ")}</p>}
         </div>
         <DateNav date={date} isToday={isToday} />

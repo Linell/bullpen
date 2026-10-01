@@ -51,7 +51,7 @@ export function Starters({
   return (
     <Card>
       <CardContent className="flex flex-col gap-3">
-        <h2 className="text-lg">{title}</h2>
+        <h2>{title}</h2>
         <StarterRow team={away} season={season} starter={starters.away} />
         <StarterRow team={home} season={season} starter={starters.home} />
       </CardContent>

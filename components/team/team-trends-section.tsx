@@ -28,7 +28,7 @@ function SituationalGrid({ situational }: { situational: SituationalRecords }) {
   return (
     <Card size="sm">
       <CardContent className="flex flex-col gap-3">
-        <h2 className="text-lg">Situational</h2>
+        <h2>Situational</h2>
         <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           <Stat label="One-run games" value={record(situational.oneRun)} />
           <Stat label="Extra innings" value={record(situational.extraInnings)} />
@@ -46,7 +46,7 @@ function InningRunsTable({ innings }: { innings: InningRuns[] }) {
   return (
     <Card size="sm">
       <CardContent className="flex flex-col gap-3">
-        <h2 className="text-lg">Runs by inning</h2>
+        <h2>Runs by inning</h2>
         <Table>
           <TableHeader>
             <TableRow className="text-xs">
@@ -94,7 +94,7 @@ function AbsChallengesCard({ abs }: { abs: AbsChallenges }) {
   return (
     <Card size="sm">
       <CardContent className="flex flex-col gap-3">
-        <h2 className="text-lg">
+        <h2>
           <Abbr term="ABS" /> challenges
         </h2>
         <Table>
@@ -136,7 +136,7 @@ function BullpenWorkloadTable({ relievers, linkSeason }: { relievers: RelieverWo
   return (
     <Card size="sm">
       <CardContent className="flex flex-col gap-3">
-        <h2 className="text-lg">Bullpen workload</h2>
+        <h2>Bullpen workload</h2>
         {relievers.length === 0 ? (
           <p className="text-sm opacity-70">No relief appearances in the last week.</p>
         ) : (
@@ -175,7 +175,7 @@ export function TeamTrendsSection({ trends, linkSeason }: { trends: TeamTrends; 
     <section className="flex flex-col gap-4" aria-label="Team trends">
       <Card size="sm">
         <CardContent className="flex flex-col gap-3">
-          <h2 className="text-lg">Run differential</h2>
+          <h2>Run differential</h2>
           <LazyRunDiffChart points={trends.runDiffByGame} />
         </CardContent>
       </Card>

@@ -93,7 +93,7 @@ export function Matchup({
       <CardContent className="flex flex-col gap-4">
         {hasForm && (
           <section className="flex flex-col gap-3">
-            <h2 className="text-lg">Last 10</h2>
+            <h2>Last 10</h2>
             <FormRow team={away} form={awayForm} />
             <FormRow team={home} form={homeForm} />
           </section>
@@ -102,7 +102,7 @@ export function Matchup({
           <section
             className={cn("flex flex-col gap-3", hasForm && "border-t-2 border-border pt-4")}
           >
-            <h2 className="flex items-baseline justify-between gap-2 text-lg">
+            <h2 className="flex items-baseline justify-between gap-2">
               Season series
               <span className="text-sm opacity-70">
                 {seriesSummary(away, home, headToHead.record)}

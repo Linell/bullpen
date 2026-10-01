@@ -28,8 +28,8 @@ function percentileColor(percentile: number) {
 export function PercentileBars({ groups, qualifier }: { groups?: PercentileGroup[]; qualifier: string }) {
   return (
     <Card size="sm">
-      <CardContent className="flex flex-col gap-4">
-        <h2 className="font-heading">
+      <CardContent className="flex flex-col gap-3">
+        <h2>
           <Abbr term="Percentile">Percentiles</Abbr>
         </h2>
         {groups ? (

@@ -61,8 +61,8 @@ export function StatComparison<Stats>({
 }) {
   return (
     <Card size="sm" className="min-w-0">
-      <CardContent className="flex flex-col gap-2">
-        <h3 className="font-heading">{title}</h3>
+      <CardContent className="flex flex-col gap-3">
+        <h3>{title}</h3>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
           {stats.map((stat) => (
             <StatTile key={stat.label} stat={stat} team={team} league={league} />

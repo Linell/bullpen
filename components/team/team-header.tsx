@@ -30,7 +30,7 @@ export function TeamHeader({ summary }: { summary: TeamSummary }) {
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <div className="flex flex-col gap-1">
-            <h1 className="text-4xl">{team.name}</h1>
+            <h1>{team.name}</h1>
             <p className="text-sm opacity-70">{affiliation}</p>
           </div>
           <span className="text-4xl font-heading tabular-nums">{formatWinLoss(record)}</span>

@@ -105,7 +105,7 @@ function TeamBoxScoreCard({ team, season, lines }: { team: Team; season: number;
   return (
     <Card size="sm">
       <CardContent className="flex flex-col gap-3">
-        <h2 className="text-lg">{team.name}</h2>
+        <h2>{team.name}</h2>
         {lines.batting.length > 0 && <BattingTable lines={lines.batting} season={season} />}
         {lines.pitching.length > 0 && <PitchingTable lines={lines.pitching} season={season} />}
       </CardContent>

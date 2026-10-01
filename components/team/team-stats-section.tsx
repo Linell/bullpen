@@ -85,7 +85,7 @@ const pitcherColumns: StatColumn<PitcherLeader>[] = [
 function StatGroup({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-lg">{title}</h2>
+      <h2>{title}</h2>
       <div className="grid gap-4 lg:grid-cols-2">{children}</div>
     </section>
   );
