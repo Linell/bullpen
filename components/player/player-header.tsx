@@ -48,7 +48,7 @@ export function PlayerHeader({
             seasons={{ hitting: summary.battingSeasons, pitching: summary.pitchingSeasons }}
           />
         </div>
-        <dl className="flex flex-wrap gap-x-6 gap-y-2 border-t-2 border-border pt-3 text-sm">
+        <dl className="flex flex-wrap gap-x-6 gap-y-2 border-t-2 border-border pt-4 text-sm">
           <Fact label="B/T" value={`${batSide ?? "—"}/${pitchHand ?? "—"}`} />
           {birthDate && <Fact label="Age" value={ageOn(birthDate, today)} />}
           {size && <Fact label="Ht/Wt" value={size} />}
@@ -67,7 +67,7 @@ export function PlayerHeaderSkeleton() {
           <Skeleton className="h-10 w-64" />
           <Skeleton className="h-4 w-40" />
         </div>
-        <div className="flex gap-6 border-t-2 border-border pt-3">
+        <div className="flex gap-6 border-t-2 border-border pt-4">
           <Skeleton className="h-5 w-16" />
           <Skeleton className="h-5 w-16" />
           <Skeleton className="h-5 w-24" />

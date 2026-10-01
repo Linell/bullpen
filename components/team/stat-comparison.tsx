@@ -31,7 +31,7 @@ function StatTile<Stats>({ stat, team, league }: { stat: ComparedStat<Stats>; te
   const mark = marker[teamText === leagueText ? "even" : standing(teamValue, leagueValue, stat.better)];
 
   return (
-    <div className="flex flex-col gap-0.5 rounded-base border-2 border-border bg-background px-2.5 py-2">
+    <div className="flex flex-col gap-0.5 rounded-base border-2 border-border bg-background px-3 py-2">
       <dt className="text-xs opacity-70">
         <Abbr term={stat.label} />
       </dt>
