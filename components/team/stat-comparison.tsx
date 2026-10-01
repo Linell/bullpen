@@ -32,18 +32,21 @@ function StatTile<Stats>({ stat, team, league }: { stat: ComparedStat<Stats>; te
 
   return (
     <div className="flex flex-col gap-0.5 rounded-base border-2 border-border bg-background px-2.5 py-2">
-      <span className="text-xs opacity-70">
+      <dt className="text-xs opacity-70">
         <Abbr term={stat.label} />
-      </span>
-      <span className="flex items-baseline gap-1 font-heading text-lg tabular-nums">
+      </dt>
+      <dd className="flex items-baseline gap-1 font-heading text-lg tabular-nums">
         {teamText}
         {mark.symbol && (
-          <span aria-label={mark.label} title={mark.label} className={cn("text-xs", mark.className)}>
-            {mark.symbol}
-          </span>
+          <>
+            <span aria-hidden title={mark.label} className={cn("text-xs", mark.className)}>
+              {mark.symbol}
+            </span>
+            <span className="sr-only">{mark.label}</span>
+          </>
         )}
-      </span>
-      <span className="text-xs tabular-nums opacity-70"><Abbr term="Lg" /> {leagueText}</span>
+      </dd>
+      <dd className="text-xs tabular-nums opacity-70"><Abbr term="Lg" /> {leagueText}</dd>
     </div>
   );
 }
@@ -63,11 +66,11 @@ export function StatComparison<Stats>({
     <Card size="sm" className="min-w-0">
       <CardContent className="flex flex-col gap-3">
         <h3>{title}</h3>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+        <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
           {stats.map((stat) => (
             <StatTile key={stat.label} stat={stat} team={team} league={league} />
           ))}
-        </div>
+        </dl>
       </CardContent>
     </Card>
   );
