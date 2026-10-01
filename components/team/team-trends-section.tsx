@@ -3,17 +3,12 @@ import { Abbr } from "@/components/ui/abbr";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LazyRunDiffChart } from "@/components/team/lazy-run-diff-chart";
-import { formatPercent } from "@/lib/format";
-import type { WinLoss } from "@/lib/team-summary";
+import { formatPercent, formatWinLoss } from "@/lib/format";
 import type { AbsChallenges, InningRuns, RelieverWorkload, SituationalRecords, TeamTrends } from "@/lib/team-trends";
 import { cn } from "@/lib/utils";
 
 const cell = "text-center tabular-nums";
 const rowHeader = "sticky left-0 bg-background";
-
-function record({ wins, losses }: WinLoss) {
-  return `${wins}-${losses}`;
-}
 
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
@@ -30,10 +25,10 @@ function SituationalGrid({ situational }: { situational: SituationalRecords }) {
       <CardContent className="flex flex-col gap-3">
         <h2>Situational</h2>
         <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <Stat label="One-run games" value={record(situational.oneRun)} />
-          <Stat label="Extra innings" value={record(situational.extraInnings)} />
-          <Stat label="Blowouts (5+)" value={record(situational.blowouts)} />
-          <Stat label="Scoring first" value={record(situational.scoringFirst)} />
+          <Stat label="One-run games" value={formatWinLoss(situational.oneRun)} />
+          <Stat label="Extra innings" value={formatWinLoss(situational.extraInnings)} />
+          <Stat label="Blowouts (5+)" value={formatWinLoss(situational.blowouts)} />
+          <Stat label="Scoring first" value={formatWinLoss(situational.scoringFirst)} />
           <Stat label="Comeback wins" value={situational.comebackWins} />
           <Stat label="Blown leads" value={situational.blownLeads} />
         </dl>

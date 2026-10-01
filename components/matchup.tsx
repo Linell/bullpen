@@ -2,6 +2,7 @@ import Link from "next/link";
 import { TeamLink } from "@/components/team/team-link";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatShortDate } from "@/lib/dates";
+import { formatWinLoss } from "@/lib/format";
 import type { Form, SeriesRecord, TeamResult } from "@/lib/matchup";
 import { gamePath } from "@/lib/routes";
 import type { Team } from "@/lib/scoreboard";
@@ -45,10 +46,10 @@ function FormRow({ team, form }: { team: Team; form: Form }) {
 }
 
 function seriesSummary(away: Team, home: Team, { awayWins, homeWins }: SeriesRecord) {
-  if (awayWins === homeWins) return `Series tied ${awayWins}–${homeWins}`;
-  const [leader, high, low] =
+  if (awayWins === homeWins) return `Series tied ${formatWinLoss({ wins: awayWins, losses: homeWins })}`;
+  const [leader, wins, losses] =
     awayWins > homeWins ? [away, awayWins, homeWins] : [home, homeWins, awayWins];
-  return `${leader.abbreviation} leads ${high}–${low}`;
+  return `${leader.abbreviation} leads ${formatWinLoss({ wins, losses })}`;
 }
 
 function SeasonSeries({ away, results }: { away: Team; results: TeamResult[] }) {

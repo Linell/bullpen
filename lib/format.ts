@@ -18,6 +18,10 @@ export function formatCount(value: number) {
   return Math.round(value).toLocaleString("en-US");
 }
 
+export function formatWinLoss({ wins, losses }: { wins: number; losses: number }) {
+  return `${wins}–${losses}`;
+}
+
 export function formatInnings(innings: number) {
   const outs = Math.round(innings * 3);
   return `${Math.floor(outs / 3)}.${outs % 3}`;

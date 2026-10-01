@@ -10,6 +10,7 @@ import { Abbr } from "@/components/ui/abbr";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { formatWinLoss } from "@/lib/format";
 import { standingsPath } from "@/lib/routes";
 import { resolveSeason } from "@/lib/season";
 import {
@@ -67,7 +68,7 @@ function StandingsCard({
                 <TableCell className={cell}>{formatPct(row.pct)}</TableCell>
                 <TableCell className={cell}>{formatGamesBack(row.gamesBack)}</TableCell>
                 <TableCell className={cell}>
-                  {row.last10.wins}-{row.last10.losses}
+                  {formatWinLoss(row.last10)}
                 </TableCell>
                 <TableCell className={cell}>{row.streak ?? "—"}</TableCell>
                 <TableCell className={cell}>{formatDiff(row.runDiff)}</TableCell>

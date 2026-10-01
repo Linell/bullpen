@@ -2,11 +2,8 @@ import type { ReactNode } from "react";
 import { Abbr } from "@/components/ui/abbr";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { TeamSummary, WinLoss } from "@/lib/team-summary";
-
-function formatWinLoss({ wins, losses }: WinLoss) {
-  return `${wins}–${losses}`;
-}
+import { formatWinLoss } from "@/lib/format";
+import type { TeamSummary } from "@/lib/team-summary";
 
 function formatRunDiff(runDiff: number) {
   return runDiff > 0 ? `+${runDiff}` : String(runDiff);

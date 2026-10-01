@@ -1,6 +1,7 @@
 import { PlayerLink } from "@/components/player-link";
 import { Abbr } from "@/components/ui/abbr";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatWinLoss } from "@/lib/format";
 import type { Starter } from "@/lib/game-detail";
 import type { Team } from "@/lib/scoreboard";
 
@@ -22,7 +23,7 @@ function StarterRow({ team, season, starter }: { team: Team; season: number; sta
             )}
           </span>
           <span className="text-sm tabular-nums opacity-70">
-            {starter.wins}–{starter.losses} · {starter.starts} <Abbr term="GS" /> · {starter.strikeouts}{" "}
+            {formatWinLoss(starter)} · {starter.starts} <Abbr term="GS" /> · {starter.strikeouts}{" "}
             <Abbr term="K" />
           </span>
         </div>
