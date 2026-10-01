@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { Abbr } from "@/components/ui/abbr";
 import { Card, CardContent } from "@/components/ui/card";
 import type { GlossaryTerm } from "@/lib/glossary";
@@ -26,6 +26,7 @@ function percentileColor(percentile: number) {
 }
 
 export function PercentileBars({ groups, qualifier }: { groups?: PercentileGroup[]; qualifier: string }) {
+  const idPrefix = useId();
   return (
     <Card size="sm">
       <CardContent className="flex flex-col gap-3">
@@ -34,9 +35,11 @@ export function PercentileBars({ groups, qualifier }: { groups?: PercentileGroup
         </h2>
         {groups ? (
           <div className="grid gap-6 lg:grid-cols-3">
-            {groups.map((group) => (
-              <section key={group.title} className="flex flex-col gap-3">
-                <h3 className="text-xs opacity-70">{group.title}</h3>
+            {groups.map((group, i) => (
+              <section key={group.title} aria-labelledby={`${idPrefix}-${i}`} className="flex flex-col gap-3">
+                <h3 id={`${idPrefix}-${i}`} className="text-xs opacity-70">
+                  {group.title}
+                </h3>
                 {group.bars.map((bar) => (
                   <PercentileRow key={bar.key} bar={bar} />
                 ))}

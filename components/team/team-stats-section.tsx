@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { PlayerLink } from "@/components/player-link";
 import { Abbr } from "@/components/ui/abbr";
 import { StatComparison, type ComparedStat } from "@/components/team/stat-comparison";
@@ -83,9 +83,10 @@ const pitcherColumns: StatColumn<PitcherLeader>[] = [
 ];
 
 function StatGroup({ title, children }: { title: string; children: ReactNode }) {
+  const headingId = useId();
   return (
-    <section className="flex flex-col gap-3">
-      <h2>{title}</h2>
+    <section aria-labelledby={headingId} className="flex flex-col gap-3">
+      <h2 id={headingId}>{title}</h2>
       <div className="grid gap-4 lg:grid-cols-2">{children}</div>
     </section>
   );

@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, useId } from "react";
 import { SeasonSwitcher } from "@/components/season-switcher";
 import { TeamLink } from "@/components/team/team-link";
 import {
@@ -62,11 +62,12 @@ function StandingsCard({ title, linkSeason, teams }: { title: string; linkSeason
 }
 
 function Leagues({ leagues, linkSeason }: { leagues: LeagueStandings[]; linkSeason?: number }) {
+  const idPrefix = useId();
   return (
     <div className="grid gap-6 xl:grid-cols-2">
-      {leagues.map((league) => (
-        <section key={league.name} className="flex flex-col gap-6">
-          <h2>{league.name}</h2>
+      {leagues.map((league, i) => (
+        <section key={league.name} aria-labelledby={`${idPrefix}-${i}`} className="flex flex-col gap-6">
+          <h2 id={`${idPrefix}-${i}`}>{league.name}</h2>
           {league.divisions.map((division) => (
             <StandingsCard key={division.id} title={division.name} linkSeason={linkSeason} teams={division.teams} />
           ))}

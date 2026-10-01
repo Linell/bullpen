@@ -1,13 +1,14 @@
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { GameCard } from "@/components/game-card";
 import { GameRow } from "@/components/game-row";
 import type { LivePlay } from "@/lib/live-game";
 import type { Game } from "@/lib/scoreboard";
 
 function GameSection({ title, children }: { title: string; children: ReactNode }) {
+  const headingId = useId();
   return (
-    <section className="flex flex-col gap-3">
-      <h2>{title}</h2>
+    <section aria-labelledby={headingId} className="flex flex-col gap-3">
+      <h2 id={headingId}>{title}</h2>
       {children}
     </section>
   );
