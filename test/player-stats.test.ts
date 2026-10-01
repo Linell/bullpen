@@ -213,13 +213,14 @@ describe("hitter stats", () => {
   });
 
   it("lists one line per season", async () => {
-    const years = await hitterYears(HITTER);
+    const { years, career } = await hitterYears(HITTER);
 
     expect(years.map((y) => [y.season, y.stats.plateAppearances, y.stats.slg])).toEqual([
       [2025, 1, 2],
       [2026, 4, 1.25],
     ]);
     expect(years[0].stats.exitVelocity).toBe(100);
+    expect(career).toMatchObject({ plateAppearances: 5 });
   });
 });
 
@@ -252,12 +253,13 @@ describe("pitcher stats", () => {
   });
 
   it("lists one line per season", async () => {
-    const years = await pitcherYears(PITCHER);
+    const { years, career } = await pitcherYears(PITCHER);
 
     expect(years.map((y) => [y.season, y.stats.battersFaced, y.stats.era])).toEqual([
       [2025, 1, 0],
       [2026, 4, 6.75],
     ]);
+    expect(career.battersFaced).toBe(5);
   });
 
   it("breaks down the arsenal with velocity and spin", async () => {
@@ -309,7 +311,7 @@ describe("playerSummary", () => {
     expect(await playerSummary(UNKNOWN)).toBeNull();
     expect(await hitterSeason(UNKNOWN, 2026)).toMatchObject({ plateAppearances: 0, avg: null });
     expect(await pitcherGameLog(UNKNOWN, 2026)).toEqual([]);
-    expect(await hitterYears(UNKNOWN)).toEqual([]);
+    expect(await hitterYears(UNKNOWN)).toMatchObject({ years: [], career: { plateAppearances: 0, avg: null } });
   });
 });
 

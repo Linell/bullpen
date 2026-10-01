@@ -159,3 +159,42 @@ export function toPitchingStats(t: PitchingTotals): PitchingStats {
     fastballVelocity: t.fastball_velocity,
   };
 }
+
+function sumCounts<T extends object>(rows: T[], empty: T): T {
+  const total = { ...empty };
+  const keys = Object.keys(empty) as (keyof T)[];
+  for (const row of rows) {
+    for (const key of keys) {
+      if (typeof row[key] === "number") (total[key] as number) += row[key];
+    }
+  }
+  return total;
+}
+
+function weightedMean<T>(rows: T[], value: (row: T) => number | null, weight: (row: T) => number): Rate {
+  let weighted = 0;
+  let count = 0;
+  for (const row of rows) {
+    const v = value(row);
+    if (v === null) continue;
+    weighted += v * weight(row);
+    count += weight(row);
+  }
+  return ratio(weighted, count);
+}
+
+export function careerBatting(seasons: BattingTotals[]): BattingTotals {
+  return {
+    ...sumCounts(seasons, NO_BATTING),
+    teams: 1,
+    exit_velocity: weightedMean(seasons, (s) => s.exit_velocity, (s) => s.batted_balls),
+  };
+}
+
+export function careerPitching(seasons: (PitchingTotals & { fastballs: number })[]): PitchingTotals {
+  return {
+    ...sumCounts(seasons, NO_PITCHING),
+    teams: 1,
+    fastball_velocity: weightedMean(seasons, (s) => s.fastball_velocity, (s) => s.fastballs),
+  };
+}

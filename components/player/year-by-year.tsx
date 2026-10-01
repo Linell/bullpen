@@ -2,20 +2,25 @@ import Link from "next/link";
 import { StatGrid, type StatColumn } from "@/components/stat-table";
 import { playerPath, type PlayerRole } from "@/lib/routes";
 
-export function YearByYear<Year extends { season: number }>({
+type Year<Stats> = { season: number; stats: Stats };
+
+export function YearByYear<Stats>({
   playerId,
   role,
   season,
   years,
+  career,
   columns,
 }: {
   playerId: number;
   role: PlayerRole;
   season: number;
-  years: Year[];
-  columns: StatColumn<Year>[];
+  years: Year<Stats>[];
+  career: Stats;
+  columns: StatColumn<Stats>[];
 }) {
   const latestSeason = years.at(-1)?.season;
+  const yearColumns = columns.map((column) => ({ ...column, value: (y: Year<Stats>) => column.value(y.stats) }));
 
   return (
     <StatGrid
@@ -32,8 +37,9 @@ export function YearByYear<Year extends { season: number }>({
           {y.season}
         </Link>
       )}
-      columns={columns}
+      columns={yearColumns}
       isHighlighted={(y) => y.season === season}
+      totals={years.length > 1 ? { name: "Career", row: { season: 0, stats: career } } : undefined}
     />
   );
 }

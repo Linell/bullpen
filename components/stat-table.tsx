@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Abbr } from "@/components/ui/abbr";
 import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCaption, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCaption, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { GlossaryTerm } from "@/lib/glossary";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +19,7 @@ type StatGridProps<Row> = {
   rowName: (row: Row, index: number) => ReactNode;
   columns: StatColumn<Row>[];
   isHighlighted?: (row: Row) => boolean;
+  totals?: { name: ReactNode; row: Row };
 };
 
 const cell = "text-right";
@@ -27,7 +28,16 @@ const labelCell = "sticky left-0 bg-background px-2 py-1.5 text-left font-headin
 const bodyRow = "border-b-2 border-border";
 const highlighted = "bg-main text-main-foreground";
 
-export function StatGrid<Row>({ caption, rowLabel, rows, rowKey, rowName, columns, isHighlighted }: StatGridProps<Row>) {
+export function StatGrid<Row>({
+  caption,
+  rowLabel,
+  rows,
+  rowKey,
+  rowName,
+  columns,
+  isHighlighted,
+  totals,
+}: StatGridProps<Row>) {
   if (rows.length === 0) return <p className="text-sm opacity-70">No data yet.</p>;
 
   return (
@@ -62,6 +72,20 @@ export function StatGrid<Row>({ caption, rowLabel, rows, rowKey, rowName, column
           );
         })}
       </TableBody>
+      {totals && (
+        <TableFooter className="text-right font-heading [&_td]:px-2 [&_td]:py-1.5">
+          <tr>
+            <th scope="row" className={labelCell}>
+              {totals.name}
+            </th>
+            {columns.map((column) => (
+              <td key={column.label} className={column.align && leftCell}>
+                {column.value(totals.row)}
+              </td>
+            ))}
+          </tr>
+        </TableFooter>
+      )}
     </Table>
   );
 }

@@ -18,8 +18,8 @@ import {
   hitterSprayChart,
   hitterYears,
   type HitterGameLogEntry,
-  type HitterYear,
 } from "@/lib/stats/hitting";
+import type { BattingStats } from "@/lib/stats/rates";
 import { hittingPercentiles } from "@/lib/stats/percentiles";
 
 const gameLogColumns: StatColumn<HitterGameLogEntry>[] = [
@@ -36,15 +36,15 @@ const gameLogColumns: StatColumn<HitterGameLogEntry>[] = [
   { label: "SB", value: (g) => g.stolenBases },
 ];
 
-const yearColumns: StatColumn<HitterYear>[] = [
-  { label: "PA", value: (y) => formatCount(y.stats.plateAppearances) },
-  { label: "AVG", value: (y) => formatAverage(y.stats.avg) },
-  { label: "OBP", value: (y) => formatAverage(y.stats.obp) },
-  { label: "SLG", value: (y) => formatAverage(y.stats.slg) },
-  { label: "OPS", value: (y) => formatAverage(y.stats.ops) },
-  { label: "HR", value: (y) => formatCount(y.stats.homeRuns) },
-  { label: "K%", value: (y) => formatPercent(y.stats.strikeoutRate) },
-  { label: "BB%", value: (y) => formatPercent(y.stats.walkRate) },
+const yearColumns: StatColumn<BattingStats>[] = [
+  { label: "PA", value: (s) => formatCount(s.plateAppearances) },
+  { label: "AVG", value: (s) => formatAverage(s.avg) },
+  { label: "OBP", value: (s) => formatAverage(s.obp) },
+  { label: "SLG", value: (s) => formatAverage(s.slg) },
+  { label: "OPS", value: (s) => formatAverage(s.ops) },
+  { label: "HR", value: (s) => formatCount(s.homeRuns) },
+  { label: "K%", value: (s) => formatPercent(s.strikeoutRate) },
+  { label: "BB%", value: (s) => formatPercent(s.walkRate) },
 ];
 
 export function HittingSections({ playerId, season }: { playerId: number; season: number }) {
@@ -168,8 +168,10 @@ async function BattedBall({ playerId, season }: { playerId: number; season: numb
 }
 
 async function HittingYears({ playerId, season }: { playerId: number; season: number }) {
-  const years = await hitterYears(playerId);
-  return <YearByYear playerId={playerId} role="hitting" season={season} years={years} columns={yearColumns} />;
+  const { years, career } = await hitterYears(playerId);
+  return (
+    <YearByYear playerId={playerId} role="hitting" season={season} years={years} career={career} columns={yearColumns} />
+  );
 }
 
 async function HittingGameLog({ playerId, season }: { playerId: number; season: number }) {

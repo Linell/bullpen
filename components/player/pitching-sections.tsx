@@ -22,10 +22,10 @@ import {
   pitcherYears,
   type ArsenalEntry,
   type PitcherGameLogEntry,
-  type PitcherYear,
 } from "@/lib/stats/pitching";
 import { pitchingPercentiles } from "@/lib/stats/percentiles";
 import { playerSummary } from "@/lib/stats/player";
+import type { PitchingStats } from "@/lib/stats/rates";
 
 const formatWhole = (value: number | null) => formatDecimal(value, 0);
 const formatTwoDecimals = (value: number | null) => formatDecimal(value, 2);
@@ -38,14 +38,14 @@ const arsenalColumns: StatColumn<ArsenalEntry>[] = [
   { label: "Whiff%", value: (p) => formatPercent(p.whiffRate) },
 ];
 
-const yearColumns: StatColumn<PitcherYear>[] = [
-  { label: "IP", value: (y) => formatInnings(y.stats.inningsPitched) },
-  { label: "ERA", value: (y) => formatTwoDecimals(y.stats.era) },
-  { label: "WHIP", value: (y) => formatTwoDecimals(y.stats.whip) },
-  { label: "K%", value: (y) => formatPercent(y.stats.strikeoutRate) },
-  { label: "BB%", value: (y) => formatPercent(y.stats.walkRate) },
-  { label: "CSW%", value: (y) => formatPercent(y.stats.cswRate) },
-  { label: "FB velo", value: (y) => formatDecimal(y.stats.fastballVelocity) },
+const yearColumns: StatColumn<PitchingStats>[] = [
+  { label: "IP", value: (s) => formatInnings(s.inningsPitched) },
+  { label: "ERA", value: (s) => formatTwoDecimals(s.era) },
+  { label: "WHIP", value: (s) => formatTwoDecimals(s.whip) },
+  { label: "K%", value: (s) => formatPercent(s.strikeoutRate) },
+  { label: "BB%", value: (s) => formatPercent(s.walkRate) },
+  { label: "CSW%", value: (s) => formatPercent(s.cswRate) },
+  { label: "FB velo", value: (s) => formatDecimal(s.fastballVelocity) },
 ];
 
 const gameLogColumns: StatColumn<PitcherGameLogEntry>[] = [
@@ -193,8 +193,10 @@ async function Arsenal({ playerId, season }: { playerId: number; season: number 
 }
 
 async function PitchingYears({ playerId, season }: { playerId: number; season: number }) {
-  const years = await pitcherYears(playerId);
-  return <YearByYear playerId={playerId} role="pitching" season={season} years={years} columns={yearColumns} />;
+  const { years, career } = await pitcherYears(playerId);
+  return (
+    <YearByYear playerId={playerId} role="pitching" season={season} years={years} career={career} columns={yearColumns} />
+  );
 }
 
 async function PitchingGameLog({ playerId, season }: { playerId: number; season: number }) {

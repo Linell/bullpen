@@ -4,6 +4,7 @@ import { readRows } from "@/lib/db";
 import { playerStatsTag, ALL_STATS_TAG } from "@/lib/cache-tags";
 import { seasonCacheLife } from "@/lib/stats/cache";
 import {
+  careerBatting,
   NO_BATTING,
   toBattingStats,
   type BattingCounts,
@@ -43,6 +44,7 @@ export type HitterGameLogEntry = {
 };
 
 export type HitterYear = { season: number; stats: BattingStats };
+export type HitterYears = { years: HitterYear[]; career: BattingStats };
 
 export type BattedBall = { x: number; y: number; bases: number };
 
@@ -180,7 +182,7 @@ export async function hitterSprayChart(playerId: number, season: number): Promis
   return readRows<BattedBall>(SPRAY_CHART_QUERY, { playerId, season });
 }
 
-export async function hitterYears(playerId: number): Promise<HitterYear[]> {
+export async function hitterYears(playerId: number): Promise<HitterYears> {
   "use cache: remote";
   cacheTag(playerStatsTag(playerId), ALL_STATS_TAG);
   cacheLife("hours");
@@ -192,13 +194,15 @@ export async function hitterYears(playerId: number): Promise<HitterYear[]> {
     readRows<SwingDecisionRow>(YEARS_SWING_DECISIONS_QUERY, params),
   ]);
 
-  return box.map((line) => ({
-    season: line.season,
-    stats: toBattingStats({
-      ...NO_BATTING,
-      ...line,
-      ...battedBalls.find((b) => b.season === line.season),
-      ...swingDecisions.find((s) => s.season === line.season),
-    }),
+  const seasons = box.map((line) => ({
+    ...NO_BATTING,
+    ...line,
+    ...battedBalls.find((b) => b.season === line.season),
+    ...swingDecisions.find((s) => s.season === line.season),
   }));
+
+  return {
+    years: seasons.map((totals) => ({ season: totals.season, stats: toBattingStats(totals) })),
+    career: toBattingStats(careerBatting(seasons)),
+  };
 }

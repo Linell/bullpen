@@ -4,6 +4,7 @@ import { readRows } from "@/lib/db";
 import { playerStatsTag, ALL_STATS_TAG } from "@/lib/cache-tags";
 import { seasonCacheLife } from "@/lib/stats/cache";
 import {
+  careerPitching,
   NO_BATTING,
   NO_PITCHING,
   toBattingStats,
@@ -56,6 +57,7 @@ export type PitcherGameLogEntry = {
 };
 
 export type PitcherYear = { season: number; stats: PitchingStats };
+export type PitcherYears = { years: PitcherYear[]; career: PitchingStats };
 
 export type ArsenalEntry = PitchMixEntry & { spinRate: Rate; ivb: Rate; hb: Rate };
 
@@ -65,6 +67,7 @@ export const MIN_MOVEMENT_PITCHES = 20;
 
 type BoxRow = PitchingCounts & { season: number };
 type PitchRow = PitchCounts & { season: number };
+type YearPitchRow = PitchRow & { fastballs: number };
 type SplitRow = BattingCounts & { split: string };
 type ArsenalRow = PitchMixRow & { spin_rate: number | null; ivb: number | null; hb: number | null };
 
@@ -130,7 +133,8 @@ const YEARS_BOX_QUERY = `
   ORDER BY season`;
 
 const YEARS_PITCHES_QUERY = `
-  SELECT season, ${PITCH_COUNTS}
+  SELECT season, ${PITCH_COUNTS},
+    count(start_speed) FILTER (is_fastball) AS fastballs
   FROM pitch_outcomes
   WHERE ${TRACKED_GAME} AND pitcher_id = $playerId::INTEGER
   GROUP BY season`;
@@ -193,7 +197,7 @@ export async function pitcherGameLog(playerId: number, season: number): Promise<
   return readRows<PitcherGameLogEntry>(GAME_LOG_QUERY, { playerId, season });
 }
 
-export async function pitcherYears(playerId: number): Promise<PitcherYear[]> {
+export async function pitcherYears(playerId: number): Promise<PitcherYears> {
   "use cache: remote";
   cacheTag(playerStatsTag(playerId), ALL_STATS_TAG);
   cacheLife("hours");
@@ -201,13 +205,20 @@ export async function pitcherYears(playerId: number): Promise<PitcherYear[]> {
   const params = { playerId };
   const [box, pitches] = await Promise.all([
     readRows<BoxRow>(YEARS_BOX_QUERY, params),
-    readRows<PitchRow>(YEARS_PITCHES_QUERY, params),
+    readRows<YearPitchRow>(YEARS_PITCHES_QUERY, params),
   ]);
 
-  return box.map((line) => ({
-    season: line.season,
-    stats: toPitchingStats({ ...NO_PITCHING, ...line, ...pitches.find((p) => p.season === line.season) }),
+  const seasons = box.map((line) => ({
+    ...NO_PITCHING,
+    fastballs: 0,
+    ...line,
+    ...pitches.find((p) => p.season === line.season),
   }));
+
+  return {
+    years: seasons.map((totals) => ({ season: totals.season, stats: toPitchingStats(totals) })),
+    career: toPitchingStats(careerPitching(seasons)),
+  };
 }
 
 export async function pitcherArsenal(playerId: number, season: number): Promise<ArsenalEntry[]> {
