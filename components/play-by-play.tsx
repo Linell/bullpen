@@ -135,16 +135,17 @@ export function PlayByPlay({
   season,
 }: Sides & { halfInnings: HalfInning[] }) {
   return (
-    <section className="flex flex-col gap-6">
+    <section aria-labelledby="play-by-play" className="flex flex-col gap-6">
+      <h2 id="play-by-play">Play by play</h2>
       {halfInnings.map((h) => (
         <Card key={`${h.inning}-${h.half}`} size="sm">
           <CardContent className="flex flex-col gap-3">
-            <h2 className="flex items-baseline justify-between gap-2">
+            <h3 className="flex items-baseline justify-between gap-2">
               {halfInningLabel(h.inning, h.half)}
               <span className="truncate text-sm font-base opacity-70">
                 {(h.half === "top" ? away : home).name}
               </span>
-            </h2>
+            </h3>
             <ol>
               {h.plateAppearances.map((pa) => (
                 <Fragment key={pa.atBatIndex}>
