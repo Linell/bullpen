@@ -6,6 +6,7 @@ import type { Team } from "@/lib/scoreboard";
 import { cn } from "@/lib/utils";
 
 const cell = "text-center tabular-nums";
+const inningCell = cn(cell, "w-8 min-w-8");
 const teamCell = "sticky left-0 bg-background";
 
 function LineRow({ team, line }: { team: Team; line: LinescoreLine }) {
@@ -15,7 +16,7 @@ function LineRow({ team, line }: { team: Team; line: LinescoreLine }) {
         {team.abbreviation}
       </TableHead>
       {line.innings.map((runs, i) => (
-        <TableCell key={i} className={cell}>
+        <TableCell key={i} className={inningCell}>
           {runs}
         </TableCell>
       ))}
@@ -46,7 +47,7 @@ export function LinescoreTable({
                 <span className="sr-only">Team</span>
               </TableHead>
               {linescore.innings.map((inning) => (
-                <TableHead key={inning} scope="col" className={cell}>
+                <TableHead key={inning} scope="col" className={inningCell}>
                   {inning}
                 </TableHead>
               ))}
