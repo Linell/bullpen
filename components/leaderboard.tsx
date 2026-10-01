@@ -16,7 +16,7 @@ type RankedPlayerProps = { index: number; player: PlayerRef; role: PlayerRole; s
 function RankedPlayer({ index, player, role, season }: RankedPlayerProps) {
   return (
     <>
-      <span className="mr-2 opacity-70">{index + 1}</span>
+      <span className="mr-2 inline-block w-7 text-right tabular-nums opacity-70">{index + 1}</span>
       <PlayerLink playerId={player.id} role={role} season={season}>
         {player.name}
       </PlayerLink>
