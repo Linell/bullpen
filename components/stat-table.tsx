@@ -66,13 +66,14 @@ export function StatGrid<Row>({ rowLabel, rows, rowKey, rowName, columns, isHigh
 
 export function StatTable<Row>({
   title,
+  heading: Heading = "h3",
   className,
   ...grid
-}: StatGridProps<Row> & { title: string; className?: string }) {
+}: StatGridProps<Row> & { title: string; heading?: "h2" | "h3"; className?: string }) {
   return (
     <Card size="sm" className={cn("min-w-0", className)}>
       <CardContent className="flex flex-col gap-3">
-        <h3>{title}</h3>
+        <Heading>{title}</Heading>
         <StatGrid {...grid} />
       </CardContent>
     </Card>

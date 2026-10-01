@@ -74,6 +74,7 @@ export function EventBoard({
 }) {
   return (
     <StatTable
+      heading="h2"
       title={title}
       rowLabel="Player"
       rows={leaders}
@@ -98,6 +99,7 @@ const HITTING_COLUMNS: StatColumn<HittingLeader>[] = [
 export function HittingBoard({ leaders, season }: { leaders: HittingLeader[]; season: number }) {
   return (
     <StatTable
+      heading="h2"
       title="Hitting"
       rowLabel="Player"
       rows={leaders}
@@ -120,6 +122,7 @@ const PITCHING_COLUMNS: StatColumn<PitchingLeader>[] = [
 export function PitchingBoard({ leaders, season }: { leaders: PitchingLeader[]; season: number }) {
   return (
     <StatTable
+      heading="h2"
       title="Pitching"
       rowLabel="Player"
       rows={leaders}
@@ -140,6 +143,7 @@ const BARREL_COLUMNS: StatColumn<BarrelLeader>[] = [
 export function BarrelBoard({ leaders, season }: { leaders: BarrelLeader[]; season: number }) {
   return (
     <StatTable
+      heading="h2"
       title="Barrel rate"
       rowLabel="Player"
       rows={leaders}
@@ -160,6 +164,7 @@ const WHIFF_COLUMNS: StatColumn<WhiffLeader>[] = [
 export function WhiffBoard({ leaders, season }: { leaders: WhiffLeader[]; season: number }) {
   return (
     <StatTable
+      heading="h2"
       title="Whiff rate"
       rowLabel="Player"
       rows={leaders}
