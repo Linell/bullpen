@@ -107,7 +107,11 @@ export function GameCard({ game, latestPlay }: { game: Game; latestPlay?: LivePl
             )}
             {game.doubleHeader && <Badge variant="neutral">Game {game.gameNumber}</Badge>}
           </div>
-          {game.series && <span className="truncate text-xs opacity-70">{seriesGameLabel(game.series)}</span>}
+          {game.series && (
+            <span className="min-w-0 text-right text-xs opacity-70">
+              {[seriesGameLabel(game.series), game.series.result].filter(Boolean).join(" · ")}
+            </span>
+          )}
         </div>
         <div className="flex flex-col gap-3">
           <TeamRow
@@ -123,7 +127,6 @@ export function GameCard({ game, latestPlay }: { game: Game; latestPlay?: LivePl
             showProbable={isScheduled}
           />
         </div>
-        {game.series?.result && <span className="text-xs font-heading">Series: {game.series.result}</span>}
         {atBat && <AtBat atBat={atBat} season={game.season} />}
         {latestPlay && (
           <p
