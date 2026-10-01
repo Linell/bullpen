@@ -15,7 +15,7 @@ export async function generateMetadata(props: PageProps<"/teams/[teamId]/[[...se
 
 export default function TeamSeasonPage({ params }: PageProps<"/teams/[teamId]/[[...season]]">) {
   return (
-    <PageMain>
+    <PageMain className="@container">
       <TeamPage team={loadFromParams({ params })} />
     </PageMain>
   );
