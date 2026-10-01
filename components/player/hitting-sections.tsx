@@ -38,11 +38,11 @@ const gameLogColumns: StatColumn<HitterGameLogEntry>[] = [
 
 const yearColumns: StatColumn<BattingStats>[] = [
   { label: "PA", value: (s) => formatCount(s.plateAppearances) },
+  { label: "HR", value: (s) => formatCount(s.homeRuns) },
   { label: "AVG", value: (s) => formatAverage(s.avg) },
   { label: "OBP", value: (s) => formatAverage(s.obp) },
   { label: "SLG", value: (s) => formatAverage(s.slg) },
   { label: "OPS", value: (s) => formatAverage(s.ops) },
-  { label: "HR", value: (s) => formatCount(s.homeRuns) },
   { label: "K%", value: (s) => formatPercent(s.strikeoutRate) },
   { label: "BB%", value: (s) => formatPercent(s.walkRate) },
 ];
