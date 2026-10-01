@@ -36,7 +36,7 @@ export function ScoringAlert({ runs, teams }: { runs: Runs; teams: Record<Scorin
 
   return (
     <>
-      {alert.phase === "flash" && <span aria-hidden className="scoring-flash" />}
+      {alert.phase === "flash" && <span aria-hidden className="pointer-events-none absolute -inset-0.5 rounded-base animate-score" />}
       <span
         role="status"
         className="absolute -top-3 right-3 z-10 rounded-base border-2 border-border bg-chart-3 px-2 text-xs font-heading text-main-foreground motion-safe:animate-in motion-safe:zoom-in-50"

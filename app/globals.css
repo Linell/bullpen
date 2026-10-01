@@ -20,6 +20,9 @@
     --spacing-reverseBoxShadowX: -4px;
     --spacing-reverseBoxShadowY: -4px;
     --spacing-liveShadow: 6px;
+    --ease-snap: cubic-bezier(0.2, 0, 0, 1);
+    --default-transition-duration: 150ms;
+    --default-transition-timing-function: var(--ease-snap);
 }
 
 @theme inline {
@@ -49,7 +52,7 @@
     --animate-marquee: marquee 5s linear infinite;
     --animate-marquee2: marquee2 5s linear infinite;
     --animate-pop: pop 600ms ease-out;
-    --animate-scoring-sweep: scoring-sweep 1.2s linear infinite;
+    --animate-score: score 900ms linear 4;
     --color-chart-active-dot: var(--chart-active-dot);
     --shadow: var(--shadow);
   @keyframes marquee {
@@ -72,9 +75,19 @@
     transform: scale(1);
         }
     }
-  @keyframes scoring-sweep {
-  to {
-    --scoring-angle: 360deg;
+  /* Hard-edged live shadow cycling through the chart hues. */
+  @keyframes score {
+  0%, 100% {
+    box-shadow: var(--spacing-liveShadow) var(--spacing-liveShadow) 0 0 var(--chart-3);
+        }
+  25% {
+    box-shadow: var(--spacing-liveShadow) var(--spacing-liveShadow) 0 0 var(--chart-2);
+        }
+  50% {
+    box-shadow: var(--spacing-liveShadow) var(--spacing-liveShadow) 0 0 var(--chart-5);
+        }
+  75% {
+    box-shadow: var(--spacing-liveShadow) var(--spacing-liveShadow) 0 0 var(--chart-4);
         }
     }
   @keyframes marquee2 {
@@ -185,25 +198,9 @@
     }
 }
 
-@property --scoring-angle {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
-}
-
-.scoring-flash {
-  position: absolute;
-  inset: -8px;
-  padding: 5px;
-  border-radius: calc(var(--radius-base) + 6px);
-  pointer-events: none;
-  background: conic-gradient(from var(--scoring-angle), var(--chart-3), var(--chart-2), var(--chart-5), var(--chart-4), var(--chart-3));
-  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-  animation: var(--animate-scoring-sweep);
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .scoring-flash {
+  .animate-score {
     animation: none;
+    box-shadow: var(--spacing-liveShadow) var(--spacing-liveShadow) 0 0 var(--chart-3);
   }
 }
