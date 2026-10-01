@@ -70,7 +70,10 @@ function TeamRow({
         )}
       </div>
       {side.score !== undefined && (
-        <Pop value={side.score} className="text-2xl font-heading tabular-nums">{side.score}</Pop>
+        <Pop value={side.score} className="text-2xl font-heading tabular-nums">
+          <span className="sr-only">{side.team.name} </span>
+          {side.score}
+        </Pop>
       )}
     </div>
   );
