@@ -94,12 +94,12 @@ describe("getBoxScore", () => {
     expect(box?.away.batting).toEqual([]);
   });
 
-  it("lists pitchers in appearance order with innings and decisions", async () => {
+  it("lists pitchers in appearance order with outs and decisions", async () => {
     const box = await getBoxScore(FINAL);
 
-    expect(box?.away.pitching.map((l) => [l.player.name, l.innings, l.decision])).toEqual([
-      ["Starter, D", "6.1", "L"],
-      ["Closer, E", "1.1", "S"],
+    expect(box?.away.pitching.map((l) => [l.player.name, l.outs, l.decision])).toEqual([
+      ["Starter, D", 19, "L"],
+      ["Closer, E", 4, "S"],
     ]);
     expect(box?.away.pitching[0]).toMatchObject({ hits: 6, runs: 5, earnedRuns: 4, strikeouts: 7, homeRuns: 1, pitches: 98 });
   });

@@ -1,16 +1,20 @@
 import { PlayerLink } from "@/components/player-link";
 import { Abbr } from "@/components/ui/abbr";
 import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { BattingLine, BoxScore as BoxScoreData, PitchingLine, TeamBoxScore } from "@/lib/box-score";
+import { formatInnings } from "@/lib/format";
 import type { GlossaryTerm } from "@/lib/glossary";
 import type { Team } from "@/lib/scoreboard";
 import { cn } from "@/lib/utils";
 
 const cell = "text-right tabular-nums";
 const nameCell = "text-left font-base";
+const rowHeader = "sticky left-0 bg-background text-left font-heading whitespace-nowrap";
 
-const BATTING_COLUMNS: { term: GlossaryTerm; value: (line: BattingLine) => number }[] = [
+type Column<Line> = { term: GlossaryTerm; value: (line: Line) => number; format?: (total: number) => string };
+
+const BATTING_COLUMNS: Column<BattingLine>[] = [
   { term: "AB", value: (l) => l.atBats },
   { term: "R", value: (l) => l.runs },
   { term: "H", value: (l) => l.hits },
@@ -19,8 +23,8 @@ const BATTING_COLUMNS: { term: GlossaryTerm; value: (line: BattingLine) => numbe
   { term: "K", value: (l) => l.strikeouts },
 ];
 
-const PITCHING_COLUMNS: { term: GlossaryTerm; value: (line: PitchingLine) => number | string }[] = [
-  { term: "IP", value: (l) => l.innings },
+const PITCHING_COLUMNS: Column<PitchingLine>[] = [
+  { term: "IP", value: (l) => l.outs, format: (outs) => formatInnings(outs / 3) },
   { term: "H", value: (l) => l.hits },
   { term: "R", value: (l) => l.runs },
   { term: "ER", value: (l) => l.earnedRuns },
@@ -30,13 +34,44 @@ const PITCHING_COLUMNS: { term: GlossaryTerm; value: (line: PitchingLine) => num
   { term: "NP", value: (l) => l.pitches },
 ];
 
+function TotalsFooter<Line>({
+  columns,
+  lines,
+  leadingCells = 0,
+}: {
+  columns: Column<Line>[];
+  lines: Line[];
+  leadingCells?: number;
+}) {
+  return (
+    <TableFooter>
+      <TableRow>
+        <TableHead scope="row" className={rowHeader}>
+          Totals
+        </TableHead>
+        {Array.from({ length: leadingCells }, (_, i) => (
+          <TableCell key={i} />
+        ))}
+        {columns.map(({ term, value, format }) => {
+          const total = lines.reduce((sum, line) => sum + value(line), 0);
+          return (
+            <TableCell key={term} className={cn(cell, "font-heading")}>
+              {format ? format(total) : total}
+            </TableCell>
+          );
+        })}
+      </TableRow>
+    </TableFooter>
+  );
+}
+
 function BattingTable({ team, lines, season }: { team: Team; lines: BattingLine[]; season: number }) {
   return (
     <Table>
       <TableCaption className="sr-only">{team.name} batting</TableCaption>
       <TableHeader>
         <TableRow className="text-xs">
-          <TableHead scope="col" className={nameCell}>Batters</TableHead>
+          <TableHead scope="col" className={rowHeader}>Batters</TableHead>
           <TableHead scope="col" className={nameCell}>
             <Abbr term="Pos" />
           </TableHead>
@@ -50,7 +85,7 @@ function BattingTable({ team, lines, season }: { team: Team; lines: BattingLine[
       <TableBody>
         {lines.map((line) => (
           <TableRow key={line.player.id}>
-            <TableHead scope="row" className={cn(nameCell, line.isSubstitute && "pl-5")}>
+            <TableHead scope="row" className={cn(rowHeader, line.isSubstitute && "pl-5")}>
               <PlayerLink playerId={line.player.id} role="hitting" season={season}>
                 {line.player.name}
               </PlayerLink>
@@ -64,6 +99,7 @@ function BattingTable({ team, lines, season }: { team: Team; lines: BattingLine[
           </TableRow>
         ))}
       </TableBody>
+      <TotalsFooter columns={BATTING_COLUMNS} lines={lines} leadingCells={1} />
     </Table>
   );
 }
@@ -74,7 +110,7 @@ function PitchingTable({ team, lines, season }: { team: Team; lines: PitchingLin
       <TableCaption className="sr-only">{team.name} pitching</TableCaption>
       <TableHeader>
         <TableRow className="text-xs">
-          <TableHead scope="col" className={nameCell}>Pitchers</TableHead>
+          <TableHead scope="col" className={rowHeader}>Pitchers</TableHead>
           {PITCHING_COLUMNS.map(({ term }) => (
             <TableHead key={term} scope="col" className={cell}>
               <Abbr term={term} />
@@ -85,20 +121,21 @@ function PitchingTable({ team, lines, season }: { team: Team; lines: PitchingLin
       <TableBody>
         {lines.map((line) => (
           <TableRow key={line.player.id}>
-            <TableHead scope="row" className={nameCell}>
+            <TableHead scope="row" className={rowHeader}>
               <PlayerLink playerId={line.player.id} role="pitching" season={season}>
                 {line.player.name}
               </PlayerLink>
               {line.decision && <span className="text-xs opacity-70"> ({line.decision})</span>}
             </TableHead>
-            {PITCHING_COLUMNS.map(({ term, value }) => (
+            {PITCHING_COLUMNS.map(({ term, value, format }) => (
               <TableCell key={term} className={cell}>
-                {value(line)}
+                {format ? format(value(line)) : value(line)}
               </TableCell>
             ))}
           </TableRow>
         ))}
       </TableBody>
+      <TotalsFooter columns={PITCHING_COLUMNS} lines={lines} />
     </Table>
   );
 }

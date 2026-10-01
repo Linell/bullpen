@@ -2,7 +2,6 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { readRows } from "@/lib/db";
 import { ALL_GAMES_TAG, gameTag, teamTag } from "@/lib/cache-tags";
-import { formatInnings } from "@/lib/format";
 import type { PlayerRef } from "@/lib/player-ref";
 import { isCompleted } from "@/lib/schedule";
 
@@ -22,7 +21,7 @@ export type BattingLine = {
 
 export type PitchingLine = {
   player: PlayerRef;
-  innings: string;
+  outs: number;
   hits: number;
   runs: number;
   earnedRuns: number;
@@ -138,7 +137,7 @@ function toDecision(row: PitchingRow): Decision | undefined {
 function toPitchingLine(row: PitchingRow): PitchingLine {
   return {
     player: { id: row.player_id, name: row.name },
-    innings: formatInnings(row.outs / 3),
+    outs: row.outs,
     hits: row.hits,
     runs: row.runs,
     earnedRuns: row.earned_runs,
