@@ -39,10 +39,11 @@ function AccordionItem({
 function AccordionTrigger({
   className,
   children,
+  heading: Heading = "h3",
   ...props
-}: React.ComponentProps<typeof AccordionPrimitive.Trigger>) {
+}: React.ComponentProps<typeof AccordionPrimitive.Trigger> & { heading?: "h2" | "h3" }) {
   return (
-    <AccordionPrimitive.Header className="flex">
+    <AccordionPrimitive.Header className="flex" render={<Heading />}>
       <AccordionPrimitive.Trigger
         data-slot="accordion-trigger"
         className={cn(
