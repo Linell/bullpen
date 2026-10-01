@@ -25,7 +25,7 @@ export function RoleTabs({ playerId, seasons }: { playerId: number; seasons: Rec
   }
 
   return (
-    <nav aria-label="Role" className="flex overflow-hidden rounded-base border-2 border-border">
+    <nav aria-label="Role" className="flex overflow-hidden rounded-base border-2 border-border shadow-shadow">
       {tabs.map(({ role, label }) => (
         <Link
           key={role}

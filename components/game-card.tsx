@@ -86,10 +86,10 @@ export function GameCard({ game, latestPlay }: { game: Game; latestPlay?: LivePl
     <Card
       size="sm"
       className={cn(
-        "relative h-full transition-all hover:shadow-none",
+        "relative h-full transition-all hover:shadow-none active:shadow-none",
         status.state === "live"
-          ? "shadow-live hover:translate-x-liveShadow hover:translate-y-liveShadow"
-          : "hover:translate-x-boxShadowX hover:translate-y-boxShadowY",
+          ? "shadow-live hover:translate-x-liveShadow hover:translate-y-liveShadow active:translate-x-liveShadow active:translate-y-liveShadow"
+          : "hover:translate-x-boxShadowX hover:translate-y-boxShadowY active:translate-x-boxShadowX active:translate-y-boxShadowY",
       )}
     >
       <CardContent className="flex flex-col gap-4">

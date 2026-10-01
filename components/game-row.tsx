@@ -25,7 +25,7 @@ export function GameRow({ game }: { game: Game }) {
   const isFinal = status.state === "final";
 
   return (
-    <Card className="relative gap-1 px-3 py-2 text-sm transition-all hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none">
+    <Card className="relative gap-1 px-3 py-2 text-sm transition-all hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none active:translate-x-boxShadowX active:translate-y-boxShadowY active:shadow-none">
       <div className="flex items-center gap-3">
         <StatusBadge game={game} />
         <span className="flex shrink-0 items-baseline gap-2 font-heading">

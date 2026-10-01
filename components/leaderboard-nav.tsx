@@ -10,7 +10,7 @@ function OptionLink({ href, isSelected, children }: { href: string; isSelected: 
       href={href}
       scroll={false}
       aria-current={isSelected ? "page" : undefined}
-      className={buttonVariants({ variant: isSelected ? "noShadow" : "neutral", size: "xs" })}
+      className={buttonVariants({ variant: isSelected ? "pressed" : "neutral", size: "xs" })}
     >
       {children}
     </Link>

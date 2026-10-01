@@ -32,7 +32,7 @@ export function SeasonSwitcher({
           prefetch={s === older || s === newer}
           scroll={false}
           aria-current={s === season ? "page" : undefined}
-          className={buttonVariants({ variant: s === season ? "noShadow" : "neutral", size: "xs" })}
+          className={buttonVariants({ variant: s === season ? "pressed" : "neutral", size: "xs" })}
         >
           {s}
         </Link>
