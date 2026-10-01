@@ -8,7 +8,7 @@ const BASES = [
 ];
 
 const SIZES = {
-  sm: { root: "gap-1.5", svg: "h-4.5 w-6", outs: "gap-0.5", out: "size-1.5 border" },
+  sm: { root: "gap-1.5", svg: "h-4.5 w-6", outs: "gap-0.5", out: "size-2 border-2" },
   lg: { root: "gap-3", svg: "h-9 w-12", outs: "gap-1", out: "size-3 border-2" },
 };
 

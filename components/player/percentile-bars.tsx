@@ -36,7 +36,7 @@ export function PercentileBars({ groups, qualifier }: { groups?: PercentileGroup
           <div className="grid gap-6 lg:grid-cols-3">
             {groups.map((group) => (
               <section key={group.title} className="flex flex-col gap-3">
-                <h3 className="text-xs uppercase opacity-70">{group.title}</h3>
+                <h3 className="text-xs opacity-70">{group.title}</h3>
                 {group.bars.map((bar) => (
                   <PercentileRow key={bar.key} bar={bar} />
                 ))}
@@ -55,7 +55,7 @@ function PercentileRow({ bar }: { bar: PercentileBar }) {
   return (
     <div className="grid grid-cols-[5.5rem_1fr_3.5rem] items-center gap-3 text-sm">
       <span>{bar.label}</span>
-      <div className="relative mx-3.5 h-2 rounded-full border border-border bg-secondary-background">
+      <div className="relative mx-3.5 h-3 rounded-full border-2 border-border bg-secondary-background">
         {bar.percentile !== null && (
           <>
             <div

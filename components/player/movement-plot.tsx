@@ -55,7 +55,7 @@ function MovementTooltip({ point }: { point?: MovementPoint }) {
   if (!point) return null;
 
   return (
-    <div className="grid min-w-32 gap-1 rounded-lg border-2 border-border bg-secondary-background px-2.5 py-1.5 text-xs shadow-xl">
+    <div className="grid min-w-32 gap-1 rounded-base border-2 border-border bg-secondary-background px-2.5 py-1.5 text-xs shadow-shadow">
       <div className="font-heading">
         {point.name}
         {point.isLeague && " (league avg)"}

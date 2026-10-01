@@ -193,7 +193,7 @@ function ChartTooltipContent({
   return (
     <div
       className={cn(
-        "border-border bg-secondary-background grid min-w-[8rem] items-start gap-1.5 rounded-lg border-2 px-2.5 py-1.5 text-xs shadow-xl",
+        "border-border bg-secondary-background grid min-w-[8rem] items-start gap-1.5 rounded-base border-2 px-2.5 py-1.5 text-xs shadow-shadow",
         className,
       )}
     >
@@ -224,7 +224,7 @@ function ChartTooltipContent({
                       !hideIndicator && (
                         <div
                           className={cn(
-                            "shrink-0 rounded-[2px] bg-(--color-bg)",
+                            "shrink-0 rounded-base bg-(--color-bg)",
                             {
                               "size-3.5 border border-border":
                                 indicator === "dot",
@@ -258,7 +258,7 @@ function ChartTooltipContent({
                         </span>
                       </div>
                       {item.value != null && (
-                        <span className="font-mono font-medium text-foreground tabular-nums">
+                        <span className="font-heading text-foreground tabular-nums">
                           {typeof item.value === "number"
                             ? item.value.toLocaleString()
                             : String(item.value)}
@@ -318,7 +318,7 @@ function ChartLegendContent({
                 <itemConfig.icon />
               ) : (
                 <div
-                  className="h-3 w-3 shrink-0 rounded-[2px] border-2 border-border"
+                  className="h-3 w-3 shrink-0 rounded-base border-2 border-border"
                   style={{
                     backgroundColor: item.color,
                   }}

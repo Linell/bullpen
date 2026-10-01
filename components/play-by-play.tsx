@@ -27,7 +27,7 @@ function PitchDot({ pitch }: { pitch: Pitch }) {
   return (
     <span
       aria-hidden
-      className={cn("grid size-5 shrink-0 place-items-center rounded-full border-2 border-border font-heading text-[11px] text-main-foreground", RESULT_BG[pitch.result])}
+      className={cn("grid size-5 shrink-0 place-items-center rounded-full border-2 border-border font-heading text-xs text-main-foreground", RESULT_BG[pitch.result])}
     >
       {pitch.number}
     </span>
