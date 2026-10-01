@@ -35,9 +35,10 @@ export async function Scoreboard({ date, isToday = false }: { date: string; isTo
   );
 }
 
-export function ScoreboardSkeleton() {
+export function ScoreboardSkeleton({ title = "Scores" }: { title?: string }) {
   return (
     <>
+      <h1 className="sr-only">{title}</h1>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Skeleton className="h-10 w-56" />
         <Skeleton className="h-8 w-44" />

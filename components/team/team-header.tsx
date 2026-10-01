@@ -50,6 +50,7 @@ export function TeamHeaderSkeleton() {
   return (
     <Card>
       <CardContent className="flex flex-col gap-4">
+        <h1 className="sr-only">Team</h1>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <div className="flex flex-col gap-2">
             <Skeleton className="h-10 w-64" />

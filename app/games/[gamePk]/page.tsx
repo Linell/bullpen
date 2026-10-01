@@ -123,6 +123,7 @@ async function GameBoxScore({
 function GameFallback() {
   return (
     <>
+      <h1 className="sr-only">Game</h1>
       <GameHeaderSkeleton />
       <CardSkeleton className="h-24" />
       <CardSkeleton className="h-64" />

@@ -62,6 +62,7 @@ export function PlayerHeaderSkeleton() {
   return (
     <Card>
       <CardContent className="flex flex-col gap-4">
+        <h1 className="sr-only">Player</h1>
         <div className="flex flex-col gap-2">
           <Skeleton className="h-10 w-64" />
           <Skeleton className="h-4 w-40" />
