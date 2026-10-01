@@ -6,6 +6,7 @@ import type { StandingsRow } from "@/lib/team-summary";
 import { cn } from "@/lib/utils";
 
 export const cell = "text-right tabular-nums";
+export const teamCell = "sticky left-0 bg-inherit whitespace-nowrap";
 
 export function formatPct(pct: number) {
   return pct.toFixed(3).replace(/^0/, "");
@@ -36,7 +37,9 @@ export function DivisionStandings({
           <TableCaption className="sr-only">{title} standings</TableCaption>
           <TableHeader>
             <TableRow className="text-xs">
-              <TableHead scope="col">Team</TableHead>
+              <TableHead scope="col" className={teamCell}>
+                Team
+              </TableHead>
               <TableHead scope="col" className={cell}>
                 <Abbr term="W" />
               </TableHead>
@@ -54,7 +57,7 @@ export function DivisionStandings({
           <TableBody>
             {standings.map((row) => (
               <TableRow key={row.team.id} data-state={row.team.id === teamId ? "selected" : undefined}>
-                <TableHead scope="row" className={cn(row.team.id === teamId && "text-main-foreground")}>
+                <TableHead scope="row" className={cn(teamCell, row.team.id === teamId && "text-main-foreground")}>
                   <TeamLink teamId={row.team.id}>{row.team.name}</TeamLink>
                 </TableHead>
                 <TableCell className={cell}>{row.wins}</TableCell>

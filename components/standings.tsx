@@ -1,11 +1,7 @@
 import { Suspense, useId } from "react";
 import { SeasonSwitcher } from "@/components/season-switcher";
 import { TeamLink } from "@/components/team/team-link";
-import {
-  cell,
-  formatGamesBack,
-  formatPct,
-} from "@/components/team/division-standings";
+import { cell, formatGamesBack, formatPct, teamCell } from "@/components/team/division-standings";
 import { Abbr } from "@/components/ui/abbr";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -49,7 +45,9 @@ function StandingsCard({
           <TableCaption className="sr-only">{title} standings</TableCaption>
           <TableHeader>
             <TableRow className="text-xs">
-              <TableHead scope="col">Team</TableHead>
+              <TableHead scope="col" className={teamCell}>
+                Team
+              </TableHead>
               {columns.map((term) => (
                 <TableHead key={term} scope="col" className={cell}>
                   <Abbr term={term} />
@@ -60,7 +58,7 @@ function StandingsCard({
           <TableBody>
             {teams.map((row, i) => (
               <TableRow key={row.team.id} className={cn(i + 1 === cutoff && i + 1 < teams.length && "border-b-4")}>
-                <TableHead scope="row">
+                <TableHead scope="row" className={teamCell}>
                   <TeamLink teamId={row.team.id} season={linkSeason}>{row.team.name}</TeamLink>
                 </TableHead>
                 <TableCell className={cell}>{row.wins}</TableCell>
