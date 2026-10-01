@@ -12,7 +12,7 @@ export default function Home() {
           <TodayScoreboard />
         </Suspense>
       </div>
-      <aside>
+      <aside aria-label="Today's leaders">
         <Suspense fallback={<DailyLeadersSkeleton />}>
           <TodayLeaders />
         </Suspense>

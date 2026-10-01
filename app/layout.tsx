@@ -31,9 +31,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <SiteHeader />
         {children}
         <footer className="mx-auto w-full max-w-(--breakpoint-2xl) px-6 py-6 text-sm opacity-70">
-          <Link href="/glossary" className="hover:underline">
-            Glossary
-          </Link>
+          <nav aria-label="Footer">
+            <Link href="/glossary" className="hover:underline">
+              Glossary
+            </Link>
+          </nav>
         </footer>
       </body>
     </html>
