@@ -120,7 +120,7 @@ describe("getStandings", () => {
     expect(american.divisions[0].teams.map((r) => r.team.abbreviation)).toEqual(["BOS", "NYY", "TOR", "BAL"]);
   });
 
-  it("fills the wild card with the best non-leaders, measured from the last spot", async () => {
+  it("ranks every non-leader for the wild card, measured from the last spot", async () => {
     const [american, national] = await getStandings(2026);
 
     expect(american.wildCard.map((r) => [r.team.abbreviation, r.gamesBack])).toEqual([

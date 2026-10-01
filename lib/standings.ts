@@ -39,7 +39,7 @@ type StandingsQueryRow = TeamRow &
   };
 
 const LAST_GAMES = 10;
-const WILD_CARD_SPOTS = 3;
+export const WILD_CARD_SPOTS = 3;
 
 const SEASONS_QUERY = `SELECT DISTINCT season FROM games ORDER BY season DESC`;
 
@@ -98,10 +98,8 @@ function groupBy<T>(items: T[], key: (item: T) => string | number) {
 
 function toLeague(rows: StandingsQueryRow[]): LeagueStandings {
   const divisionRows = groupBy(rows, (row) => row.division_id).map((division) => division.sort(byRecord));
-  const wildCardRows = divisionRows
-    .flatMap((division) => division.slice(1))
-    .sort(byRecord)
-    .slice(0, WILD_CARD_SPOTS);
+  const wildCardRows = divisionRows.flatMap((division) => division.slice(1)).sort(byRecord);
+  const lastSpot = wildCardRows[Math.min(WILD_CARD_SPOTS, wildCardRows.length) - 1];
   return {
     name: rows[0].league_name!,
     divisions: divisionRows
@@ -111,7 +109,7 @@ function toLeague(rows: StandingsQueryRow[]): LeagueStandings {
         teams: toStandings(division, division[0]),
       }))
       .sort((a, b) => a.name.localeCompare(b.name)),
-    wildCard: toStandings(wildCardRows, wildCardRows.at(-1) ?? { wins: 0, losses: 0 }),
+    wildCard: toStandings(wildCardRows, lastSpot ?? { wins: 0, losses: 0 }),
   };
 }
 

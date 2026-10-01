@@ -65,6 +65,7 @@ export const GLOSSARY = {
   Usage: "Share of all pitches that were this type.",
   Velo: "Average speed of this pitch, in mph.",
   W: "Wins; for a pitcher, credited with the team's win.",
+  WCGB: "Wild card games back: how far a team trails the last wild card spot; + means it holds a spot by that many games.",
   WHIP: "Walks plus hits per inning pitched.",
   "Whiff%": "Swings and misses per swing.",
   X: "Extra innings.",

@@ -12,15 +12,34 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { standingsPath } from "@/lib/routes";
 import { resolveSeason } from "@/lib/season";
-import { getStandings, getStandingsSeasons, type LeagueStandings, type TeamStanding } from "@/lib/standings";
-
-const COLUMNS = ["W", "L", "Pct", "GB", "L10", "Strk", "Diff"] as const;
+import {
+  getStandings,
+  getStandingsSeasons,
+  WILD_CARD_SPOTS,
+  type LeagueStandings,
+  type TeamStanding,
+} from "@/lib/standings";
+import { cn } from "@/lib/utils";
 
 function formatDiff(runDiff: number) {
   return runDiff > 0 ? `+${runDiff}` : String(runDiff);
 }
 
-function StandingsCard({ title, linkSeason, teams }: { title: string; linkSeason?: number; teams: TeamStanding[] }) {
+function StandingsCard({
+  title,
+  linkSeason,
+  teams,
+  gamesBack = "GB",
+  cutoff,
+}: {
+  title: string;
+  linkSeason?: number;
+  teams: TeamStanding[];
+  gamesBack?: "GB" | "WCGB";
+  cutoff?: number;
+}) {
+  const columns = ["W", "L", "Pct", gamesBack, "L10", "Strk", "Diff"] as const;
+
   return (
     <Card size="sm">
       <CardContent className="flex flex-col gap-3">
@@ -30,7 +49,7 @@ function StandingsCard({ title, linkSeason, teams }: { title: string; linkSeason
           <TableHeader>
             <TableRow className="text-xs">
               <TableHead scope="col">Team</TableHead>
-              {COLUMNS.map((term) => (
+              {columns.map((term) => (
                 <TableHead key={term} scope="col" className={cell}>
                   <Abbr term={term} />
                 </TableHead>
@@ -38,8 +57,8 @@ function StandingsCard({ title, linkSeason, teams }: { title: string; linkSeason
             </TableRow>
           </TableHeader>
           <TableBody>
-            {teams.map((row) => (
-              <TableRow key={row.team.id}>
+            {teams.map((row, i) => (
+              <TableRow key={row.team.id} className={cn(i + 1 === cutoff && i + 1 < teams.length && "border-b-4")}>
                 <TableHead scope="row">
                   <TeamLink teamId={row.team.id} season={linkSeason}>{row.team.name}</TeamLink>
                 </TableHead>
@@ -71,7 +90,13 @@ function Leagues({ leagues, linkSeason }: { leagues: LeagueStandings[]; linkSeas
           {league.divisions.map((division) => (
             <StandingsCard key={division.id} title={division.name} linkSeason={linkSeason} teams={division.teams} />
           ))}
-          <StandingsCard title="Wild Card" linkSeason={linkSeason} teams={league.wildCard} />
+          <StandingsCard
+            title="Wild Card"
+            linkSeason={linkSeason}
+            teams={league.wildCard}
+            gamesBack="WCGB"
+            cutoff={WILD_CARD_SPOTS}
+          />
         </section>
       ))}
     </div>
